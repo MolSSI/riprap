@@ -18,6 +18,47 @@ Check if other existing requirements files describe features that are relevant t
 
 Scan the relevant source directories to understand existing patterns and determine the project's existing language(s). Use the detected language(s) while executing this skill.
 
+## Current-State Framing
+
+Requirements files describe the **current desired state** of the code, not deltas relative
+to a prior state. The text should be Markovian: a reader who has never seen prior versions
+of the code or this document should be able to read it and understand exactly what the
+system should look like, without context about what existed before.
+
+**Avoid** delta language and historical framing:
+
+- "This feature adds…", "This feature delivers…", "This feature ships…"
+- "A new field X is added to Y", "Two new variants are appended", "We extend Z with…"
+- "The existing W is replaced by…", "We modify…", "We rewrite…"
+- Comparisons to prior code versions ("the legacy X", "previously…", "today's behaviour")
+- Cross-references that frame other requirements files as superseded or being superseded
+- Section titles like "Schema Changes" (just call it "Schema")
+
+**Prefer** flat, declarative descriptions of what the code looks like:
+
+- "X carries field Y", "Type X has variants A, B, C"
+- "The system has N components: …"
+- "Y is populated from Z at creation time"
+- "Field F controls W"
+- "Templates use this effect to install …"
+
+This applies to every section: feature description, schema, API, and any cross-references
+to other requirements files.
+
+**Migration content** belongs in a requirements file only when implementation of the
+feature is expected to deliberately leave certain things unmigrated. This situation
+should be avoided wherever possible — aim for hard cutovers that leave the codebase in a
+consistent state, not phased migrations that span multiple feature increments. If a
+Migration Notes section is genuinely warranted, it must explicitly describe the residual
+unmigrated state and justify why that state is intentional. A Migration Notes section
+that just lists which call sites the implementation will touch is **not** justified —
+that information lives in the implementation PR, not the requirements.
+
+When **modifying an existing requirements file**, rewrite affected sections so the file
+continues to describe the current desired state in flat, Markovian terms — do not append
+a "the X section is now updated to read…" or "previously X, now Y" delta. The result
+should look like a from-scratch description of the current intent.
+
 ## Example Requirements Files
 
 A complete example requirements file is available at `.claude/skills/plan-feature/bse.md`. Read this file.
@@ -115,12 +156,27 @@ Feature: Fetch basis set from Basis Set Exchange
 
 ## Other Sections
 
-Add any other sections that are useful for specifying the feature requirements, or for handling the implementation. These sections can optionally include Data Model, Performance Constraints, Security Considerations, Migration Notes, External API Details, etc.
+Add any other sections that are useful for specifying the feature requirements. Examples:
+Data Model, Performance Constraints, Security Considerations, External API Details,
+Out of Scope (deliberate non-goals).
+
+Do **not** include sections that describe transient implementation activity rather than
+the current desired state — for example: "Source-Code Rename Targets," "Documentation
+Changes" (listing other rqm files that need editing), or "Migration Notes" listing
+mechanical call-site updates. That information belongs in the implementation PR's
+description, not the requirements file. A Migration Notes section is only appropriate
+when the feature deliberately leaves residual state in the codebase that the requirements
+file must declare; see *Current-State Framing*.
 
 ## Traceability IDs
 
 Every requirements file uses stable opaque IDs (e.g. `rq-3a7f1c2e`) to tag headings, API items,
 and Gherkin scenarios. These IDs are managed by `.claude/skills/plan-feature/rqm.sh`.
+
+**Do not write placeholder IDs.** When drafting new requirements, leave all headings, API items,
+and Gherkin scenarios without any `rq-` annotation. Do not use `@rq-PENDING`,
+`<!-- rq-PENDING -->`, or any other placeholder form. The `stamp` command assigns real IDs
+automatically; placeholder text prevents it from doing so and must be cleaned up manually.
 
 **After writing or modifying any requirements file**, run these two commands in order:
 
