@@ -6,15 +6,51 @@ allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion, Write
 
 Do not start implementation. Focus only on planning and documentation. Do not write to anything except requirements file(s).
 
+## Right-size the documentation to the change
+
+The default action of this skill is to **modify an existing requirements file**, not
+to create a new one. New requirements files exist to describe features that are large
+or clearly distinct from anything already documented. Most invocations of this skill
+are tweaks, extensions, or behaviour changes to systems that are already described
+somewhere under `rqm/` — those go into the existing canonical file.
+
+Use this decision tree:
+
+1. **The change tweaks or extends behaviour described by an existing requirements
+   file.** Edit that file in place. Update only the sections affected by the change.
+   Match the size of the edit to the size of the change: a one-bullet revision is the
+   appropriate response to a one-bullet change. Do not create a new file. Do not author
+   a parallel "satellite" file that orbits the existing one.
+2. **The change spans multiple existing requirements files.** Edit each affected
+   file in place. A new file is appropriate only when the cross-cutting concern
+   itself warrants its own canonical reference (rare).
+3. **The change introduces a feature that is large and clearly distinct in scope
+   from anything described under `rqm/`.** Create a new file. The *Markdown File
+   Location*, *Feature API Section*, and *Gherkin Scenarios Section* guidance below
+   applies in full to this case.
+
+When in doubt between editing in place and creating a new file, prefer editing in
+place. A trivial change should produce a trivial diff.
+
 ## Examine the Codebase
 
 Read CLAUDE.md, as well as any architecture or design documents referenced by CLAUDE.md.
 
-Check if there is already a requirements file corresponding to the feature in question.  If the user's prompt already appears to be satisfied by an existing requirements file, report this and stop execution of this skill.
+Identify whether the requested change is already covered by, partially covered by, or
+adjacent to an existing requirements file. The most common outcome is that an
+existing file describes the system the change touches even when no existing file is
+named after the change itself; finding that file is part of this step. Use this
+result with the *Right-size the documentation to the change* decision tree:
 
-If the user's prompt is at least partially different from the existing requirements file, continue executing the skill, but focus on clarifying any required modifications to the existing file. Write any modifications to the existing file.
+- If an existing file already fully describes the requested behaviour, report this
+  and stop execution of this skill.
+- If an existing file partially describes the behaviour, the change goes in that
+  file. Edit it in place.
+- If the change is large and clearly distinct from anything described under `rqm/`,
+  draft a new requirements file.
 
-Check if other existing requirements files describe features that are relevant to the user's prompt.
+Check if other existing requirements files describe adjacent features that may need
+to be cross-referenced.
 
 Scan the relevant source directories to understand existing patterns and determine the project's existing language(s). Use the detected language(s) while executing this skill.
 
@@ -73,13 +109,26 @@ Use the AskUserQuestion tool to ask the user clarifying questions regarding the 
 
 ## Markdown File Location
 
-Create a requirements markdown file in the `rqm` directory.  The file name should be brief and descriptive of the feature.  The file should begin with a clear description of the feature.
+This section applies when *Right-size the documentation to the change* selected the
+new-file path. For in-place edits to existing files, the file's existing location is
+the answer.
+
+Place the new requirements markdown file in the `rqm` directory. The file name
+should be brief and descriptive of the feature. The file should begin with a clear
+description of the feature.
 
 Features that have been subdivided into smaller components may be organized into appropriate subdirectories of `rqm`.
 
 ## Feature API Section
 
-If a feature will create any functions, classes, or types that are expected to be accessible to other portions of the code, the interface to these functions must be clearly indicated, along with the expected behavior.
+A new requirements file describing functions, classes, or types that are expected
+to be accessible to other portions of the code must include a Feature API section
+indicating the interface and expected behaviour of those items.
+
+In-place edits to existing files extend whatever API section is already present (if
+any). Do not introduce a Feature API section solely to document a small behaviour
+tweak; the section structure of an in-place edit should match the size and shape of
+the change.
 
 For example, a feature that implements a function in Rust might include:
 
@@ -115,7 +164,14 @@ For example, a feature that implements a function in Rust might include:
 
 ## Gherkin Scenarios Section
 
-The requirements document must include a section for Gherkin Scenarios. These scenarios should clarify the requirements as well as the proper handling for any edge cases. Be complete and thorough.
+A new requirements file must include a section for Gherkin Scenarios. These scenarios
+should clarify the requirements as well as the proper handling for any edge cases.
+Be complete and thorough.
+
+In-place edits to existing requirements files follow the existing file's structure.
+If the existing file uses Gherkin scenarios, extend that section to cover the
+changed behaviour. If the existing file does not currently use Gherkin scenarios,
+do not add one solely because of a small in-place edit.
 
 When the feature is later implemented, these scenarios will be used to construct unit tests, and they should therefore be designed to be suitable for this purpose. It should ideally be straightforward and reasonable to construct a single unit test corresponding to each scenario.
 
