@@ -1,24 +1,35 @@
-FROM docker.io/taylorabarnes/devenv
+FROM docker.io/library/ubuntu:24.04
 
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="$PATH:/root/.local/bin"
 
-# Install jq, which is needed for the requirements index script
+# Base tooling. jq is needed for the requirements index script;
+# curl + ca-certificates are needed for the Claude installer below.
 RUN apt-get update && \
-    apt install -y jq
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        jq && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Claude
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 {% if language == "rust" %}
 # Install Rust
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
 ENV RUST_VERSION=1.93.0
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}
 ENV PATH="/root/.cargo/bin:${PATH}"
 {% endif %}
 {% if language == "python" %}
 # Install Python tooling
-RUN apt-get install -y python3 python3-pip python3-venv && \
-    pip3 install --break-system-packages bandit pylint
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    pip3 install --break-system-packages bandit pylint && \
+    rm -rf /var/lib/apt/lists/*
 {% endif %}
-
-COPY .podman/interface.sh /.podman/interface.sh
