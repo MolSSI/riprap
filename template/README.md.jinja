@@ -16,12 +16,8 @@ All development **must** take place within a Podman container.
 The template includes a hook that prevents Claude from answering any prompts unless you are running in a containerized environment.
 
 Run `bash run.sh` on Linux/Mac, or `run.bat` on Windows.
-When prompted, select whether you want to work in Neovim or VS Code.
-
-- **VS Code**: open a terminal and run `claude`.
-- **Neovim**: a terminal is already open in the lower panel.
-  Navigate between panels with `<alt+h/j/k/l>`.
-  Force-exit Neovim with `:qall!`.
+This builds the container and drops you into an interactive shell in `/work`.
+Run `claude` from the shell to start Claude Code.
 
 ### Initializing the project
 

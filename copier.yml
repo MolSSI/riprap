@@ -3,6 +3,7 @@ _subdirectory: template
 _skip_if_exists:
   - /README.md
   - /Containerfile
+  - /CLAUDE.md
 
 # ---------------------------------------------------------------------------
 # Project identity
