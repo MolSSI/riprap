@@ -1,8 +1,8 @@
 _min_copier_version: "9"
 _subdirectory: template
 _skip_if_exists:
-  - README.md
-  - Containerfile
+  - /README.md
+  - /Containerfile
 
 # ---------------------------------------------------------------------------
 # Project identity
