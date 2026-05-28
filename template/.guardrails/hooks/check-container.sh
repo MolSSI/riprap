@@ -42,11 +42,14 @@ if is_containerized; then
   # Containerized - allow prompt, optionally add context
   exit 0
 else
-  # Not containerized - block with instructions
-  jq -n '{
-    decision: "block",
-    reason: "⚠️  Not running in a containerized environment.\n\nTo containerize your work, first install podman by following the official installation instructions: https://podman.io/getting-started/installation\n\nYou can then launch an interactive container session with \"bash run.sh\"."
-  }'
-  exit 0
+  # Not containerized - block. JSON is emitted directly (not via jq) so
+  # the hook still blocks on hosts that don't have jq installed.
+  cat <<'EOF'
+{
+  "decision": "block",
+  "reason": "⚠️  Not running in a containerized environment.\n\nTo containerize your work, first install podman by following the official installation instructions: https://podman.io/getting-started/installation\n\nYou can then launch an interactive container session with \"bash run.sh\"."
+}
+EOF
+  exit 2
 fi
 
