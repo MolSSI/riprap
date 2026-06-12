@@ -5,6 +5,7 @@ set -euo pipefail
 
 RQM_DIR="${RQM_DIR:-rqm}"
 SRC_DIR="${SRC_DIR:-src}"
+TESTS_DIR="${TESTS_DIR:-tests}"
 REGISTRY="${RQM_DIR}/registry.json"
 ID_PAT='rq-[0-9a-f]{8}'
 
@@ -547,10 +548,12 @@ cmd_index() {
   ' "$entities_tmp")
   rm -f "$entities_tmp"
 
-  # 4. Scan source + rqm files for ID references — a single recursive grep
-  #    over the tree, deduplicated per (file, id), converted by one jq pass.
+  # 4. Scan source + tests + rqm files for ID references — a single recursive
+  #    grep over the tree, deduplicated per (file, id), converted by one jq pass.
   local refs_tmp; refs_tmp=$(mktemp)
-  grep -rEo "$ID_PAT" "$SRC_DIR" "$RQM_DIR" \
+  local -a scan_paths=("$SRC_DIR" "$RQM_DIR")
+  if [[ -d "$TESTS_DIR" ]]; then scan_paths+=("$TESTS_DIR"); fi
+  grep -rEo "$ID_PAT" "${scan_paths[@]}" \
       --include='*.rs' --include='*.md' 2>/dev/null \
     | sort -u \
     | jq -R 'rindex(":") as $i
@@ -609,6 +612,9 @@ cmd_check() {
     done < <(grep -oE "$ID_PAT" "$src" 2>/dev/null | sort -u || true)
   done < <(
     find "$SRC_DIR" -name '*.rs' -type f 2>/dev/null | sort
+    if [[ -d "$TESTS_DIR" ]]; then
+      find "$TESTS_DIR" -name '*.rs' -type f 2>/dev/null | sort
+    fi
     find "$RQM_DIR" -name '*.md' -type f 2>/dev/null | sort
   )
 
