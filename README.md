@@ -4,11 +4,11 @@
 
 ## Getting Started
 
-### Prerequsites
+### Prerequisites
 
 Install Podman, following the official podman installation [instructions](https://podman.io/docs/installation).
 
-Install Copier.
+Install [Copier](https://copier.readthedocs.io/en/stable/#installation).
 
 You'll also need a Claude subscription.
 
@@ -33,18 +33,18 @@ copier update
 
 All development **must** take place within a Podman container.
 The template includes a hook that prevents Claude from answering any prompts unless you are running in a containerized environment.
-To launch a development environment, you can run `bash run.sh` on Linux/Mac, or `bash run.bat` on Windows.
-When prompted, select whether you want to work in Neovim or VS Code.
+To launch a development environment, run `bash run.sh` on Linux/Mac, or `run.bat` on Windows.
+This builds the container and drops you into an interactive bash shell in `/work`.
+Run `claude` from the shell to start Claude Code.
 
-In VS Code, you can use Claude by opening a terminal and executing the `claude` command.
-In Neovim, a terminal is already open in the lower panel.
-You can navigate between panels with \<alt+h/j/k/l\>.
-To force-exit Neovim, type `:qall!`.
+The container is built in two layers: a base image defined in `.guardrails/podman/Containerfile` provides the standard environment (Claude, language toolchain, supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
+Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the base image alone so that `copier update` can keep it in sync with upstream changes.
 
 #### 2. Create an initial file structure
 
-It is a good idea to start by manually creating some of the basic file structure for your project, depending on what language you are using.
-For example, if using Rust (recommended), you can type `cargo init` to initialize a new Rust project in the top-level repository directory
+It is a good idea to start by manually creating some of the basic file structure for your project, depending on what language you selected when running `copier copy`.
+If using Rust, run `cargo init` in the top-level repository directory to initialize a new Rust project.
+If using Python, create a virtual environment with `python -m venv .venv` and install your dependencies.
 
 #### 3. Generate a requirements document
 
@@ -62,11 +62,11 @@ I want to add a parser to my code that parses XYZ molecular structure files. Hel
 You can also invoke the skill explicitly:
 
 ```
-\plan-feature I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
+/plan-feature I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
 Claude will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
-Examine this file carefully, including the Gherkin scenarious - these will later be used to generate unit tests for your code.
+Examine this file carefully, including the Gherkin scenarios - these will later be used to generate unit tests for your code.
 Correct any issues with the file either manually or by asking Claude to make adjustments to the file.
 
 For somewhat more complex features, it may prove useful to manually fill out a small portion of a requirements document, and then ask Claude to refine it.
@@ -96,7 +96,7 @@ And then claude will automatically use the `/plan-feature` skill.
 
 #### 4. Implement the feature
 
-You may now ask Claude to implement the feature, which will automatically invoke the `\implement` skill:
+You may now ask Claude to implement the feature, which will automatically invoke the `/implement` skill:
 
 ```
 Implement the feature in rqm/requirements.md
@@ -130,10 +130,10 @@ You should treat these requirements documents as your true work product - they a
 In this approach, it may be helpful to view the development process as natural-language programming with an LLM translator, rather than LLM-generation of code.
 
 
-### Quizes
+### Quizzes
 
 It is important that you understand the functionality of your code.
-To help with this, the template includes a `\quiz` skill.
+To help with this, the template includes a `/quiz` skill.
 If you prompt the LLM with this skill, it will ask you a question about the implementation details of your code.
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
