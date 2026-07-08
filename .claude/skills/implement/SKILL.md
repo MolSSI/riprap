@@ -1,6 +1,13 @@
 ---
 name: implement
-description: Helps the user implement a feature.  Use when the user asks for help implementing new code, or when the user asks to implement functionality described in a requirements file.
+description: >-
+  Helps the user implement a feature.
+  TRIGGER when: the user asks to add, build, create, make, or implement something (new feature, new
+  system, new command, new API, new behaviour); the user asks to implement functionality described
+  in a requirements file.
+  SKIP: the user is asking to fix a bug in existing code; the user is asking to refactor or rename
+  existing code without changing behaviour; the user is explicitly asking only to plan or design
+  (those go to plan-feature instead).
 ---
 
 Check for a markdown file in the `rqm` directory that corresponds to the requested feature. If no such file is found, instead execute the /plan-feature skill.
@@ -73,3 +80,8 @@ are recorded:
 
 If `index` exits non-zero (e.g. due to duplicate IDs in the markdown), follow the instructions it
 prints before proceeding.
+
+## Project-Specific Extensions
+
+Read `.claude/skills/implement/local.md` and follow any instructions it contains. Where those
+instructions conflict with the instructions above, `local.md` takes precedence.

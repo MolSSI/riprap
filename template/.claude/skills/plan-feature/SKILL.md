@@ -255,3 +255,8 @@ This prints the type, file, title, declaration line, and source references for t
 whenever you find an `rq-` token in a source file comment and need to understand the requirement it
 implements before proposing changes.
 
+
+## Project-Specific Extensions
+
+Read `.claude/skills/plan-feature/local.md` and follow any instructions it contains. Where those
+instructions conflict with the instructions above, `local.md` takes precedence.

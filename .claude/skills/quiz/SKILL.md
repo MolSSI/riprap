@@ -15,3 +15,8 @@ Question.
 **3.** Answer 3
 **4.** Answer 4
 
+
+## Project-Specific Extensions
+
+Read `.claude/skills/quiz/local.md` and follow any instructions it contains. Where those
+instructions conflict with the instructions above, `local.md` takes precedence.

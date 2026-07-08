@@ -80,3 +80,8 @@ are recorded:
 
 If `index` exits non-zero (e.g. due to duplicate IDs in the markdown), follow the instructions it
 prints before proceeding.
+
+## Project-Specific Extensions
+
+Read `.claude/skills/implement/local.md` and follow any instructions it contains. Where those
+instructions conflict with the instructions above, `local.md` takes precedence.

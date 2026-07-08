@@ -4,6 +4,7 @@ _skip_if_exists:
   - /README.md
   - /Containerfile
   - /CLAUDE.md
+  - /.claude/skills/*/local.md
 
 # ---------------------------------------------------------------------------
 # Project identity

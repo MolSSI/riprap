@@ -138,6 +138,15 @@ If you prompt the LLM with this skill, it will ask you a question about the impl
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
 
+### Customizing skills
+
+Each skill directory under `.claude/skills/` contains a `local.md` file that belongs to your project.
+Guardrails creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
+Use it to extend or override a skill with project-specific conventions - for example, pointing `/plan-feature` at a project-specific exemplar requirements file, or requiring `/implement` to run a particular linter before finishing.
+Where `local.md` conflicts with a skill's built-in instructions, `local.md` wins.
+Avoid editing the `SKILL.md` files themselves; those are owned by the template, and local edits to them may produce merge conflicts when you run `copier update`.
+
+
 ## Key Rules of AI-Assisted Programming
 
 ### 1. Only ever use agentic AI inside of a Podman container
