@@ -9,3 +9,6 @@
 
 # Architecture
 - See @docs/architecture.md for system design
+
+# Development
+- The skills under `.claude/skills/` are generated copies of the Jinja-templated skills in `template/.claude/skills/` (rendered with `language=rust`). Never edit them directly: edit the template versions, then run `scripts/check-skill-sync.sh --fix` to regenerate the dev copies.
