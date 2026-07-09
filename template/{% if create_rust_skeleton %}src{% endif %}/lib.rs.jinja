@@ -1,0 +1,39 @@
+//! {{ project_description }}
+
+/// Placeholder function to show example documentation and testing.
+///
+/// Replace this function and its documentation for your own project.
+///
+/// # Arguments
+///
+/// * `with_attribution` - Set whether or not to display who the quote is from.
+///
+/// # Returns
+///
+/// Compiled string including quote and optional attribution.
+///
+/// # Examples
+///
+/// ```
+/// let quote = {{ package_name }}::canvas(false);
+/// assert!(quote.contains("canvas"));
+/// ```
+pub fn canvas(with_attribution: bool) -> String {
+    let mut quote = String::from("The code is but a canvas to our imagination.");
+    if with_attribution {
+        quote.push_str("\n\t- Adapted from Henry David Thoreau");
+    }
+    quote
+}
+
+#[cfg(test)]
+mod tests {
+    use super::canvas;
+
+    #[test]
+    fn canvas_without_attribution() {
+        let quote = canvas(false);
+        assert!(quote.contains("canvas to our imagination"));
+        assert!(!quote.contains("Thoreau"));
+    }
+}

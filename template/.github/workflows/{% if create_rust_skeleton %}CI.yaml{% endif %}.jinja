@@ -1,0 +1,65 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+  schedule:
+    # Weekly tests run on main by default:
+    #   Scheduled workflows run on the latest commit on the default or base branch.
+    #   (from https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule)
+    - cron: "0 0 * * 0"
+
+jobs:
+  test:
+    name: Test on {{ '${{ matrix.os }}' }}
+    runs-on: {{ '${{ matrix.os }}' }}
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Additional info about the build
+        shell: bash
+        run: |
+          uname -a
+          df -h
+          ulimit -a
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Lint with clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests with coverage
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: Run doctests
+        run: cargo test --doc
+
+      - name: CodeCov
+        uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+          flags: unittests
+          name: codecov-{{ '${{ matrix.os }}' }}

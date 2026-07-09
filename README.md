@@ -42,6 +42,12 @@ Every project is asked:
 | `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. Any choice other than `Not Open Source` generates a corresponding `LICENSE` file. |
 | `copyright_year` | Year used in the `LICENSE` file. Only asked when a license is selected. |
 
+Projects that select `rust` are additionally asked:
+
+| Question | Description |
+|---|---|
+| `include_rust_skeleton` | Whether to create skeletal Rust crate files: `Cargo.toml`, `src/lib.rs`, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`) that checks formatting, runs clippy, and runs the test suite with coverage. Defaults to yes; answer no when adding Guardrails to an existing Rust project. |
+
 Projects that select `python` are additionally asked:
 
 | Question | Description |
@@ -52,9 +58,10 @@ Projects that select `python` are additionally asked:
 | `include_docs` | Whether to create a Sphinx documentation skeleton in `docs/` with a ReadTheDocs configuration (`.readthedocs.yaml`). Defaults to yes. |
 | `dependency_source` | Where project dependencies come from: `Prefer conda-forge with pip fallback` (default), `Prefer default anaconda channel with pip fallback`, or `Dependencies from pip only (no conda)`. Conda-based choices generate a `devtools/conda-envs/test_env.yaml` environment and configure the CI workflow and documentation builds to use conda; the pip-only choice uses `pip` and `venv` throughout. |
 
-The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms).
+The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms); the Rust scaffolding follows the same structure.
+Both languages also receive GitHub community files (`.github/CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `CODE_OF_CONDUCT.md`) and, when a skeleton is generated, a Codecov configuration (`.codecov.yml`).
 All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
-The exception is `.github/workflows/codeql.yaml`, which is owned by the template and receives improvements through `copier update`; prefer leaving it unedited.
+The exception is `.github/workflows/codeql.yaml` (generated for both languages), which is owned by the template and receives improvements through `copier update`; prefer leaving it unedited.
 
 ### Developing with Guardrails
 
@@ -71,9 +78,8 @@ Edit the root `Containerfile` to install additional system packages or tools you
 
 #### 2. Create an initial file structure
 
-It is a good idea to start by manually creating some of the basic file structure for your project, depending on what language you selected when running `copier copy`.
-If using Rust, run `cargo init` in the top-level repository directory to initialize a new Rust project.
-If using Python, the template seeds a skeletal, installable package for you (unless you answered no to `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to create an environment, install the package in editable mode, and check that the sample test passes.
+The template seeds a skeletal, buildable project for you (unless you answered no to `include_rust_skeleton` / `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to set up an environment and check that the sample tests pass.
+If you opted out of the skeleton, initialize the project manually — e.g. `cargo init` for Rust, or a virtual environment plus your existing packaging setup for Python.
 
 #### 3. Generate a requirements document
 

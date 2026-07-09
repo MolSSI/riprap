@@ -22,11 +22,29 @@ Run `claude` from the shell to start Claude Code.
 ### Initializing the project
 
 {% if language == "rust" %}
+{% if include_rust_skeleton %}
+The repository contains a skeletal Rust crate: a `Cargo.toml`, `src/lib.rs`
+with a placeholder function, a `tests/` directory, and a GitHub Actions
+workflow (`.github/workflows/CI.yaml`) that checks formatting, runs clippy, and
+runs the test suite with coverage on every push and pull request. These files
+were seeded by the template and are yours to edit; the template never updates
+them.
+
+Check that the sample tests pass:
+
+```
+cargo test
+```
+
+Replace the placeholder `canvas` function in `src/lib.rs` (and its tests) with
+your own code as your first features land.
+{% else %}
 Initialize a Rust project in the repository root:
 
 ```
 cargo init
 ```
+{% endif %}
 {% endif %}
 {% if language == "python" %}
 {% if include_python_skeleton %}
@@ -78,13 +96,13 @@ configuration at `.readthedocs.yaml`. See `docs/README.md` for build
 instructions. Like the package skeleton, these files are seeded once and are
 yours to edit.
 {% endif %}
+{% endif %}
 
 The template also provides a CodeQL security-scanning workflow at
 `.github/workflows/codeql.yaml`. Unlike seeded files such as
 `.github/CONTRIBUTING.md`, this file is owned by the template and receives
 improvements through `copier update`, so prefer leaving it unedited; local
 changes may produce merge conflicts when updating.
-{% endif %}
 
 ## Development Workflow
 

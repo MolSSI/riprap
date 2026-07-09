@@ -1,0 +1,10 @@
+//! Integration test for the {{ package_name }} crate.
+
+use {{ package_name }}::canvas;
+
+#[test]
+fn canvas_with_attribution() {
+    let quote = canvas(true);
+    assert!(quote.contains("canvas to our imagination"));
+    assert!(quote.contains("Thoreau"));
+}

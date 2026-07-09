@@ -6,8 +6,9 @@ _skip_if_exists:
   - /CLAUDE.md
   - /.claude/skills/*/local.md
   - /LICENSE
-  # Python package skeleton: seeded once, owned by the user thereafter
+  # Package/crate skeletons: seeded once, owned by the user thereafter
   - /pyproject.toml
+  - /Cargo.toml
   - /src/**
   - /tests/**
   - /.github/workflows/CI.yaml
@@ -54,6 +55,18 @@ language:
   help: Primary programming language for this project
 
 # ---------------------------------------------------------------------------
+# Rust crate skeleton
+# ---------------------------------------------------------------------------
+
+include_rust_skeleton:
+  type: bool
+  help: >-
+    Create skeletal Rust crate files (Cargo.toml, src/, tests/, CI workflow)?
+    Answer no when adding Guardrails to an existing Rust project.
+  default: true
+  when: "{{ language == 'rust' }}"
+
+# ---------------------------------------------------------------------------
 # Python package skeleton (adapted from the MolSSI CMS Cookiecutter,
 # https://github.com/MolSSI/cookiecutter-cms)
 # ---------------------------------------------------------------------------
@@ -97,9 +110,19 @@ dependency_source:
   when: "{{ language == 'python' }}"
 
 # Derived, never asked: single flags used to switch template paths on and off.
-create_skeleton:
+create_python_skeleton:
   type: bool
   default: "{{ language == 'python' and include_python_skeleton }}"
+  when: false
+
+create_rust_skeleton:
+  type: bool
+  default: "{{ language == 'rust' and include_rust_skeleton }}"
+  when: false
+
+create_skeleton:
+  type: bool
+  default: "{{ create_python_skeleton or create_rust_skeleton }}"
   when: false
 
 create_docs:

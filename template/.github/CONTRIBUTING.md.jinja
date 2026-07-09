@@ -27,7 +27,7 @@ describes how to merge code changes into this {{ project_name }}.
   mergability, compilation and test suite compliance; the results of these tests
   will be visible on the PR page.
 * If you're providing a new feature, you must add test cases and documentation.
-* When the code is ready to go, make sure you run the test suite using pytest.
+* When the code is ready to go, make sure you run the test suite using {% if language == "rust" %}`cargo test`{% else %}pytest{% endif %}.
 * When you're ready to be considered for merging, check the "Ready to go"
   box on the PR page to let the {{ project_name }} devs know that the changes are complete.
   The code will not be merged until this box is checked, the continuous
