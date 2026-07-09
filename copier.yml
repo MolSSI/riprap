@@ -5,6 +5,10 @@ _skip_if_exists:
   - /Containerfile
   - /CLAUDE.md
   - /.claude/skills/*/local.md
+  # Python package skeleton: seeded once, owned by the user thereafter
+  - /pyproject.toml
+  - /src/**
+  - /tests/**
 
 # ---------------------------------------------------------------------------
 # Project identity
@@ -34,6 +38,37 @@ language:
     - python
   default: rust
   help: Primary programming language for this project
+
+# ---------------------------------------------------------------------------
+# Python package skeleton (adapted from the MolSSI CMS Cookiecutter,
+# https://github.com/MolSSI/cookiecutter-cms)
+# ---------------------------------------------------------------------------
+
+package_name:
+  type: str
+  help: Python import name of the package (the directory under src/)
+  default: "{{ project_slug | replace('-', '_') }}"
+  when: "{{ language == 'python' }}"
+
+include_python_skeleton:
+  type: bool
+  help: >-
+    Create skeletal Python package files (pyproject.toml, src/, tests/)?
+    Answer no when adding Guardrails to an existing Python package.
+  default: true
+  when: "{{ language == 'python' }}"
+
+first_module_name:
+  type: str
+  help: Name of the first module to create inside the package
+  default: "{{ package_name }}"
+  when: "{{ language == 'python' and include_python_skeleton }}"
+
+# Derived, never asked: single flag used to switch skeleton paths on and off.
+create_skeleton:
+  type: bool
+  default: "{{ language == 'python' and include_python_skeleton }}"
+  when: false
 
 # ---------------------------------------------------------------------------
 # Author

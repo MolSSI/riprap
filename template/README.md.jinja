@@ -29,13 +29,35 @@ cargo init
 ```
 {% endif %}
 {% if language == "python" %}
+{% if include_python_skeleton %}
+The repository contains a skeletal Python package (adapted from the
+[MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms)): a
+`pyproject.toml`, the `src/{{ package_name }}/` package, and a `tests/`
+directory. These files were seeded by the template and are yours to edit; the
+template never updates them.
+
+Create a virtual environment, install the package in editable mode, and check
+that the sample test passes:
+
+```
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[test]"
+pytest
+```
+
+Replace the placeholder `canvas` function in
+`src/{{ package_name }}/{{ first_module_name }}.py` (and its sample test) with
+your own code as your first features land.
+{% else %}
 Create a virtual environment and install your dependencies:
 
 ```
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[test]"
 ```
+{% endif %}
 {% endif %}
 
 ## Development Workflow
