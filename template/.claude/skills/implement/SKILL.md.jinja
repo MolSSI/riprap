@@ -46,6 +46,28 @@ comment style appropriate to the language:
 - Python / Shell: `# rq-XXXXXXXX`
 - SQL: `-- rq-XXXXXXXX`
 
+{% if language == "python" %}
+For a Gherkin scenario tagged `@rq-7c1e5d3b`, the corresponding test function should be annotated:
+
+```python
+# rq-7c1e5d3b
+def test_download_basis_set_not_cached(): ...
+```
+
+For an API function with ID `rq-9b4d2f1a`:
+
+```python
+# rq-9b4d2f1a
+def fetch_basis(element: str, basis_name: str) -> Path: ...
+```
+
+A single source line may carry multiple IDs if it implements multiple requirement entities:
+
+```python
+# rq-9b4d2f1a rq-3a7f1c2e
+def fetch_basis(...): ...
+```
+{% else %}
 For a Gherkin scenario tagged `@rq-7c1e5d3b`, the corresponding test function should be annotated:
 
 ```rust
@@ -66,6 +88,7 @@ A single source line may carry multiple IDs if it implements multiple requiremen
 // rq-9b4d2f1a rq-3a7f1c2e
 pub fn fetch_basis(...) { ... }
 ```
+{% endif %}
 
 Do not fabricate IDs. Only reference IDs that are present in the requirements files under `rqm/`.
 

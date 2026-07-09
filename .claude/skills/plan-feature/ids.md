@@ -70,8 +70,9 @@ An ID is "referenced" by a source file whenever any comment line contains the to
 `rq-XXXXXXXX` (matching the regex `rq-[0-9a-f]{8}`). Multiple references to the same ID in the
 same file at different lines are each recorded as a separate reference entry.
 
-Source file types scanned for references: `.rs` files under `src/`, and `.md` files under `rqm/`
-(to capture cross-references between requirements documents).
+Source file types scanned for references: `.rs` and `.py` files under `src/` (and under `tests/`
+when that directory exists), and `.md` files under `rqm/` (to capture cross-references between
+requirements documents).
 
 Example (Rust):
 ```rust
@@ -80,6 +81,15 @@ pub fn guess_hcore(...) { ... }
 
 #[test] // rq-7c1e5d3b
 fn two_by_two_c_is_orthonormal() { ... }
+```
+
+Example (Python):
+```python
+# rq-9b4d2f1a
+def guess_hcore(...): ...
+
+# rq-7c1e5d3b
+def test_two_by_two_c_is_orthonormal(): ...
 ```
 
 ---
@@ -178,8 +188,9 @@ any unresolvable conflicts remain.
 
 ### `index`
 
-Re-scans all `rqm/**/*.md` files and all `.rs` files under `src/` from scratch and writes a fresh
-`rqm/registry.json`, overwriting any previous file. Never modifies markdown source files.
+Re-scans all `rqm/**/*.md` files and all `.rs` and `.py` files under `src/` (and under `tests/`
+when that directory exists) from scratch and writes a fresh `rqm/registry.json`, overwriting any
+previous file. Never modifies markdown source files.
 
 If any `rq-XXXXXXXX` ID appears in more than one entity in the scanned markdown files, `index`
 reports each conflict, identifies which copy is likely the original (by comparing live declarations

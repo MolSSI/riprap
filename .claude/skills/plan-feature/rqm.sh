@@ -554,7 +554,7 @@ cmd_index() {
   local -a scan_paths=("$SRC_DIR" "$RQM_DIR")
   if [[ -d "$TESTS_DIR" ]]; then scan_paths+=("$TESTS_DIR"); fi
   grep -rEo "$ID_PAT" "${scan_paths[@]}" \
-      --include='*.rs' --include='*.md' 2>/dev/null \
+      --include='*.rs' --include='*.py' --include='*.md' 2>/dev/null \
     | sort -u \
     | jq -R 'rindex(":") as $i
         | {id: .[$i+1:], file: (.[:$i] | ltrimstr("./"))}' \
@@ -611,9 +611,9 @@ cmd_check() {
       fi
     done < <(grep -oE "$ID_PAT" "$src" 2>/dev/null | sort -u || true)
   done < <(
-    find "$SRC_DIR" -name '*.rs' -type f 2>/dev/null | sort
+    find "$SRC_DIR" -type f \( -name '*.rs' -o -name '*.py' \) 2>/dev/null | sort
     if [[ -d "$TESTS_DIR" ]]; then
-      find "$TESTS_DIR" -name '*.rs' -type f 2>/dev/null | sort
+      find "$TESTS_DIR" -type f \( -name '*.rs' -o -name '*.py' \) 2>/dev/null | sort
     fi
     find "$RQM_DIR" -name '*.md' -type f 2>/dev/null | sort
   )

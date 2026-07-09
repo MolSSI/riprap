@@ -223,6 +223,24 @@ EOF
   assert_file_contains rqm/registry.json '"src/lib.rs"'
 }
 
+t_index_records_python_source_ref() {
+  cat > rqm/test.md <<'EOF'
+# Feature: Test <!-- rq-aaaaaaaa -->
+## Feature API <!-- rq-bbbbbbbb -->
+- `my_fn()` <!-- rq-9b4d2f1a -->
+## Gherkin Scenarios
+```gherkin
+Feature: X
+```
+EOF
+  cat > src/lib.py <<'EOF'
+# rq-9b4d2f1a
+def my_fn(): ...
+EOF
+  rqm index
+  assert_file_contains rqm/registry.json '"src/lib.py"'
+}
+
 t_index_deduplicates_refs_from_same_file() {
   cat > rqm/test.md <<'EOF'
 # Feature: Test <!-- rq-aaaaaaaa -->
@@ -540,6 +558,7 @@ tests=(
   t_stamp_no_duplicate_ids
   t_index_builds_registry
   t_index_records_source_ref
+  t_index_records_python_source_ref
   t_index_deduplicates_refs_from_same_file
   t_index_records_cross_ref_in_md
   t_index_is_idempotent
