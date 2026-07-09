@@ -1,0 +1,29 @@
+name: docs_{{ project_slug }}
+channels:
+{% if dependency_source == "Prefer conda-forge with pip fallback" %}
+  - conda-forge
+{% endif %}
+  - defaults
+dependencies:
+    # Base depends
+  - python
+  - pip
+{% if dependency_source == "Prefer conda-forge with pip fallback" %}
+  - sphinx
+  - pydata-sphinx-theme
+  - sphinx-design
+  - sphinx-copybutton
+
+    # Pip-only installs
+  - pip:
+    - -e ../
+{% else %}
+
+  # Pip-only installs
+  - pip:
+    - -e ../
+    - sphinx
+    - pydata-sphinx-theme
+    - sphinx-design
+    - sphinx-copybutton
+{% endif %}

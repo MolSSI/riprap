@@ -1,0 +1,5 @@
+# Requirements for building the documentation
+sphinx
+pydata-sphinx-theme
+sphinx-design
+sphinx-copybutton

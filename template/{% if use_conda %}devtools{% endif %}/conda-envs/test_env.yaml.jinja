@@ -1,0 +1,14 @@
+name: test
+channels:
+{% if dependency_source == "Prefer conda-forge with pip fallback" %}
+  - conda-forge
+{% endif %}
+  - defaults
+dependencies:
+    # Base depends
+  - python
+  - pip
+
+    # Testing
+  - pytest
+  - pytest-cov

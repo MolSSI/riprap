@@ -27,6 +27,35 @@ To pull the latest Guardrails updates into your project, you can do:
 copier update
 ```
 
+### Template questions
+
+When you run `copier copy`, Copier asks the following questions.
+Every project is asked:
+
+| Question | Description |
+|---|---|
+| `project_name` | Human-readable name of the project (e.g. "My Project") |
+| `project_slug` | Short identifier used in image names, directory names, etc. Defaults to a lowercased, hyphenated form of `project_name`. |
+| `project_description` | One-sentence description of the project |
+| `language` | Primary programming language: `rust` (default) or `python` |
+| `author_name` / `author_email` | Author information, used in packaging metadata and generated files |
+| `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. Any choice other than `Not Open Source` generates a corresponding `LICENSE` file. |
+| `copyright_year` | Year used in the `LICENSE` file. Only asked when a license is selected. |
+
+Projects that select `python` are additionally asked:
+
+| Question | Description |
+|---|---|
+| `package_name` | Python import name of the package (the directory under `src/`). Defaults to `project_slug` with hyphens replaced by underscores. |
+| `include_python_skeleton` | Whether to create skeletal Python package files: `pyproject.toml`, the `src/` package, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`). Defaults to yes; answer no when adding Guardrails to an existing Python package. |
+| `first_module_name` | Name of the first module created inside the package. Defaults to `package_name`. Only asked when the skeleton is included. |
+| `include_docs` | Whether to create a Sphinx documentation skeleton in `docs/` with a ReadTheDocs configuration (`.readthedocs.yaml`). Defaults to yes. |
+| `dependency_source` | Where project dependencies come from: `Prefer conda-forge with pip fallback` (default), `Prefer default anaconda channel with pip fallback`, or `Dependencies from pip only (no conda)`. Conda-based choices generate a `devtools/conda-envs/test_env.yaml` environment and configure the CI workflow and documentation builds to use conda; the pip-only choice uses `pip` and `venv` throughout. |
+
+The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms).
+All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
+The exception is `.github/workflows/codeql.yaml`, which is owned by the template and receives improvements through `copier update`; prefer leaving it unedited.
+
 ### Developing with Guardrails
 
 #### 1. Launch a development container
@@ -44,7 +73,7 @@ Edit the root `Containerfile` to install additional system packages or tools you
 
 It is a good idea to start by manually creating some of the basic file structure for your project, depending on what language you selected when running `copier copy`.
 If using Rust, run `cargo init` in the top-level repository directory to initialize a new Rust project.
-If using Python, create a virtual environment with `python -m venv .venv` and install your dependencies.
+If using Python, the template seeds a skeletal, installable package for you (unless you answered no to `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to create an environment, install the package in editable mode, and check that the sample test passes.
 
 #### 3. Generate a requirements document
 

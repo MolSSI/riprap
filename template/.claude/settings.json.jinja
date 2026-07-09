@@ -14,6 +14,9 @@
       "Bash(pip install:*)",
       "Bash(pylint:*)",
       "Bash(bandit:*)",
+{% if use_conda %}
+      "Bash(conda:*)",
+{% endif %}
 {% endif %}
       "Skill(plan-feature)"
     ]

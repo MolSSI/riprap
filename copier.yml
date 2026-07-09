@@ -5,10 +5,24 @@ _skip_if_exists:
   - /Containerfile
   - /CLAUDE.md
   - /.claude/skills/*/local.md
+  - /LICENSE
   # Python package skeleton: seeded once, owned by the user thereafter
   - /pyproject.toml
   - /src/**
   - /tests/**
+  - /.github/workflows/CI.yaml
+  - /.codecov.yml
+  # GitHub prose files: seeded once, owned by the user thereafter.
+  # Note: .github/workflows/codeql.yaml is deliberately NOT listed here —
+  # it is template-owned and receives updates via `copier update`.
+  - /.github/CONTRIBUTING.md
+  - /.github/PULL_REQUEST_TEMPLATE.md
+  - /CODE_OF_CONDUCT.md
+  # Documentation skeleton: seeded once, owned by the user thereafter
+  - /docs/**
+  - /.readthedocs.yaml
+  # Development tooling: seeded once, owned by the user thereafter
+  - /devtools/**
 
 # ---------------------------------------------------------------------------
 # Project identity
@@ -64,10 +78,38 @@ first_module_name:
   default: "{{ package_name }}"
   when: "{{ language == 'python' and include_python_skeleton }}"
 
-# Derived, never asked: single flag used to switch skeleton paths on and off.
+include_docs:
+  type: bool
+  help: >-
+    Create a Sphinx documentation skeleton (docs/) with a ReadTheDocs
+    configuration?
+  default: true
+  when: "{{ language == 'python' }}"
+
+dependency_source:
+  type: str
+  help: Where should project dependencies come from?
+  choices:
+    - Prefer conda-forge with pip fallback
+    - Prefer default anaconda channel with pip fallback
+    - Dependencies from pip only (no conda)
+  default: Prefer conda-forge with pip fallback
+  when: "{{ language == 'python' }}"
+
+# Derived, never asked: single flags used to switch template paths on and off.
 create_skeleton:
   type: bool
   default: "{{ language == 'python' and include_python_skeleton }}"
+  when: false
+
+create_docs:
+  type: bool
+  default: "{{ language == 'python' and include_docs }}"
+  when: false
+
+use_conda:
+  type: bool
+  default: "{{ language == 'python' and dependency_source != 'Dependencies from pip only (no conda)' }}"
   when: false
 
 # ---------------------------------------------------------------------------
@@ -81,3 +123,31 @@ author_name:
 author_email:
   type: str
   help: Your email address
+
+# ---------------------------------------------------------------------------
+# License (choices adapted from the MolSSI CMS Cookiecutter)
+# ---------------------------------------------------------------------------
+
+open_source_license:
+  type: str
+  help: Software license for this project
+  choices:
+    - MIT
+    - BSD-3-Clause
+    - LGPL-3.0-or-later
+    - Not Open Source
+  default: MIT
+
+# Copier has no built-in access to the current date, so the year is a question.
+# Bump the default when a new year rolls around.
+copyright_year:
+  type: str
+  help: Copyright year for the LICENSE file
+  default: "2026"
+  when: "{{ open_source_license != 'Not Open Source' }}"
+
+# Derived, never asked: whether to generate a LICENSE file.
+create_license:
+  type: bool
+  default: "{{ open_source_license != 'Not Open Source' }}"
+  when: false

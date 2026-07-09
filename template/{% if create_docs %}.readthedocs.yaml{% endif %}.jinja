@@ -1,0 +1,31 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+{% if use_conda %}
+build:
+  os: "ubuntu-24.04"
+  tools:
+    python: "mambaforge-23.11"
+
+sphinx:
+  configuration: docs/conf.py
+
+conda:
+  environment: docs/requirements.yaml
+{% else %}
+build:
+  os: "ubuntu-24.04"
+  tools:
+    python: "3.12"
+
+sphinx:
+  configuration: docs/conf.py
+
+python:
+  install:
+    - requirements: docs/requirements.txt
+    - method: pip
+      path: .
+{% endif %}

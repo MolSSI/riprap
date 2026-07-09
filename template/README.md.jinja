@@ -32,10 +32,22 @@ cargo init
 {% if include_python_skeleton %}
 The repository contains a skeletal Python package (adapted from the
 [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms)): a
-`pyproject.toml`, the `src/{{ package_name }}/` package, and a `tests/`
-directory. These files were seeded by the template and are yours to edit; the
-template never updates them.
+`pyproject.toml`, the `src/{{ package_name }}/` package, a `tests/` directory,
+and a GitHub Actions workflow (`.github/workflows/CI.yaml`) that runs the test
+suite on every push and pull request. These files were seeded by the template
+and are yours to edit; the template never updates them.
 
+{% if use_conda %}
+Create a conda environment with the testing dependencies, install the package
+in editable mode, and check that the sample test passes:
+
+```
+conda env create -f devtools/conda-envs/test_env.yaml
+conda activate test
+pip install -e . --no-deps
+pytest
+```
+{% else %}
 Create a virtual environment, install the package in editable mode, and check
 that the sample test passes:
 
@@ -45,6 +57,7 @@ source .venv/bin/activate
 pip install -e ".[test]"
 pytest
 ```
+{% endif %}
 
 Replace the placeholder `canvas` function in
 `src/{{ package_name }}/{{ first_module_name }}.py` (and its sample test) with
@@ -58,6 +71,19 @@ source .venv/bin/activate
 pip install -e ".[test]"
 ```
 {% endif %}
+
+{% if include_docs %}
+A Sphinx documentation skeleton lives in `docs/`, with a ReadTheDocs
+configuration at `.readthedocs.yaml`. See `docs/README.md` for build
+instructions. Like the package skeleton, these files are seeded once and are
+yours to edit.
+{% endif %}
+
+The template also provides a CodeQL security-scanning workflow at
+`.github/workflows/codeql.yaml`. Unlike seeded files such as
+`.github/CONTRIBUTING.md`, this file is owned by the template and receives
+improvements through `copier update`, so prefer leaving it unedited; local
+changes may produce merge conflicts when updating.
 {% endif %}
 
 ## Development Workflow

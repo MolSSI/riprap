@@ -12,9 +12,10 @@ readme = "README.md"
 authors = [
     { name = "{{ author_name }}", email = "{{ author_email }}" }
 ]
-# Uncomment once a LICENSE file exists, using the appropriate SPDX identifier:
-#license = "MIT"
-#license-files = ["LICENSE"]
+{% if create_license %}
+license = "{{ open_source_license }}"
+license-files = ["LICENSE"]
+{% endif %}
 # See https://pypi.org/classifiers/
 classifiers = [
     "Programming Language :: Python :: 3",
