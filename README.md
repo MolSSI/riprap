@@ -97,7 +97,7 @@ I want to add a parser to my code that parses XYZ molecular structure files. Hel
 You can also invoke the skill explicitly:
 
 ```
-/plan-feature I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
+/gr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
 Claude will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
@@ -125,13 +125,13 @@ Then, you can prompt:
 Help me flesh out the requirements file in rqm/basis/bse.md
 ```
 
-And then claude will automatically use the `/plan-feature` skill.
+And then claude will automatically use the `/gr-plan` skill.
 
 
 
 #### 4. Implement the feature
 
-You may now ask Claude to implement the feature, which will automatically invoke the `/implement` skill:
+You may now ask Claude to implement the feature, which will automatically invoke the `/gr-implement` skill:
 
 ```
 Implement the feature in rqm/requirements.md
@@ -168,7 +168,7 @@ In this approach, it may be helpful to view the development process as natural-l
 ### Quizzes
 
 It is important that you understand the functionality of your code.
-To help with this, the template includes a `/quiz` skill.
+To help with this, the template includes a `/gr-quiz` skill.
 If you prompt the LLM with this skill, it will ask you a question about the implementation details of your code.
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
@@ -177,7 +177,7 @@ Using this skill periodically is a great way to ensure that you aren't creating 
 
 Each skill directory under `.claude/skills/` contains a `local.md` file that belongs to your project.
 Guardrails creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
-Use it to extend or override a skill with project-specific conventions - for example, pointing `/plan-feature` at a project-specific exemplar requirements file, or requiring `/implement` to run a particular linter before finishing.
+Use it to extend or override a skill with project-specific conventions - for example, pointing `/gr-plan` at a project-specific exemplar requirements file, or requiring `/gr-implement` to run a particular linter before finishing.
 Where `local.md` conflicts with a skill's built-in instructions, `local.md` wins.
 Avoid editing the `SKILL.md` files themselves; those are owned by the template, and local edits to them may produce merge conflicts when you run `copier update`.
 

@@ -5,7 +5,7 @@
       "Bash(cargo build:*)",
       "Bash(cargo run:*)",
       "Skill(write-tests)",
-      "Skill(plan-feature)",
+      "Skill(gr-plan)",
       "Bash(cargo test:*)"
     ]
   },

@@ -1,5 +1,5 @@
 ---
-name: plan-feature
+name: gr-plan
 description: Helps the user plan a feature. Use when the user asks for help designing or planning a feature, or when the user asks for assistance writing, modifying, fleshing out, completing, expanding, or detailing a requirements file.
 allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion, Write
 ---
@@ -97,7 +97,7 @@ should look like a from-scratch description of the current intent.
 
 ## Example Requirements Files
 
-A complete example requirements file is available at `.claude/skills/plan-feature/bse.md`. Read this file.
+A complete example requirements file is available at `.claude/skills/gr-plan/bse.md`. Read this file.
 
 ## Feature Scope
 
@@ -130,43 +130,6 @@ any). Do not introduce a Feature API section solely to document a small behaviou
 tweak; the section structure of an in-place edit should match the size and shape of
 the change.
 
-{% if language == "python" %}
-For example, a feature that implements a function in Python might include:
-
-```
-## Feature API
-
-### Functions
-
-- `fetch_basis(element: str, basis_name: str) -> Path`
-  - Validates the element symbol against the known periodic table (elements 1–118).
-  - Normalizes `basis_name` to lowercase and `element` to title case before use in file paths and
-    API requests.
-  - Checks whether a valid cached file already exists at `data/basis/{basis_name}/{element}.json`.
-  - If the cache is missing or corrupt, downloads the basis set data for the given element from the
-    BSE REST API in QCSchema (JSON) format, creating any missing directories, and overwrites the
-    cache file with the fresh response.
-  - Returns the `pathlib.Path` to the cached file on success.
-  - Raises a subclass of `BseError` on failure (see Types).
-
-### Types
-
-- `BseError(Exception)` — base class for all errors raised by `fetch_basis`. The following
-  subclasses must exist at minimum:
-  - `InvalidElementError` — the element symbol does not correspond to a known element (Z = 1–118).
-    Carries the offending symbol as an `element` attribute.
-  - `InvalidBasisSetNameError` — the basis set name is empty or otherwise malformed before any
-    API request is made. Carries the offending name as a `basis_name` attribute.
-  - `ElementNotInBasisSetError` — the basis set exists but does not include data for this element.
-    Carries `element` and `basis_name` attributes.
-  - `UnknownBasisSetError` — the BSE does not recognise the basis set name (HTTP 404). Carries
-    the offending name as a `basis_name` attribute.
-  - `BseNetworkError` — a network or HTTP-level failure (unreachable host, timeout, or
-    non-200/404 status code).
-  - `BseIoError` — a filesystem operation failed (directory creation, file write, or file read).
-  - `InvalidResponseError` — the BSE returned a response that could not be parsed as valid JSON.
-```
-{% else %}
 For example, a feature that implements a function in Rust might include:
 
 ```
@@ -198,7 +161,6 @@ For example, a feature that implements a function in Rust might include:
   - `IoError(String)` — a filesystem operation failed (directory creation, file write, or file read).
   - `InvalidResponse(String)` — the BSE returned a response that could not be parsed as valid JSON.
 ```
-{% endif %}
 
 ## Gherkin Scenarios Section
 
@@ -215,40 +177,6 @@ When the feature is later implemented, these scenarios will be used to construct
 
 The following provides a subset of the Gherkin scenarios that might be included in the Gherkin Scenarios section:
 
-{% if language == "python" %}
-```gherkin
-Feature: Fetch basis set from Basis Set Exchange
-
-  Background:
-    Given the BSE base URL is "https://www.basissetexchange.org"
-
-  Scenario: Download a basis set that is not cached
-    Given the file "data/basis/sto-3g/H.json" does not exist
-    And the BSE API will return a valid QCSchema JSON response for element "H" and basis "sto-3g"
-    When fetch_basis("H", "sto-3g") is called
-    Then the file "data/basis/sto-3g/H.json" is created
-    And the file contains the JSON response returned by the BSE API
-    And fetch_basis returns the path "data/basis/sto-3g/H.json"
-
-  Scenario: Return cached file when a valid cache exists
-    Given a non-empty, valid JSON file exists at "data/basis/sto-3g/H.json"
-    When fetch_basis("H", "sto-3g") is called
-    Then no HTTP request is made to the BSE API
-    And fetch_basis returns the path "data/basis/sto-3g/H.json"
-
-  Scenario: Reject an unrecognised element symbol
-    When fetch_basis("Xx", "sto-3g") is called
-    Then no HTTP request is made to the BSE API
-    And fetch_basis raises InvalidElementError for element "Xx"
-
-  Scenario: Basis set name is not known to the BSE
-    Given the file "data/basis/unknown-basis/H.json" does not exist
-    And the BSE API will return HTTP 404 for element "H" and basis "unknown-basis"
-    When fetch_basis("H", "unknown-basis") is called
-    Then fetch_basis raises UnknownBasisSetError for basis "unknown-basis"
-    And no file is written to disk
-```
-{% else %}
 ```gherkin
 Feature: Fetch basis set from Basis Set Exchange
 
@@ -281,7 +209,6 @@ Feature: Fetch basis set from Basis Set Exchange
     Then fetch_basis returns Err(BseError::UnknownBasisSet("unknown-basis"))
     And no file is written to disk
 ```
-{% endif %}
 
 ## Other Sections
 
@@ -300,7 +227,7 @@ file must declare; see *Current-State Framing*.
 ## Traceability IDs
 
 Every requirements file uses stable opaque IDs (e.g. `rq-3a7f1c2e`) to tag headings, API items,
-and Gherkin scenarios. These IDs are managed by `.claude/skills/plan-feature/rqm.sh`.
+and Gherkin scenarios. These IDs are managed by `.claude/skills/gr-plan/rqm.sh`.
 
 **Do not write placeholder IDs.** When drafting new requirements, leave all headings, API items,
 and Gherkin scenarios without any `rq-` annotation. Do not use `@rq-PENDING`,
@@ -310,8 +237,8 @@ automatically; placeholder text prevents it from doing so and must be cleaned up
 **After writing or modifying any requirements file**, run these two commands in order:
 
 ```
-.claude/skills/plan-feature/rqm.sh stamp <path-to-file>
-.claude/skills/plan-feature/rqm.sh index
+.claude/skills/gr-plan/rqm.sh stamp <path-to-file>
+.claude/skills/gr-plan/rqm.sh index
 ```
 
 `stamp` assigns fresh IDs to any entities that do not yet have one; it never changes existing IDs.
@@ -321,7 +248,7 @@ automatically; placeholder text prevents it from doing so and must be cleaned up
 ID and need more context about what it refers to, use:
 
 ```
-.claude/skills/plan-feature/rqm.sh show rq-XXXXXXXX
+.claude/skills/gr-plan/rqm.sh show rq-XXXXXXXX
 ```
 
 This prints the type, file, title, declaration line, and source references for that ID. Use this
@@ -331,5 +258,5 @@ implements before proposing changes.
 
 ## Project-Specific Extensions
 
-Read `.claude/skills/plan-feature/local.md` and follow any instructions it contains. Where those
+Read `.claude/skills/gr-plan/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.
