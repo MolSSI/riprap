@@ -8,7 +8,7 @@
       "Bash(cargo test:*)",
 
 
-      "Skill(plan-feature)"
+      "Skill(gr-plan)"
     ]
   },
   "hooks": {
