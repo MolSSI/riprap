@@ -8,4 +8,4 @@
 - Be hesitant to introduce dependencies for small tasks
 
 # Architecture
-- See @docs/architecture.md for system design
+- See @rqm/ARCHITECTURE.md for high-level system design

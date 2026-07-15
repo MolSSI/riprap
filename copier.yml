@@ -22,6 +22,9 @@ _skip_if_exists:
   # Documentation skeleton: seeded once, owned by the user thereafter
   - /docs/**
   - /.readthedocs.yaml
+  # Architecture overview: seeded once, filled out via /gr-architecture,
+  # owned by the user thereafter
+  - /rqm/ARCHITECTURE.md
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 
