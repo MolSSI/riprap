@@ -81,7 +81,22 @@ Edit the root `Containerfile` to install additional system packages or tools you
 The template seeds a skeletal, buildable project for you (unless you answered no to `include_rust_skeleton` / `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to set up an environment and check that the sample tests pass.
 If you opted out of the skeleton, initialize the project manually — e.g. `cargo init` for Rust, or a virtual environment plus your existing packaging setup for Python.
 
-#### 3. Generate a requirements document
+#### 3. Define the project architecture
+
+Before writing requirements for individual features, establish the project's high-level goals and architecture.
+The template includes a `/gr-architecture` skill for this, and running it is normally the first thing you do in a new project:
+
+```
+/gr-architecture I want to build a molecular dynamics code.
+```
+
+Claude will ask a series of questions to turn a broad ambition into concrete, load-bearing decisions — the intended scale and audience, execution targets (CPU, GPU, distributed), which features carry architectural weight, how the system should be extended (for example, whether it needs a plugin system for user-defined components), the key libraries, and how whole-project testing should be handled.
+It records the results in `rqm/ARCHITECTURE.md`, which `.guardrails/CLAUDE.md` references so that every later `/gr-plan` and `/gr-implement` step shares the same architectural context.
+
+The goal is not to specify every detail — that is the job of the per-feature requirements files below — but to capture the decisions that would be expensive to reverse later.
+You can re-run `/gr-architecture` at any time to refine or extend the document as the project matures.
+
+#### 4. Generate a requirements document
 
 Before you begin generating code through the LLM, you **must** generate one or more requirements documents.
 These are stored in markdown files in an `rqm` directory.
@@ -129,7 +144,7 @@ And then claude will automatically use the `/gr-plan` skill.
 
 
 
-#### 4. Implement the feature
+#### 5. Implement the feature
 
 You may now ask Claude to implement the feature, which will automatically invoke the `/gr-implement` skill:
 
@@ -137,7 +152,7 @@ You may now ask Claude to implement the feature, which will automatically invoke
 Implement the feature in rqm/requirements.md
 ```
 
-#### 5. Iteratively refine the requirements and code
+#### 6. Iteratively refine the requirements and code
 
 Examine and test the code Claude generates carefully.
 If there are any problems, **modify the requirements file before changing the code**.

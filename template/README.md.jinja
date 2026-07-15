@@ -106,7 +106,19 @@ changes may produce merge conflicts when updating.
 
 ## Development Workflow
 
-### 1. Write a requirements document
+### 1. Define the project architecture
+
+Start by capturing the project's high-level goals and architecture. Run the built-in skill:
+
+```
+/gr-architecture <one-line description of what you are building>
+```
+
+Claude will ask questions to pin down the decisions with broad architectural leverage — intended scale and audience, execution targets, extensibility (for example, whether a plugin system is needed), key libraries, and the whole-project testing strategy — and record them in `rqm/ARCHITECTURE.md`.
+`.guardrails/CLAUDE.md` references that file, so every later step shares the same context.
+Re-run the skill whenever the architecture needs to evolve.
+
+### 2. Write a requirements document
 
 Before generating code, create a requirements document in the `rqm/` directory.
 Use the built-in skill by prompting:
@@ -123,13 +135,13 @@ Or invoke the skill explicitly:
 
 Claude will ask clarifying questions and write a complete requirements file including Gherkin scenarios.
 
-### 2. Implement the feature
+### 3. Implement the feature
 
 ```
 Implement the feature in rqm/<feature>.md
 ```
 
-### 3. Iterate
+### 4. Iterate
 
 If the output is incorrect or incomplete, **modify the requirements file first**, then ask Claude to update the implementation:
 
@@ -137,7 +149,7 @@ If the output is incorrect or incomplete, **modify the requirements file first**
 I have updated rqm/<feature>.md. Update the implementation to match.
 ```
 
-### 4. Verify understanding with quizzes
+### 5. Verify understanding with quizzes
 
 ```
 /gr-quiz
