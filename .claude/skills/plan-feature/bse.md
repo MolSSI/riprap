@@ -5,6 +5,7 @@ calculations. Basis set files are stored locally under `data/basis`. When a requ
 not cached, the function downloads it from the Basis Set Exchange (BSE) REST API and saves it for
 future use. If `data/basis` (or any subdirectory) does not exist, it is created automatically.
 
+
 ## Feature API
 
 ### Functions
@@ -33,6 +34,7 @@ future use. If `data/basis` (or any subdirectory) does not exist, it is created 
   - `IoError(String)` — a filesystem operation failed (directory creation, file write, or file read).
   - `InvalidResponse(String)` — the BSE returned a response that could not be parsed as valid JSON.
 
+
 ## BSE API Details
 
 - Base URL: `https://www.basissetexchange.org`
@@ -57,6 +59,7 @@ a corrupt cache file was found.
 ---
 
 ## Gherkin Scenarios
+
 
 ```gherkin
 Feature: Fetch basis set from Basis Set Exchange
@@ -195,3 +198,4 @@ Feature: Fetch basis set from Basis Set Exchange
     When fetch_basis("H", "sto-3g") is called
     Then fetch_basis returns Err(BseError::IoError(_))
 ```
+

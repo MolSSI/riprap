@@ -1,0 +1,29 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="$PATH:/root/.local/bin"
+
+# Base tooling. jq is needed for the requirements index script;
+# curl + ca-certificates are needed for the Claude installer below.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        jq && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Claude
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+
+# Install Rust
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+ENV RUST_VERSION=1.93.0
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+

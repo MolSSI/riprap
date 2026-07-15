@@ -1,5 +1,5 @@
 ---
-name: gr-quiz
+name: quiz
 description: Gives the user a quick quiz to test code comprehension.
 allowed-tools: Read, Grep, Glob
 ---
@@ -18,5 +18,5 @@ Question.
 
 ## Project-Specific Extensions
 
-Read `.claude/skills/gr-quiz/local.md` and follow any instructions it contains. Where those
+Read `.claude/skills/quiz/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.

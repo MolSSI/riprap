@@ -1,12 +1,14 @@
 {
   "permissions": {
     "allow": [
+
       "Bash(cargo check:*)",
       "Bash(cargo build:*)",
       "Bash(cargo run:*)",
-      "Skill(write-tests)",
-      "Skill(gr-plan)",
-      "Bash(cargo test:*)"
+      "Bash(cargo test:*)",
+
+
+      "Skill(plan-feature)"
     ]
   },
   "hooks": {
@@ -15,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/check-container.sh"
+            "command": ".guardrails/hooks/check-container.sh"
           }
         ]
       }

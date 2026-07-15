@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; DO NOT EDIT
+_commit: 0ace4bb
+_src_path: gh:MolSSI/guardrails
+author_email: taylor.a.barnes@gmail.com
+author_name: Taylor Barnes
+copyright_year: '2026'
+include_rust_skeleton: false
+language: rust
+open_source_license: BSD-3-Clause
+project_description: Provides project scaffolding for AI-assisted development
+project_name: Guardrails
+project_slug: guardrails

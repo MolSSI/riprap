@@ -1,5 +1,5 @@
 ---
-name: gr-implement
+name: implement
 description: >-
   Helps the user implement a feature.
   TRIGGER when: the user asks to add, build, create, make, or implement something (new feature, new
@@ -7,10 +7,10 @@ description: >-
   in a requirements file.
   SKIP: the user is asking to fix a bug in existing code; the user is asking to refactor or rename
   existing code without changing behaviour; the user is explicitly asking only to plan or design
-  (those go to gr-plan instead).
+  (those go to plan-feature instead).
 ---
 
-Check for a markdown file in the `rqm` directory that corresponds to the requested feature. If no such file is found, instead execute the /gr-plan skill.
+Check for a markdown file in the `rqm` directory that corresponds to the requested feature. If no such file is found, instead execute the /plan-feature skill.
 
 Ensure that the implemented code satisfies all Gherkin scenarios in the requirements file.
 
@@ -27,7 +27,7 @@ When you encounter an `rq-XXXXXXXX` token in a comment in any source file you ar
 look up the requirement it refers to before making changes:
 
 ```
-.claude/skills/gr-plan/rqm.sh show rq-XXXXXXXX
+.claude/skills/plan-feature/rqm.sh show rq-XXXXXXXX
 ```
 
 This prints the type, file, title, and declaration of the requirement. Read the referenced
@@ -45,6 +45,7 @@ comment style appropriate to the language:
 - Rust / C / C++ / JavaScript / TypeScript: `// rq-XXXXXXXX`
 - Python / Shell: `# rq-XXXXXXXX`
 - SQL: `-- rq-XXXXXXXX`
+
 
 For a Gherkin scenario tagged `@rq-7c1e5d3b`, the corresponding test function should be annotated:
 
@@ -67,6 +68,7 @@ A single source line may carry multiple IDs if it implements multiple requiremen
 pub fn fetch_basis(...) { ... }
 ```
 
+
 Do not fabricate IDs. Only reference IDs that are present in the requirements files under `rqm/`.
 
 ### After Finishing Implementation
@@ -75,7 +77,7 @@ Once all code and tests have been written, regenerate the registry so that the n
 are recorded:
 
 ```
-.claude/skills/gr-plan/rqm.sh index
+.claude/skills/plan-feature/rqm.sh index
 ```
 
 If `index` exits non-zero (e.g. due to duplicate IDs in the markdown), follow the instructions it
@@ -83,5 +85,5 @@ prints before proceeding.
 
 ## Project-Specific Extensions
 
-Read `.claude/skills/gr-implement/local.md` and follow any instructions it contains. Where those
+Read `.claude/skills/implement/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.
