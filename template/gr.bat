@@ -1,6 +1,6 @@
 @echo off
 
-echo Note: If you are running inside WSL, use "bash run.sh" instead.
+echo Note: If you are running inside WSL, use "bash gr.sh" instead.
 echo.
 
 set /p IMAGE=<.guardrails\podman\image_name

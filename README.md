@@ -69,7 +69,7 @@ The exception is `.github/workflows/codeql.yaml` (generated for both languages),
 
 All development **must** take place within a Podman container.
 The template includes a hook that prevents Claude from answering any prompts unless you are running in a containerized environment.
-To launch a development environment, run `bash run.sh` on Linux/Mac, or `run.bat` on Windows.
+To launch a development environment, run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
 This builds the container and drops you into an interactive bash shell in `/work`.
 Run `claude` from the shell to start Claude Code.
 
