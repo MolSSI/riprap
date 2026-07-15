@@ -8,6 +8,7 @@
       "Bash(cargo test:*)",
 
 
+      "Skill(gr-architecture)",
       "Skill(gr-plan)"
     ]
   },
