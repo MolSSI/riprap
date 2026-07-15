@@ -47,7 +47,7 @@ else
   cat <<'EOF'
 {
   "decision": "block",
-  "reason": "⚠️  Not running in a containerized environment.\n\nTo containerize your work, first install podman by following the official installation instructions: https://podman.io/getting-started/installation\n\nYou can then launch an interactive container session with \"bash run.sh\"."
+  "reason": "⚠️  Not running in a containerized environment.\n\nTo containerize your work, first install podman by following the official installation instructions: https://podman.io/getting-started/installation\n\nYou can then launch an interactive container session with \"bash gr.sh\"."
 }
 EOF
   exit 2
