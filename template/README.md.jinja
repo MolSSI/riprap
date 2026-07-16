@@ -8,16 +8,18 @@
 
 Install Podman by following the official [installation instructions](https://podman.io/docs/installation).
 
-You will also need a Claude subscription.
+You will also need access to either Claude Code or Codex.
 
 ### Launching the development environment
 
 All development **must** take place within a Podman container.
-The template includes a hook that prevents Claude from answering any prompts unless you are running in a containerized environment.
+The template includes hooks that prevent Claude Code and Codex from answering prompts unless you are running in a containerized environment.
 
 Run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
 This builds the container and drops you into an interactive shell in `/work`.
-Run `claude` from the shell to start Claude Code.
+Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
+On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
+Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
 ### Initializing the project
 
@@ -108,14 +110,21 @@ changes may produce merge conflicts when updating.
 
 ### 1. Define the project architecture
 
-Start by capturing the project's high-level goals and architecture. Run the built-in skill:
+Start by capturing the project's high-level goals and architecture. Run the built-in skill. In
+Claude Code, use:
 
 ```
 /gr-architecture <one-line description of what you are building>
 ```
 
-Claude will ask questions to pin down the decisions with broad architectural leverage — intended scale and audience, execution targets, extensibility (for example, whether a plugin system is needed), key libraries, and the whole-project testing strategy — and record them in `rqm/ARCHITECTURE.md`.
-`.guardrails/CLAUDE.md` references that file, so every later step shares the same context.
+In Codex, use:
+
+```
+$gr-architecture <one-line description of what you are building>
+```
+
+The agent will ask questions to pin down the decisions with broad architectural leverage — intended scale and audience, execution targets, extensibility (for example, whether a plugin system is needed), key libraries, and the whole-project testing strategy — and record them in `rqm/ARCHITECTURE.md`.
+The agent's project guidance references that file, so every later step shares the same context.
 Re-run the skill whenever the architecture needs to evolve.
 
 ### 2. Write a requirements document
@@ -127,13 +136,19 @@ Use the built-in skill by prompting:
 Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
 ```
 
-Or invoke the skill explicitly:
+Or invoke the skill explicitly in Claude Code:
 
 ```
 /gr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
 ```
 
-Claude will ask clarifying questions and write a complete requirements file including Gherkin scenarios.
+In Codex, use:
+
+```
+$gr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
+```
+
+The agent will ask clarifying questions and write a complete requirements file including Gherkin scenarios.
 
 ### 3. Implement the feature
 
@@ -143,7 +158,7 @@ Implement the feature in rqm/<feature>.md
 
 ### 4. Iterate
 
-If the output is incorrect or incomplete, **modify the requirements file first**, then ask Claude to update the implementation:
+If the output is incorrect or incomplete, **modify the requirements file first**, then ask the agent to update the implementation:
 
 ```
 I have updated rqm/<feature>.md. Update the implementation to match.
@@ -151,18 +166,15 @@ I have updated rqm/<feature>.md. Update the implementation to match.
 
 ### 5. Verify understanding with quizzes
 
-```
-/gr-quiz
-```
-
-Claude will ask you a multiple-choice question about the implementation to help ensure you understand the code.
+Run `/gr-quiz` in Claude Code or `$gr-quiz` in Codex. The agent will ask you a multiple-choice
+question about the implementation to help ensure you understand the code.
 
 ## Key Rules
 
 ### Only ever use agentic AI inside a Podman container
 
 LLMs are susceptible to prompt injection and data poisoning.
-This repository includes a hook that blocks Claude unless it is running inside a container.
+This repository includes hooks that block Claude Code and Codex unless they are running inside a container.
 Even inside a container, you should:
 
 - Never share private SSH keys or other sensitive credentials.

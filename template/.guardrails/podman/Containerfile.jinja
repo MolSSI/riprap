@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="$PATH:/root/.local/bin"
 
 # Base tooling. jq is needed for the requirements index script;
-# curl + ca-certificates are needed for the Claude installer below.
+# curl + ca-certificates are needed for the agent installers below.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bash \

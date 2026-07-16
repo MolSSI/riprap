@@ -10,7 +10,7 @@ Install Podman, following the official podman installation [instructions](https:
 
 Install [Copier](https://copier.readthedocs.io/en/stable/#installation).
 
-You'll also need a Claude subscription.
+You'll also need access to either Claude Code or Codex.
 
 ### Creating a new repository
 
@@ -68,12 +68,14 @@ The exception is `.github/workflows/codeql.yaml` (generated for both languages),
 #### 1. Launch a development container
 
 All development **must** take place within a Podman container.
-The template includes a hook that prevents Claude from answering any prompts unless you are running in a containerized environment.
+The template includes hooks that prevent Claude Code and Codex from answering prompts unless you are running in a containerized environment.
 To launch a development environment, run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
 This builds the container and drops you into an interactive bash shell in `/work`.
-Run `claude` from the shell to start Claude Code.
+Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
+On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
+Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
-The container is built in two layers: a base image defined in `.guardrails/podman/Containerfile` provides the standard environment (Claude, language toolchain, supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
+The container is built in two layers: a base image defined in `.guardrails/podman/Containerfile` provides the standard environment (Claude Code, Codex, the language toolchain, and supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
 Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the base image alone so that `copier update` can keep it in sync with upstream changes.
 
 #### 2. Create an initial file structure
@@ -84,17 +86,23 @@ If you opted out of the skeleton, initialize the project manually — e.g. `carg
 #### 3. Define the project architecture
 
 Before writing requirements for individual features, establish the project's high-level goals and architecture.
-The template includes a `/gr-architecture` skill for this, and running it is normally the first thing you do in a new project:
+The template includes a `gr-architecture` skill for this, and running it is normally the first thing you do in a new project. In Claude Code, use:
 
 ```
 /gr-architecture I want to build a molecular dynamics code.
 ```
 
-Claude will ask a series of questions to turn a broad ambition into concrete, load-bearing decisions — the intended scale and audience, execution targets (CPU, GPU, distributed), which features carry architectural weight, how the system should be extended (for example, whether it needs a plugin system for user-defined components), the key libraries, and how whole-project testing should be handled.
-It records the results in `rqm/ARCHITECTURE.md`, which `.guardrails/CLAUDE.md` references so that every later `/gr-plan` and `/gr-implement` step shares the same architectural context.
+In Codex, use:
+
+```
+$gr-architecture I want to build a molecular dynamics code.
+```
+
+The agent will ask a series of questions to turn a broad ambition into concrete, load-bearing decisions — the intended scale and audience, execution targets (CPU, GPU, distributed), which features carry architectural weight, how the system should be extended (for example, whether it needs a plugin system for user-defined components), the key libraries, and how whole-project testing should be handled.
+It records the results in `rqm/ARCHITECTURE.md`, which the agent's project guidance references so that every later planning and implementation step shares the same architectural context.
 
 The goal is not to specify every detail — that is the job of the per-feature requirements files below — but to capture the decisions that would be expensive to reverse later.
-You can re-run `/gr-architecture` at any time to refine or extend the document as the project matures.
+You can re-run the `gr-architecture` skill at any time to refine or extend the document as the project matures.
 
 #### 4. Generate a requirements document
 
@@ -109,17 +117,23 @@ For example, you can say:
 I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
-You can also invoke the skill explicitly:
+You can also invoke the skill explicitly in Claude Code:
 
 ```
 /gr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
-Claude will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
-Examine this file carefully, including the Gherkin scenarios - these will later be used to generate unit tests for your code.
-Correct any issues with the file either manually or by asking Claude to make adjustments to the file.
+In Codex, use:
 
-For somewhat more complex features, it may prove useful to manually fill out a small portion of a requirements document, and then ask Claude to refine it.
+```
+$gr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
+```
+
+The agent will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
+Examine this file carefully, including the Gherkin scenarios - these will later be used to generate unit tests for your code.
+Correct any issues with the file either manually or by asking the agent to make adjustments to the file.
+
+For somewhat more complex features, it may prove useful to manually fill out a small portion of a requirements document, and then ask the agent to refine it.
 For example, you might write a file in `rqm/basis/bse.md` with the following contents:
 
 ```
@@ -140,13 +154,13 @@ Then, you can prompt:
 Help me flesh out the requirements file in rqm/basis/bse.md
 ```
 
-And then claude will automatically use the `/gr-plan` skill.
+The agent will then automatically use the `gr-plan` skill.
 
 
 
 #### 5. Implement the feature
 
-You may now ask Claude to implement the feature, which will automatically invoke the `/gr-implement` skill:
+You may now ask the agent to implement the feature, which will automatically invoke the `gr-implement` skill:
 
 ```
 Implement the feature in rqm/requirements.md
@@ -154,7 +168,7 @@ Implement the feature in rqm/requirements.md
 
 #### 6. Iteratively refine the requirements and code
 
-Examine and test the code Claude generates carefully.
+Examine and test the code the agent generates carefully.
 If there are any problems, **modify the requirements file before changing the code**.
 For example, you might prompt:
 
@@ -162,7 +176,7 @@ For example, you might prompt:
 I want my parser to be able to support trajectory files that contain many snapshots. Help me modify the requirements file in rqm/parser.md accordingly. These trajectory files may be too big to load into memory all at once, so suggest options for how to handle this problem.
 ```
 
-After making any changes to a requirements file, ask Claude to update the code:
+After making any changes to a requirements file, ask the agent to update the code:
 
 ```
 I have made changes to rqm/parser.md to support trajectory files.  Update the implementation of the parser to conform to the latest version of the requirements file.
@@ -183,16 +197,21 @@ In this approach, it may be helpful to view the development process as natural-l
 ### Quizzes
 
 It is important that you understand the functionality of your code.
-To help with this, the template includes a `/gr-quiz` skill.
+To help with this, the template includes a `gr-quiz` skill. Invoke it as `/gr-quiz` in Claude Code
+or `$gr-quiz` in Codex.
 If you prompt the LLM with this skill, it will ask you a question about the implementation details of your code.
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
 
 ### Customizing skills
 
-Each skill directory under `.claude/skills/` contains a `local.md` file that belongs to your project.
+The authoritative shared skill implementations live under `.claude/skills/`, and Codex discovers
+adapters for them under `.agents/skills/`. Each shared skill directory contains a `local.md` file
+that belongs to your project.
 Guardrails creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
-Use it to extend or override a skill with project-specific conventions - for example, pointing `/gr-plan` at a project-specific exemplar requirements file, or requiring `/gr-implement` to run a particular linter before finishing.
+Use it to extend or override a skill with project-specific conventions—for example, pointing
+`gr-plan` at a project-specific exemplar requirements file, or requiring `gr-implement` to run a
+particular linter before finishing.
 Where `local.md` conflicts with a skill's built-in instructions, `local.md` wins.
 Avoid editing the `SKILL.md` files themselves; those are owned by the template, and local edits to them may produce merge conflicts when you run `copier update`.
 
@@ -212,7 +231,7 @@ One of the most important things you can do to protect yourself is to restrict a
 Note that although Docker is currently the most popular containerization option, Docker containers have root access by default and are therefore not a good solution to the LLM security problem.
 Instead, The MolSSI recommends using Podman.
 Podman containers do not have root access by default, making them a generally better option when security is a concern.
-To help you avoid accidentally exposing your entire system to hackers, this repository includes a hook that prevents Claude from answering prompts unless it is run in a container.
+To help you avoid accidentally exposing your entire system to hackers, generated repositories include hooks that prevent Claude Code and Codex from answering prompts unless they are run in a container.
 
 Note that containerization is merely a first step in protecting yourself when using LLM agents.
 Even when working in a container, you should treat the agent with considerable skepticism.
