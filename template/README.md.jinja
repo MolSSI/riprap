@@ -179,10 +179,11 @@ Avoid editing `SKILL.md` directly because canonical implementations and adapters
 
 ## Key Rules
 
-### Only ever use agentic AI inside a Podman container
+### Only ever use agentic AI inside a rootless container
 
 LLMs are susceptible to prompt injection and data poisoning.
-This repository includes hooks that block Claude Code and Codex unless they are running inside a container.
+This repository includes hooks that block Claude Code and Codex unless they are running inside a rootless container,
+such as a Podman container.
 Even inside a container, you should:
 
 - Never share private SSH keys or other sensitive credentials.

@@ -219,7 +219,7 @@ Avoid editing the `SKILL.md` files themselves; those are owned by the template, 
 
 ## Key Rules of AI-Assisted Programming
 
-### 1. Only ever use agentic AI inside of a Podman container
+### 1. Only ever use agentic AI inside of a rootless container
 
 LLM's are intrinsically vulnerable to prompt injection and data poisoning, allowing even relatively unsophisticated attackers to alter the behavior of the LLM.
 Malicious actors can easily hijack an LLM to send them a user's personal information (including ssh keys) or to instruct an LLM agent engage in destructive actions.
