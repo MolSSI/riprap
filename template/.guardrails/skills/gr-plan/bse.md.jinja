@@ -1,6 +1,6 @@
 # Feature: Pull Missing Basis Set from Basis Set Exchange
 
-This feature provides a function for fetching Gaussian basis sets needed for electronic structure
+Provides a function for fetching Gaussian basis sets needed for electronic structure
 calculations. Basis set files are stored locally under `data/basis`. When a required basis set is
 not cached, the function downloads it from the Basis Set Exchange (BSE) REST API and saves it for
 future use. If `data/basis` (or any subdirectory) does not exist, it is created automatically.

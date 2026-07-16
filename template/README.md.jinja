@@ -169,6 +169,14 @@ I have updated rqm/<feature>.md. Update the implementation to match.
 Run `/gr-quiz` in Claude Code or `$gr-quiz` in Codex. The agent will ask you a multiple-choice
 question about the implementation to help ensure you understand the code.
 
+### Customizing skills
+
+The authoritative, agent-neutral skill implementations live under `.guardrails/skills/`. Claude
+discovers adapters under `.claude/skills/`, while Codex discovers adapters under `.agents/skills/`.
+Each canonical skill directory contains a project-owned `local.md` file. Use that file to extend or
+override the skill with project-specific conventions; Copier preserves it during template updates.
+Avoid editing `SKILL.md` directly because canonical implementations and adapters are template-owned.
+
 ## Key Rules
 
 ### Only ever use agentic AI inside a Podman container

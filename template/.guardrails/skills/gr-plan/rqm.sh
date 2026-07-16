@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# rqm.sh — Requirements traceability ID management
+# rqm.sh — Agent-neutral requirements traceability ID management
 # Deps: bash >= 4.0, grep, find, sed, jq, od
 set -euo pipefail
 

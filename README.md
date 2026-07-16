@@ -205,9 +205,10 @@ Using this skill periodically is a great way to ensure that you aren't creating 
 
 ### Customizing skills
 
-The authoritative shared skill implementations live under `.claude/skills/`, and Codex discovers
-adapters for them under `.agents/skills/`. Each shared skill directory contains a `local.md` file
-that belongs to your project.
+The authoritative, agent-neutral skill implementations live under `.guardrails/skills/`. Claude
+discovers adapters for them under `.claude/skills/`, while Codex discovers adapters under
+`.agents/skills/`. Each canonical skill directory contains a `local.md` file that belongs to your
+project.
 Guardrails creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
 Use it to extend or override a skill with project-specific conventions—for example, pointing
 `gr-plan` at a project-specific exemplar requirements file, or requiring `gr-implement` to run a

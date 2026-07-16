@@ -27,7 +27,7 @@ When you encounter an `rq-XXXXXXXX` token in a comment in any source file you ar
 look up the requirement it refers to before making changes:
 
 ```
-.claude/skills/gr-plan/rqm.sh show rq-XXXXXXXX
+.guardrails/skills/gr-plan/rqm.sh show rq-XXXXXXXX
 ```
 
 This prints the type, file, title, and declaration of the requirement. Read the referenced
@@ -98,7 +98,7 @@ Once all code and tests have been written, regenerate the registry so that the n
 are recorded:
 
 ```
-.claude/skills/gr-plan/rqm.sh index
+.guardrails/skills/gr-plan/rqm.sh index
 ```
 
 If `index` exits non-zero (e.g. due to duplicate IDs in the markdown), follow the instructions it
@@ -106,5 +106,5 @@ prints before proceeding.
 
 ## Project-Specific Extensions
 
-Read `.claude/skills/gr-implement/local.md` and follow any instructions it contains. Where those
+Read `.guardrails/skills/gr-implement/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.

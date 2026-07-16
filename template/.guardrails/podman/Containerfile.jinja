@@ -11,8 +11,13 @@ RUN apt-get update && \
         ca-certificates \
         curl \
         git \
-        jq && \
+        jq \
+        pipx && \
     rm -rf /var/lib/apt/lists/*
+
+# rq-7983cd9c
+# Install Copier as an isolated CLI application for template updates and validation.
+RUN pipx install 'copier>=9,<10'
 
 # Install Claude
 RUN curl -fsSL https://claude.ai/install.sh | bash

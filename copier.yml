@@ -5,7 +5,7 @@ _skip_if_exists:
   - /Containerfile
   - /CLAUDE.md
   - /AGENTS.md
-  - /.claude/skills/*/local.md
+  - /.guardrails/skills/*/local.md
   - /LICENSE
   # Package/crate skeletons: seeded once, owned by the user thereafter
   - /pyproject.toml

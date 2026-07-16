@@ -3,9 +3,8 @@ name: gr-plan
 description: Plan or design a feature and write or revise its requirements documentation without implementing it.
 ---
 
-Read `.claude/skills/gr-plan/SKILL.md` completely and follow it as the authoritative workflow. It
-is shared with Claude Code so Guardrails has one maintained implementation of this skill. When
-applying it in Codex:
+Read `.guardrails/skills/gr-plan/SKILL.md` completely and follow it as the authoritative workflow.
+It is agent-neutral so Guardrails has one maintained implementation. When applying it in Codex:
 
 - Treat `$gr-architecture` and `$gr-implement` as the Codex equivalents of `/gr-architecture` and
   `/gr-implement`.

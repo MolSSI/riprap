@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test_rqm.sh — tests for rqm.sh (one test per Gherkin scenario)
+# tests/test_rqm.sh — agent-neutral tests for rqm.sh (one test per Gherkin scenario)
 set -euo pipefail
 
 SCRIPT="$(cd "$(dirname "$0")/.." && pwd)/rqm.sh"
@@ -127,12 +127,7 @@ EOF
   rqm stamp rqm/test.md
   assert_file_contains rqm/test.md '@rq-[0-9a-f]{8}'
   # Tag must appear before Scenario:
-  python3 -c "
-lines=open('rqm/test.md').readlines()
-for i,l in enumerate(lines):
-    if 'Scenario:' in l:
-        assert '@rq-' in lines[i-1], 'tag not before Scenario:'
-"
+  awk '/Scenario:/{ if (previous !~ /@rq-/) exit 1 } { previous=$0 }' rqm/test.md
 }
 
 t_stamp_does_not_change_tagged_scenario() {
