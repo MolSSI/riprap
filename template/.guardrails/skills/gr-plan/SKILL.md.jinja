@@ -103,9 +103,17 @@ A complete example requirements file is available at `.guardrails/skills/gr-plan
 
 Features should be as small and self-contained as reasonably possible. Consider whether the user's feature idea can be cleanly subdivided into smaller components. If so, use the AskUserQuestion tool to ask the user if it is acceptable to subdivide the feature into multiple smaller requirements files corresponding to each of these natural subdivisions.
 
-## Ask Clarifying Questions
+## Clarify the Plan
 
-Use the AskUserQuestion tool to ask the user clarifying questions regarding the planned feature. Anticipate edge cases, and ask the user how they should be handled. Batch related questions into a single call. Continue requesting clarification from the user until every identified edge case has an assigned handling strategy and the API surface is fully specified.
+Identify unresolved decisions whose answers would materially change the requirements,
+implementation, compatibility, or user-visible behavior.
+
+If any such ambiguity remains, use AskUserQuestion to ask the user before writing the
+requirements. Batch related questions and continue until every material decision is resolved or
+explicitly deferred.
+
+If the request and existing project context already resolve all material decisions, do not ask
+ceremonial questions. Record any non-obvious assumptions in the requirements and proceed.
 
 ## Markdown File Location
 

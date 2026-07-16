@@ -10,4 +10,5 @@ It is agent-neutral so Guardrails has one maintained implementation. When applyi
   `/gr-implement`.
 - Read `AGENTS.md` and `rqm/ARCHITECTURE.md` for project guidance when the shared workflow refers
   to `CLAUDE.md` and documents referenced by it.
-- Use Codex's available user-input mechanism when the workflow refers to `AskUserQuestion`.
+- When clarification is required in Codex Plan mode, use its structured user-input mechanism.
+  Otherwise, ask a concise textual question only when clarification is required.
