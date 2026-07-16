@@ -1,0 +1,141 @@
+# Feature: Agent Credential Isolation <!-- rq-60eee682 -->
+
+Guardrails keeps Claude and Codex authentication state in project-specific Podman named volumes.
+Generated projects never mount a user's host Claude or Codex configuration into the development
+container. Layered repository safeguards prevent credentials copied into the workspace from being
+committed or pushed accidentally.
+
+## Project Identity <!-- rq-f3cf5b0e -->
+
+- `.guardrails/project-id` contains a randomly generated UUID used only to identify the generated
+  project's local Guardrails resources.
+- The launch scripts create the file atomically on first use when it does not exist.
+- An existing identifier must be a canonical lowercase UUID. Launching fails with an actionable
+  error rather than replacing a malformed identifier or following a symbolic link.
+- The identifier is non-secret, user-owned metadata intended to be committed so that directory
+  moves and additional clones retain the same project identity.
+- Copier updates preserve the identifier.
+
+## Credential Volumes <!-- rq-b96d41dc -->
+
+- Claude and Codex state use distinct Podman named volumes whose names include the project UUID and
+  the agent name.
+- Launching creates missing volumes and reuses existing volumes.
+- The project working directory remains the only host project bind mount.
+- Host paths such as `~/.claude`, `~/.claude.json`, and `~/.codex` are never mounted or copied into
+  the development container.
+- Removing a disposable development container does not remove its named credential volumes.
+- A launcher command can reset one agent's state or all agent state for the current project. Reset
+  requires explicit confirmation and never removes volumes belonging to another project UUID.
+- Linux, macOS, WSL, and Windows launch paths implement the same identity and volume model.
+
+## Repository Leak Prevention <!-- rq-638ff671 -->
+
+- Generated `.gitignore` files reject only known credential artifacts, including root-level
+  `.codex/auth.json`, `.claude/.credentials.json`, `.claude.json`, and local `.env` variants.
+- Legitimate versioned integration files such as `.codex/hooks.json`, `.claude/settings.json`, and
+  agent skill adapters remain trackable.
+- A template-owned secret scanner examines staged Git content without printing matched secret
+  values. It rejects known credential paths, private-key material, and high-confidence supported
+  token formats.
+- The scanner uses fake, unmistakably nonfunctional credentials in its tests.
+- The same scanner supports a CI mode that examines repository content independently of local Git
+  hook installation.
+- Generated projects provide an explicit command to install the scanner as a Git hook through
+  `core.hooksPath`. Installation does not replace or modify an existing custom hooks path; it stops
+  with instructions for composing the hooks instead.
+- Documentation recommends enabling GitHub secret scanning and push protection as a server-side
+  safeguard. Local ignore rules and hooks are described as bypassable defense-in-depth controls.
+
+## Feature Interface <!-- rq-22e021a0 -->
+
+- `gr.sh` and `gr.bat`
+  - Ensure `.guardrails/project-id` and the project-specific Claude and Codex volumes exist before
+    launching the development container.
+  - Launch without exposing host agent configuration paths.
+- `gr.sh --reset-agent-state <claude|codex|all>` and the equivalent Windows command
+  - Display the exact project-scoped volumes that will be removed.
+  - Require interactive confirmation unless an explicit non-interactive confirmation flag is used.
+- `gr.sh --install-git-hooks` and the equivalent Windows command
+  - Configure the generated repository to use Guardrails' version-controlled hooks when no
+    conflicting `core.hooksPath` is configured.
+- `.guardrails/hooks/check-secrets.sh --staged`
+  - Inspect staged paths and blobs and exit nonzero when a supported secret is detected.
+- `.guardrails/hooks/check-secrets.sh --repository`
+  - Inspect repository content in CI and exit nonzero when a supported secret is detected.
+
+## Gherkin Scenarios <!-- rq-898cb6e0 -->
+
+```gherkin
+Feature: Isolate agent credentials from generated projects
+
+  @rq-9d9dea75
+  Scenario: First launch creates a stable project identity and credential volumes
+    Given a generated project has no ".guardrails/project-id"
+    And Podman has no credential volumes for the project
+    When the project launcher starts the development environment
+    Then it atomically creates a canonical lowercase UUID in ".guardrails/project-id"
+    And it creates distinct Claude and Codex named volumes containing that UUID
+    And the container receives no bind mount from the host's Claude or Codex configuration paths
+
+  @rq-113c8ccd
+  Scenario: Later launches reuse project credential state
+    Given a generated project has a valid project UUID
+    And its Claude and Codex named volumes contain marker files
+    When the project launcher starts and stops another disposable development container
+    Then it reuses the same named volumes
+    And both marker files remain present
+
+  @rq-6135fc70
+  Scenario: A malformed project identity blocks launch safely
+    Given ".guardrails/project-id" is malformed or is a symbolic link
+    When the project launcher starts the development environment
+    Then launch fails before Podman runs
+    And the existing path is not replaced or modified
+
+  @rq-f957f555
+  Scenario: Reset removes only selected project credential state
+    Given two generated projects have distinct project UUIDs and credential volumes
+    When the first project resets its Codex state with explicit confirmation
+    Then only the first project's Codex volume is removed
+    And both Claude volumes remain
+    And the second project's Codex volume remains
+
+  @rq-f8bf5e72
+  Scenario: Known credential files are ignored without hiding integration configuration
+    Given a generated project
+    When Git ignore rules are evaluated
+    Then root-level Codex and Claude credential artifacts are ignored
+    And local environment-secret files are ignored
+    And ".codex/hooks.json" is not ignored
+    And ".claude/settings.json" is not ignored
+    And agent skill adapters are not ignored
+
+  @rq-aeab49a7
+  Scenario: Staged credential material is rejected without disclosure
+    Given a generated Git repository has staged files containing fake supported credential patterns
+    When the staged-content secret scanner runs
+    Then it exits nonzero
+    And it identifies each affected path and credential category
+    And its output does not contain the matched credential values
+
+  @rq-0bb9767e
+  Scenario: Legitimate agent integration files pass secret scanning
+    Given a generated Git repository has staged ordinary Guardrails agent settings and adapters
+    When the staged-content secret scanner runs
+    Then it exits successfully
+
+  @rq-50bb2037
+  Scenario: Hook installation preserves an existing hook configuration
+    Given a generated Git repository already has a custom "core.hooksPath"
+    When Guardrails hook installation is requested
+    Then installation exits nonzero with composition instructions
+    And the existing "core.hooksPath" is unchanged
+
+  @rq-ba5ee81b
+  Scenario: CI rejects credential material without local hook installation
+    Given a generated repository contains a fake supported credential in tracked content
+    And no local Git hook is installed
+    When the repository-mode secret scanner runs in GitHub Actions
+    Then the workflow fails without printing the credential value
+```

@@ -18,6 +18,10 @@ The template includes hooks that prevent Claude Code and Codex from answering pr
 Run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
 This builds the container and drops you into an interactive shell in `/work`.
 Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
+Agent authentication is stored in separate Podman named volumes scoped by the random UUID in
+`.guardrails/project-id`; the launchers never mount your host `.claude` or `.codex` directories.
+The UUID is non-secret project metadata and should be committed. To clear authentication, run
+`bash gr.sh --reset-agent-state claude`, `codex`, or `all` (use `gr.bat` on Windows).
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
@@ -189,6 +193,15 @@ Even inside a container, you should:
 - Never share private SSH keys or other sensitive credentials.
 - Never give the LLM write access to remote repositories.
 - Never push LLM-generated code without reviewing it carefully first.
+
+### Keep credentials out of Git
+
+Install the version-controlled pre-commit scanner with `bash gr.sh --install-git-hooks` (or
+`gr.bat --install-git-hooks`). It refuses to replace an existing custom `core.hooksPath`; follow
+the reported composition instructions in that case. Run
+`.guardrails/hooks/check-secrets.sh --repository` in CI to scan committed content. Ignore rules and
+local hooks are bypassable safeguards, so repositories hosted on GitHub should also enable secret
+scanning and push protection in their security settings.
 
 ### Treat requirements documents as the source of truth
 

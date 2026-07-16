@@ -102,6 +102,13 @@ lives in focused requirements documents under `rqm/`; implementation follows tho
 Stable opaque identifiers provide traceability for requirements that correspond to executable code
 or tests.
 
+Guardrails' own traceability identifiers belong to the top-level repository: its requirements under
+`rqm/` and the implementation or tests that satisfy them outside `template/`. Concrete
+`rq-XXXXXXXX` identifiers from the Guardrails repository do not appear anywhere under `template/`.
+Template content is distributed into generated repositories, whose requirements and traceability
+registries are independently owned by those projects. Keeping the namespaces separate prevents a
+generated project from mistaking Guardrails implementation annotations for its own requirements.
+
 Requirements and Gherkin scenarios must describe behavior that can be validated meaningfully in the
 project's automated environment. The requirements process does not manufacture executable-looking
 scenarios for subjective agent behavior or other claims that the test environment cannot observe.

@@ -33,5 +33,11 @@ jobs:
       - name: Test requirements tooling
         run: bash template/.guardrails/skills/gr-plan/tests/test_rqm.sh
 
+      - name: Validate template traceability boundary
+        run: bash tests/check_template_traceability.sh
+
       - name: Test generated development containers
         run: bash tests/test_development_container.sh
+
+      - name: Test credential isolation and traceability boundary
+        run: bash tests/test_credential_isolation.sh

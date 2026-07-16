@@ -1,10 +1,55 @@
 {
+  "rq-0bb9767e": {
+    "decl": "Scenario: Legitimate agent integration files pass secret scanning",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Legitimate agent integration files pass secret scanning",
+    "type": "scenario"
+  },
+  "rq-113c8ccd": {
+    "decl": "Scenario: Later launches reuse project credential state",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Later launches reuse project credential state",
+    "type": "scenario"
+  },
   "rq-217d25aa": {
     "decl": "Scenario: A generated project uses the agent-neutral skill layout",
     "file": "agent-neutral-skills",
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_agent_neutral_skills.sh",
+        "kind": "code"
+      }
+    ],
     "title": "A generated project uses the agent-neutral skill layout",
     "type": "scenario"
+  },
+  "rq-22e021a0": {
+    "decl": "## Feature Interface",
+    "file": "agent-credential-isolation",
+    "level": 2,
+    "refs": [],
+    "title": "Feature Interface",
+    "type": "section"
+  },
+  "rq-3105bde4": {
+    "decl": "## Traceability Rules",
+    "file": "template-traceability-boundary",
+    "level": 2,
+    "refs": [],
+    "title": "Traceability Rules",
+    "type": "section"
   },
   "rq-43c9b2b8": {
     "decl": "## Planning Clarification",
@@ -14,6 +59,37 @@
     "title": "Planning Clarification",
     "type": "section"
   },
+  "rq-50bb2037": {
+    "decl": "Scenario: Hook installation preserves an existing hook configuration",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Hook installation preserves an existing hook configuration",
+    "type": "scenario"
+  },
+  "rq-60eee682": {
+    "decl": "# Feature: Agent Credential Isolation",
+    "file": "agent-credential-isolation",
+    "refs": [],
+    "title": "Feature: Agent Credential Isolation",
+    "type": "file"
+  },
+  "rq-6135fc70": {
+    "decl": "Scenario: A malformed project identity blocks launch safely",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A malformed project identity blocks launch safely",
+    "type": "scenario"
+  },
   "rq-637415e2": {
     "decl": "## Gherkin Scenarios",
     "file": "agent-neutral-skills",
@@ -22,16 +98,53 @@
     "title": "Gherkin Scenarios",
     "type": "section"
   },
+  "rq-638ff671": {
+    "decl": "## Repository Leak Prevention",
+    "file": "agent-credential-isolation",
+    "level": 2,
+    "refs": [],
+    "title": "Repository Leak Prevention",
+    "type": "section"
+  },
+  "rq-70d8296b": {
+    "decl": "Scenario: A generated project starts with an independent traceability namespace",
+    "file": "template-traceability-boundary",
+    "refs": [
+      {
+        "file": "tests/check_template_traceability.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A generated project starts with an independent traceability namespace",
+    "type": "scenario"
+  },
   "rq-876d30dd": {
     "decl": "Scenario: Copier is available in a generated Python development container",
     "file": "development-container",
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Copier is available in a generated Python development container",
     "type": "scenario"
   },
   "rq-88b04d5f": {
     "decl": "## Gherkin Scenarios",
     "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
+  },
+  "rq-898cb6e0": {
+    "decl": "## Gherkin Scenarios",
+    "file": "agent-credential-isolation",
     "level": 2,
     "refs": [],
     "title": "Gherkin Scenarios",
@@ -52,11 +165,83 @@
     "title": "Template Layout",
     "type": "section"
   },
+  "rq-9d9dea75": {
+    "decl": "Scenario: First launch creates a stable project identity and credential volumes",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "First launch creates a stable project identity and credential volumes",
+    "type": "scenario"
+  },
   "rq-a32974ac": {
     "decl": "Scenario: Copier is available in a generated Rust development container",
     "file": "development-container",
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Copier is available in a generated Rust development container",
+    "type": "scenario"
+  },
+  "rq-aeab49a7": {
+    "decl": "Scenario: Staged credential material is rejected without disclosure",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Staged credential material is rejected without disclosure",
+    "type": "scenario"
+  },
+  "rq-b96d41dc": {
+    "decl": "## Credential Volumes",
+    "file": "agent-credential-isolation",
+    "level": 2,
+    "refs": [],
+    "title": "Credential Volumes",
+    "type": "section"
+  },
+  "rq-ba5ee81b": {
+    "decl": "Scenario: CI rejects credential material without local hook installation",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "CI rejects credential material without local hook installation",
+    "type": "scenario"
+  },
+  "rq-cab43a04": {
+    "decl": "# Feature: Template Traceability Boundary",
+    "file": "template-traceability-boundary",
+    "refs": [],
+    "title": "Feature: Template Traceability Boundary",
+    "type": "file"
+  },
+  "rq-cb2cdd8e": {
+    "decl": "Scenario: Placeholder syntax remains valid template documentation",
+    "file": "template-traceability-boundary",
+    "refs": [
+      {
+        "file": "tests/check_template_traceability.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Placeholder syntax remains valid template documentation",
     "type": "scenario"
   },
   "rq-da673d77": {
@@ -69,8 +254,69 @@
   "rq-df3907ad": {
     "decl": "Scenario: Skill customization survives a Copier update",
     "file": "agent-neutral-skills",
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_agent_neutral_skills.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Skill customization survives a Copier update",
+    "type": "scenario"
+  },
+  "rq-f13ed893": {
+    "decl": "## Gherkin Scenarios",
+    "file": "template-traceability-boundary",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
+  },
+  "rq-f3cf5b0e": {
+    "decl": "## Project Identity",
+    "file": "agent-credential-isolation",
+    "level": 2,
+    "refs": [],
+    "title": "Project Identity",
+    "type": "section"
+  },
+  "rq-f63c0743": {
+    "decl": "Scenario: Guardrails traceability validation rejects a concrete ID in the template tree",
+    "file": "template-traceability-boundary",
+    "refs": [
+      {
+        "file": "tests/check_template_traceability.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Guardrails traceability validation rejects a concrete ID in the template tree",
+    "type": "scenario"
+  },
+  "rq-f8bf5e72": {
+    "decl": "Scenario: Known credential files are ignored without hiding integration configuration",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Known credential files are ignored without hiding integration configuration",
+    "type": "scenario"
+  },
+  "rq-f957f555": {
+    "decl": "Scenario: Reset removes only selected project credential state",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Reset removes only selected project credential state",
     "type": "scenario"
   },
   "rq-fc6358df": {

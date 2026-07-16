@@ -26,6 +26,8 @@ _skip_if_exists:
   # Architecture overview: seeded once, filled out via gr-architecture,
   # owned by the user thereafter
   - /rqm/ARCHITECTURE.md
+  # Stable local-resource identity, created on first launch and owned by the project.
+  - /.guardrails/project-id
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 
