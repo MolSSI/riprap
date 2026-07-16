@@ -3,7 +3,8 @@
 Guardrails keeps Claude and Codex authentication state in project-specific Podman named volumes.
 Generated projects never mount a user's host Claude or Codex configuration into the development
 container. Layered repository safeguards prevent credentials copied into the workspace from being
-committed or pushed accidentally.
+committed or pushed accidentally. The version-controlled Git hooks and launch scripts are normalized
+so they run on every supported host.
 
 ## Project Identity <!-- rq-f3cf5b0e -->
 
@@ -51,6 +52,18 @@ committed or pushed accidentally.
   with instructions for composing the hooks instead.
 - Documentation recommends enabling GitHub secret scanning and push protection as a server-side
   safeguard. Local ignore rules and hooks are described as bypassable defense-in-depth controls.
+
+## Cross-Platform Script Execution <!-- rq-9332ad0f -->
+
+- A template-owned `.gitattributes`, delivered and kept current through `copier update`, sets the
+  line endings of version-controlled Guardrails files so that hooks and launch scripts run on Linux,
+  macOS, WSL, and Windows regardless of a contributor's `core.autocrlf` setting.
+- Shell scripts and Git hooks, including the extensionless `pre-commit` hook and `check-secrets.sh`,
+  are checked out with LF endings so they execute under the bundled shell of Git for Windows.
+- PowerShell scripts are checked out with LF endings.
+- Windows batch scripts are checked out with CRLF endings so `cmd.exe` control-flow constructs remain
+  valid.
+- Text files without a more specific rule are normalized to LF in the repository.
 
 ## Feature Interface <!-- rq-22e021a0 -->
 
@@ -113,6 +126,20 @@ Feature: Isolate agent credentials from generated projects
     Then only the first project's Codex volume is removed
     And both Claude volumes remain
     And the second project's Codex volume remains
+
+  @rq-d89e4c89
+  Scenario: Version-controlled hooks and shell scripts are marked for LF checkout
+    Given a project rendered from the Guardrails template
+    When the effective Git "eol" attribute is evaluated for the version-controlled scripts
+    Then ".guardrails/hooks/pre-commit" has an "eol" attribute of "lf"
+    And ".guardrails/hooks/check-secrets.sh" has an "eol" attribute of "lf"
+    And "gr.sh" has an "eol" attribute of "lf"
+
+  @rq-dbd3a295
+  Scenario: Windows batch scripts are marked for CRLF checkout
+    Given a project rendered from the Guardrails template
+    When the effective Git "eol" attribute is evaluated for "gr.bat"
+    Then "gr.bat" has an "eol" attribute of "crlf"
 
   @rq-f8bf5e72
   Scenario: Known credential files are ignored without hiding integration configuration

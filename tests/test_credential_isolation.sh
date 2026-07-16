@@ -127,6 +127,22 @@ test_repository_scan_needs_no_hook() (
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
+attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
+
+# rq-d89e4c89
+test_scripts_marked_lf() (
+  setup_project; cd "$PROJECT"; git init -q
+  for path in .guardrails/hooks/pre-commit .guardrails/hooks/check-secrets.sh gr.sh; do
+    eol=$(attr_eol "$path"); test "$eol" = lf || fail "$path is not marked eol=lf (got '$eol')"
+  done
+)
+
+# rq-dbd3a295
+test_batch_marked_crlf() (
+  setup_project; cd "$PROJECT"; git init -q
+  eol=$(attr_eol gr.bat); test "$eol" = crlf || fail "gr.bat is not marked eol=crlf (got '$eol')"
+)
+
 # rq-f63c0743 rq-cb2cdd8e
 test_template_traceability_validation() (
   TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
@@ -150,6 +166,7 @@ test_generated_traceability_is_independent() (
 )
 
 test_first_launch_isolated_volumes; test_later_launch_reuses_state; test_claude_config_stored_in_volume
+test_scripts_marked_lf; test_batch_marked_crlf
 test_bad_identity_blocks_podman
 test_reset_is_project_and_agent_scoped; test_ignore_scope; test_staged_secrets_rejected_without_disclosure
 test_legitimate_integration_passes; test_hook_install_preserves_custom_path; test_repository_scan_needs_no_hook

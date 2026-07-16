@@ -165,6 +165,14 @@
     "title": "Template Layout",
     "type": "section"
   },
+  "rq-9332ad0f": {
+    "decl": "## Cross-Platform Script Execution",
+    "file": "agent-credential-isolation",
+    "level": 2,
+    "refs": [],
+    "title": "Cross-Platform Script Execution",
+    "type": "section"
+  },
   "rq-9d9dea75": {
     "decl": "Scenario: First launch creates a stable project identity and credential volumes",
     "file": "agent-credential-isolation",
@@ -244,12 +252,36 @@
     "title": "Placeholder syntax remains valid template documentation",
     "type": "scenario"
   },
+  "rq-d89e4c89": {
+    "decl": "Scenario: Version-controlled hooks and shell scripts are marked for LF checkout",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Version-controlled hooks and shell scripts are marked for LF checkout",
+    "type": "scenario"
+  },
   "rq-da673d77": {
     "decl": "# Feature: Guardrails Development Container",
     "file": "development-container",
     "refs": [],
     "title": "Feature: Guardrails Development Container",
     "type": "file"
+  },
+  "rq-dbd3a295": {
+    "decl": "Scenario: Windows batch scripts are marked for CRLF checkout",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Windows batch scripts are marked for CRLF checkout",
+    "type": "scenario"
   },
   "rq-df3907ad": {
     "decl": "Scenario: Skill customization survives a Copier update",

@@ -61,6 +61,15 @@ supported language and tooling variants. Guardrails distinguishes among:
 New template features must assign ownership deliberately. Update behavior is part of their public
 contract, not an incidental consequence of file placement.
 
+The Guardrails repository is itself a rendered instance of its own template, as recorded in
+`.copier-answers.yml`: the top-level project files are generated from `template/` and adopt template
+improvements through `copier update`. A template-owned file therefore exists twice in the
+repository — as the source under `template/` and as the rendered copy at the top level. The source
+under `template/` is the single point of edit; the rendered top-level copy is produced by
+`copier update` and is never modified by hand, because a later update would overwrite manual
+top-level edits. User-owned seed files and agent-neutral extension files are the exception: Copier
+creates them once and then preserves them, so they are maintained in place at the top level.
+
 ### Agent Integration
 
 Canonical Guardrails workflows are independent of any one AI agent and live under `.guardrails`.
