@@ -319,6 +319,18 @@
     "title": "Reset removes only selected project credential state",
     "type": "scenario"
   },
+  "rq-fb3e7cc2": {
+    "decl": "Scenario: Claude stores its configuration file inside its named volume",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Claude stores its configuration file inside its named volume",
+    "type": "scenario"
+  },
   "rq-fc6358df": {
     "decl": "## Base Tooling",
     "file": "development-container",

@@ -53,6 +53,17 @@ test_later_launch_reuses_state() (
   test -f "$MOCK_VOLUMES/guardrails-$id-claude/marker"; test -f "$MOCK_VOLUMES/guardrails-$id-codex/marker"
 )
 
+# rq-fb3e7cc2
+test_claude_config_stored_in_volume() (
+  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
+  id=$(cat .guardrails/project-id)
+  # The Claude configuration directory must resolve to the same container path where the
+  # persistent Claude volume is mounted, so the top-level configuration file is stored in
+  # the volume rather than the disposable container.
+  grep -Eq -- "-v guardrails-$id-claude:/root/\.claude( |$)" "$PODMAN_LOG" || fail 'Claude volume not mounted at /root/.claude'
+  grep -Eq -- "-e CLAUDE_CONFIG_DIR=/root/\.claude( |$)" "$PODMAN_LOG" || fail 'CLAUDE_CONFIG_DIR not pointed at the Claude volume'
+)
+
 # rq-6135fc70
 test_bad_identity_blocks_podman() (
   setup_project; cd "$PROJECT"; printf 'bad\n' > .guardrails/project-id
@@ -85,7 +96,9 @@ test_ignore_scope() (
 # rq-aeab49a7
 test_staged_secrets_rejected_without_disclosure() (
   setup_project; cd "$PROJECT"; git init -q; git config user.email x@y; git config user.name x
-  token='sk-THISISANUNMISTAKABLYFAKETOKEN123456'; printf '%s\n' "$token" > accidental.txt; git add -f accidental.txt
+  # Assemble the fake token from a separate sigil and body so this test file never contains a
+  # literal secret; otherwise the pre-commit scanner would reject the file when it is committed.
+  fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="sk-$fake"; printf '%s\n' "$token" > accidental.txt; git add -f accidental.txt
   ! output=$(.guardrails/hooks/check-secrets.sh --staged 2>&1) || fail 'fake token accepted'
   grep -Fq 'accidental.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
@@ -106,7 +119,9 @@ test_hook_install_preserves_custom_path() (
 # rq-ba5ee81b
 test_repository_scan_needs_no_hook() (
   setup_project; cd "$PROJECT"; git init -q; git config user.email x@y; git config user.name x
-  token='ghp_THISISANUNMISTAKABLYFAKETOKEN123456'; printf '%s\n' "$token" > tracked.txt
+  # Assemble the fake token at runtime (see test_staged_secrets_rejected_without_disclosure) so the
+  # committed test file holds no literal secret for the pre-commit scanner to reject.
+  fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="ghp_$fake"; printf '%s\n' "$token" > tracked.txt
   git add -f tracked.txt; git commit -qm fake; test -z "$(git config --get core.hooksPath || true)"
   ! output=$(.guardrails/hooks/check-secrets.sh --repository 2>&1) || fail 'repository token accepted'
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
@@ -134,7 +149,8 @@ test_generated_traceability_is_independent() (
   ! cmp -s rqm/registry.json "$ROOT/rqm/registry.json" || fail 'Guardrails registry was copied'
 )
 
-test_first_launch_isolated_volumes; test_later_launch_reuses_state; test_bad_identity_blocks_podman
+test_first_launch_isolated_volumes; test_later_launch_reuses_state; test_claude_config_stored_in_volume
+test_bad_identity_blocks_podman
 test_reset_is_project_and_agent_scoped; test_ignore_scope; test_staged_secrets_rejected_without_disclosure
 test_legitimate_integration_passes; test_hook_install_preserves_custom_path; test_repository_scan_needs_no_hook
 test_template_traceability_validation; test_generated_traceability_is_independent

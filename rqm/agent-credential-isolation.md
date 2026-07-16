@@ -20,6 +20,11 @@ committed or pushed accidentally.
 
 - Claude and Codex state use distinct Podman named volumes whose names include the project UUID and
   the agent name.
+- Each agent's complete authentication and configuration state lives inside that agent's named
+  volume. Because Claude otherwise keeps its top-level configuration file outside its credential
+  directory, the development container points `CLAUDE_CONFIG_DIR` at the mounted Claude volume so
+  that Claude's configuration file and credentials are both stored in the volume and survive removal
+  of a disposable container.
 - Launching creates missing volumes and reuses existing volumes.
 - The project working directory remains the only host project bind mount.
 - Host paths such as `~/.claude`, `~/.claude.json`, and `~/.codex` are never mounted or copied into
@@ -85,6 +90,14 @@ Feature: Isolate agent credentials from generated projects
     When the project launcher starts and stops another disposable development container
     Then it reuses the same named volumes
     And both marker files remain present
+
+  @rq-fb3e7cc2
+  Scenario: Claude stores its configuration file inside its named volume
+    Given a generated project with a valid project UUID and an existing Claude named volume
+    When the development container launches
+    Then Claude's top-level configuration file path resolves within the mounted Claude volume
+    And a file written at that path in one container remains readable at that path after the
+      container is removed and a new development container launches
 
   @rq-6135fc70
   Scenario: A malformed project identity blocks launch safely
