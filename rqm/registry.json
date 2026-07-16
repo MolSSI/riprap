@@ -1,0 +1,84 @@
+{
+  "rq-217d25aa": {
+    "decl": "Scenario: A generated project uses the agent-neutral skill layout",
+    "file": "agent-neutral-skills",
+    "refs": [],
+    "title": "A generated project uses the agent-neutral skill layout",
+    "type": "scenario"
+  },
+  "rq-43c9b2b8": {
+    "decl": "## Planning Clarification",
+    "file": "agent-neutral-skills",
+    "level": 2,
+    "refs": [],
+    "title": "Planning Clarification",
+    "type": "section"
+  },
+  "rq-637415e2": {
+    "decl": "## Gherkin Scenarios",
+    "file": "agent-neutral-skills",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
+  },
+  "rq-876d30dd": {
+    "decl": "Scenario: Copier is available in a generated Python development container",
+    "file": "development-container",
+    "refs": [],
+    "title": "Copier is available in a generated Python development container",
+    "type": "scenario"
+  },
+  "rq-88b04d5f": {
+    "decl": "## Gherkin Scenarios",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
+  },
+  "rq-8d83394b": {
+    "decl": "# Feature: Agent-Neutral Guardrails Skills",
+    "file": "agent-neutral-skills",
+    "refs": [],
+    "title": "Feature: Agent-Neutral Guardrails Skills",
+    "type": "file"
+  },
+  "rq-8f041d7b": {
+    "decl": "## Template Layout",
+    "file": "agent-neutral-skills",
+    "level": 2,
+    "refs": [],
+    "title": "Template Layout",
+    "type": "section"
+  },
+  "rq-a32974ac": {
+    "decl": "Scenario: Copier is available in a generated Rust development container",
+    "file": "development-container",
+    "refs": [],
+    "title": "Copier is available in a generated Rust development container",
+    "type": "scenario"
+  },
+  "rq-da673d77": {
+    "decl": "# Feature: Guardrails Development Container",
+    "file": "development-container",
+    "refs": [],
+    "title": "Feature: Guardrails Development Container",
+    "type": "file"
+  },
+  "rq-df3907ad": {
+    "decl": "Scenario: Skill customization survives a Copier update",
+    "file": "agent-neutral-skills",
+    "refs": [],
+    "title": "Skill customization survives a Copier update",
+    "type": "scenario"
+  },
+  "rq-fc6358df": {
+    "decl": "## Base Tooling",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Base Tooling",
+    "type": "section"
+  }
+}

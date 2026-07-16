@@ -1,0 +1,35 @@
+name: Test Guardrails
+
+on:
+  push:
+    branches: **
+  pull_request:
+    branches: **
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes pipx podman
+          pipx install 'copier>=9,<10'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Test template rendering and updates
+        run: bash tests/test_agent_neutral_skills.sh
+
+      - name: Test requirements tooling
+        run: bash template/.guardrails/skills/gr-plan/tests/test_rqm.sh
+
+      - name: Test generated development containers
+        run: bash tests/test_development_container.sh
