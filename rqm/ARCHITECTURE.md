@@ -70,6 +70,14 @@ under `template/` is the single point of edit; the rendered top-level copy is pr
 top-level edits. User-owned seed files and agent-neutral extension files are the exception: Copier
 creates them once and then preserves them, so they are maintained in place at the top level.
 
+Beyond the rendered instance, the repository also carries development and evaluation artifacts that
+the template never distributes: Guardrails' own requirements under `rqm/`, its tests, and
+point-in-time analyses under `review/`. The `review/` directory holds occasional AI-generated
+assessments of the project itself — for example, comparisons against similar tools or security
+reviews — each recorded at `review/<category>/<date>/README.md` with its goal, date, corresponding
+commit, and generating tool. These artifacts are owned by the Guardrails repository, live only at
+its top level, and are never rendered into a generated project.
+
 ### Agent Integration
 
 Canonical Guardrails workflows are independent of any one AI agent and live under `.guardrails`.
