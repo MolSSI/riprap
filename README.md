@@ -72,6 +72,11 @@ The template includes hooks that prevent Claude Code and Codex from answering pr
 To launch a development environment, run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
 This builds the container and drops you into an interactive bash shell in `/work`.
 Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
+Before using Codex for the first time in a project, authenticate from inside the container with
+`codex login --device-auth` and complete the login in your browser (you may run the browser outside
+the container). Device authentication because the container operates within an isolated network
+namespace - for the purpose of logging in, your container counts as a separate device. This is
+only necessary the first time you use the container for this project.
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
