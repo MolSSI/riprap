@@ -13,4 +13,11 @@ target/
 **/mutants.out*/
 
 
+# Agent credentials (integration settings and skill adapters remain trackable)
+/.codex/auth.json
+/.claude/.credentials.json
+/.claude.json
+/.env
+/.env.local
+/.env.*.local
 

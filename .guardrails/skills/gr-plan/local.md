@@ -1,6 +1,6 @@
 # Local Extensions to the gr-plan Skill
 
-This file belongs to your project. The Guardrails template creates it once and never
+This agent-neutral file belongs to your project. The Guardrails template creates it once and never
 updates it, so anything you write here survives `copier update`.
 
 Instructions added below extend the gr-plan skill. Where they conflict with the
