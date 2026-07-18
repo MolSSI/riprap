@@ -13,6 +13,10 @@ target/
 **/mutants.out*/
 
 
+# Generated local container state: describes this machine's image, not the project
+/.guardrails/podman/agent-build.env
+/.guardrails/podman/agent-build.candidate.env
+
 # Agent credentials (integration settings and skill adapters remain trackable)
 /.codex/auth.json
 /.claude/.credentials.json
@@ -20,4 +24,3 @@ target/
 /.env
 /.env.local
 /.env.*.local
-

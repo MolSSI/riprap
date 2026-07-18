@@ -3,8 +3,8 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="$PATH:/root/.local/bin"
 
-# Base tooling. jq is needed for the requirements index script;
-# curl + ca-certificates are needed for the agent installers below.
+# Base tooling. jq is needed for the requirements index script; curl and
+# ca-certificates support project tooling and the separate agent image.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bash \
@@ -15,15 +15,8 @@ RUN apt-get update && \
         pipx && \
     rm -rf /var/lib/apt/lists/*
 
-# rq-7983cd9c
 # Install Copier as an isolated CLI application for template updates and validation.
 RUN pipx install 'copier>=9,<10'
-
-# Install Claude
-RUN curl -fsSL https://claude.ai/install.sh | bash
-
-# Install Codex
-RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 
 # Install Rust
