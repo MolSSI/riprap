@@ -18,7 +18,9 @@ if "%~1"=="--install-git-hooks" (
 )
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File .guardrails\credential-state.ps1 -Action Ensure`) do set PROJECT_ID=%%i
-if errorlevel 1 exit /b %ERRORLEVEL%
+REM FOR /F does not reliably propagate the child command's exit status. Ensure emits an ID
+REM only after validating state, so an empty result is the unambiguous failure signal.
+if not defined PROJECT_ID exit /b 1
 
 set /p IMAGE=<.guardrails\podman\image_name
 
@@ -27,7 +29,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .guardrails\agent-build.ps1 
 if errorlevel 1 exit /b %ERRORLEVEL%
 
 REM Tooling failures are never treated as refresh failures.
-podman build -t guardrails-tooling:latest .guardrails\podman
+call podman build -t guardrails-tooling:latest .guardrails\podman
 if errorlevel 1 (
     powershell -NoProfile -ExecutionPolicy Bypass -File .guardrails\agent-build.ps1 discard
     echo Guardrails: tooling image build failed. 1>&2
@@ -35,7 +37,7 @@ if errorlevel 1 (
 )
 for /f "usebackq delims=" %%i in (`podman image inspect --format "{{.Id}}" guardrails-tooling:latest`) do set TOOLING_ID=%%i
 
-podman build -f .guardrails\podman\Agent.Containerfile -t guardrails-agent:candidate .guardrails\podman
+call podman build -f .guardrails\podman\Agent.Containerfile -t guardrails-agent:candidate .guardrails\podman
 if errorlevel 1 goto agent_refresh_failed
 set "CLAUDE_VERSION="
 set "CODEX_VERSION="
@@ -50,14 +52,14 @@ powershell -NoProfile -Command "if ($env:GUARDRAILS_VERSION_TO_CHECK -notmatch '
 if errorlevel 1 goto agent_refresh_failed
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "[regex]::Match($env:GUARDRAILS_VERSION_TO_CHECK, '\d+\.\d+\.\d+').Value"`) do set CODEX_VERSION=%%i
 set "GUARDRAILS_VERSION_TO_CHECK="
-podman build -f .guardrails\podman\AgentLabels.Containerfile --build-arg CLAUDE_VERSION=!CLAUDE_VERSION! --build-arg CODEX_VERSION=!CODEX_VERSION! --build-arg TOOLING_IMAGE_ID=!TOOLING_ID! -t guardrails-agent:latest .guardrails\podman
+call podman build -f .guardrails\podman\AgentLabels.Containerfile --build-arg CLAUDE_VERSION=!CLAUDE_VERSION! --build-arg CODEX_VERSION=!CODEX_VERSION! --build-arg TOOLING_IMAGE_ID=!TOOLING_ID! -t guardrails-agent:latest .guardrails\podman
 if errorlevel 1 goto agent_refresh_failed
 powershell -NoProfile -ExecutionPolicy Bypass -File .guardrails\agent-build.ps1 promote !CLAUDE_VERSION! !CODEX_VERSION!
 if errorlevel 1 exit /b %ERRORLEVEL%
 goto agent_refresh_done
 
 :agent_refresh_failed
-podman image exists guardrails-agent:latest
+call podman image exists guardrails-agent:latest
 if errorlevel 1 goto no_compatible_agent
 for /f "usebackq delims=" %%i in (`podman image inspect --format "{{ index .Labels \"io.guardrails.tooling-image-id\" }}" guardrails-agent:latest`) do set AGENT_TOOLING_ID=%%i
 if not "!AGENT_TOOLING_ID!"=="!TOOLING_ID!" goto no_compatible_agent
@@ -72,7 +74,7 @@ exit /b 1
 
 :agent_refresh_done
 
-podman build -t %IMAGE% .
+call podman build -t %IMAGE% .
 
 powershell -NoProfile -ExecutionPolicy Bypass -File .guardrails\interface.ps1 -Image %IMAGE% -ProjectId %PROJECT_ID%
 

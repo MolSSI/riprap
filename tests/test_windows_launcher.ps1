@@ -124,7 +124,11 @@ function Invoke-Launcher([string]$Project) {
         $output = cmd.exe /c "gr.bat <NUL 2>&1"
         $code = $LASTEXITCODE
     } finally { Pop-Location }
-    return [pscustomobject]@{ Output = ($output | Out-String); ExitCode = $code }
+    # Calling ToString() on native error records preserves the child's diagnostic. Sending
+    # them through Out-String invokes PowerShell's error formatter, which inserts context and
+    # may wrap or truncate the message according to the host width.
+    $text = ($output | ForEach-Object { $_.ToString() }) -join "`n"
+    return [pscustomobject]@{ Output = $text; ExitCode = $code }
 }
 
 function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
@@ -309,7 +313,8 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
         $savedPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = "Continue"
-            $shell = (& $bash.Source ".guardrails/agent-build.sh" prepare 2>&1 | Out-String)
+            $shellOutput = & $bash.Source ".guardrails/agent-build.sh" prepare 2>&1
+            $shell = ($shellOutput | ForEach-Object { $_.ToString() }) -join "`n"
         } finally {
             $ErrorActionPreference = $savedPreference
             Pop-Location
