@@ -23,7 +23,7 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes pipx podman ripgrep
+          sudo apt-get install --yes pipx podman
           pipx install 'copier>=9,<10'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 

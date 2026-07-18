@@ -26,6 +26,10 @@ so they run on every supported host.
   directory, the development container points `CLAUDE_CONFIG_DIR` at the mounted Claude volume so
   that Claude's configuration file and credentials are both stored in the volume and survive removal
   of a disposable container.
+- The template-owned tooling and agent images carry no agent configuration of their own. Installing
+  an agent leaves no agent configuration file or configuration directory in either image, so a
+  mounted volume is the only source of an agent's configuration and an agent never migrates
+  image-resident configuration over the state held in the volume.
 - Launching creates missing volumes and reuses existing volumes.
 - The project working directory remains the only host project bind mount.
 - Host paths such as `~/.claude`, `~/.claude.json`, and `~/.codex` are never mounted or copied into
@@ -37,8 +41,10 @@ so they run on every supported host.
 
 ## Repository Leak Prevention <!-- rq-638ff671 -->
 
-- Generated `.gitignore` files reject only known credential artifacts, including root-level
-  `.codex/auth.json`, `.claude/.credentials.json`, `.claude.json`, and local `.env` variants.
+- Generated `.gitignore` files reject known credential artifacts, including root-level
+  `.codex/auth.json`, `.claude/.credentials.json`, `.claude.json`, and local `.env` variants. They
+  also reject generated local container state, which describes one machine rather than the project.
+  They reject nothing else, so no legitimate project content is hidden.
 - Legitimate versioned integration files such as `.codex/hooks.json`, `.claude/settings.json`, and
   agent skill adapters remain trackable.
 - A template-owned secret scanner examines staged Git content without printing matched secret
@@ -111,6 +117,13 @@ Feature: Isolate agent credentials from generated projects
     Then Claude's top-level configuration file path resolves within the mounted Claude volume
     And a file written at that path in one container remains readable at that path after the
       container is removed and a new development container launches
+
+  @rq-4e428654
+  Scenario: Template-owned images carry no agent configuration
+    Given a project rendered from the Guardrails template
+    When the template-owned tooling and agent images are built
+    Then neither image contains a Claude configuration file at the default configuration path
+    And neither image contains a Claude configuration directory
 
   @rq-6135fc70
   Scenario: A malformed project identity blocks launch safely

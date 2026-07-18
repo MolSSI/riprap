@@ -1,4 +1,40 @@
 {
+  "rq-08b8e355": {
+    "decl": "Scenario: A malformed pin line stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A malformed pin line stops the launch before any image is built",
+    "type": "scenario"
+  },
+  "rq-0aa08b69": {
+    "decl": "Scenario: An empty pin stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An empty pin stops the launch before any image is built",
+    "type": "scenario"
+  },
+  "rq-0b49d1fa": {
+    "decl": "Scenario: An empty pin value stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An empty pin value stops the launch before any image is built",
+    "type": "scenario"
+  },
   "rq-0bb9767e": {
     "decl": "Scenario: Legitimate agent integration files pass secret scanning",
     "file": "agent-credential-isolation",
@@ -23,6 +59,34 @@
     "title": "Later launches reuse project credential state",
     "type": "scenario"
   },
+  "rq-145d819f": {
+    "decl": "Scenario: A second launch in the same week reuses the cached agent layers",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A second launch in the same week reuses the cached agent layers",
+    "type": "scenario"
+  },
+  "rq-152d1311": {
+    "decl": "Scenario: A failed refresh with no compatible agent image stops the launch",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A failed refresh with no compatible agent image stops the launch",
+    "type": "scenario"
+  },
   "rq-217d25aa": {
     "decl": "Scenario: A generated project uses the agent-neutral skill layout",
     "file": "agent-neutral-skills",
@@ -43,6 +107,34 @@
     "title": "Feature Interface",
     "type": "section"
   },
+  "rq-26d8643a": {
+    "decl": "Scenario: Windows and shell launchers agree at ISO year boundaries",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Windows and shell launchers agree at ISO year boundaries",
+    "type": "scenario"
+  },
+  "rq-276c546b": {
+    "decl": "Scenario: Installed agent releases match authoritative image labels",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Installed agent releases match authoritative image labels",
+    "type": "scenario"
+  },
   "rq-3105bde4": {
     "decl": "## Traceability Rules",
     "file": "template-traceability-boundary",
@@ -51,6 +143,26 @@
     "title": "Traceability Rules",
     "type": "section"
   },
+  "rq-3290745a": {
+    "decl": "## Launch Resilience",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Launch Resilience",
+    "type": "section"
+  },
+  "rq-4097cd5c": {
+    "decl": "Scenario: A tooling image build failure never uses refresh fallback",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A tooling image build failure never uses refresh fallback",
+    "type": "scenario"
+  },
   "rq-43c9b2b8": {
     "decl": "## Planning Clarification",
     "file": "agent-neutral-skills",
@@ -58,6 +170,26 @@
     "refs": [],
     "title": "Planning Clarification",
     "type": "section"
+  },
+  "rq-4afcfc2c": {
+    "decl": "## Feature Interface",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Feature Interface",
+    "type": "section"
+  },
+  "rq-4e428654": {
+    "decl": "Scenario: Template-owned images carry no agent configuration",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Template-owned images carry no agent configuration",
+    "type": "scenario"
   },
   "rq-50bb2037": {
     "decl": "Scenario: Hook installation preserves an existing hook configuration",
@@ -69,6 +201,42 @@
       }
     ],
     "title": "Hook installation preserves an existing hook configuration",
+    "type": "scenario"
+  },
+  "rq-59ada47d": {
+    "decl": "Scenario: Validation examines hidden directories in the template tree",
+    "file": "template-traceability-boundary",
+    "refs": [
+      {
+        "file": "tests/check_template_traceability.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Validation examines hidden directories in the template tree",
+    "type": "scenario"
+  },
+  "rq-5e710604": {
+    "decl": "## Optional Release Pin",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Optional Release Pin",
+    "type": "section"
+  },
+  "rq-5f5a1830": {
+    "decl": "Scenario: An unknown pin name stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An unknown pin name stops the launch before any image is built",
     "type": "scenario"
   },
   "rq-60eee682": {
@@ -90,6 +258,22 @@
     "title": "A malformed project identity blocks launch safely",
     "type": "scenario"
   },
+  "rq-62939bfc": {
+    "decl": "Scenario: A new week rebuilds the agent layers",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A new week rebuilds the agent layers",
+    "type": "scenario"
+  },
   "rq-637415e2": {
     "decl": "## Gherkin Scenarios",
     "file": "agent-neutral-skills",
@@ -106,6 +290,18 @@
     "title": "Repository Leak Prevention",
     "type": "section"
   },
+  "rq-6c8f6c05": {
+    "decl": "Scenario: A malformed pin stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A malformed pin stops the launch before any image is built",
+    "type": "scenario"
+  },
   "rq-70d8296b": {
     "decl": "Scenario: A generated project starts with an independent traceability namespace",
     "file": "template-traceability-boundary",
@@ -120,6 +316,18 @@
       }
     ],
     "title": "A generated project starts with an independent traceability namespace",
+    "type": "scenario"
+  },
+  "rq-7c6a2afa": {
+    "decl": "Scenario: An unpinned launch records the current week and tracks current releases",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An unpinned launch records the current week and tracks current releases",
     "type": "scenario"
   },
   "rq-876d30dd": {
@@ -197,6 +405,18 @@
     "title": "Copier is available in a generated Rust development container",
     "type": "scenario"
   },
+  "rq-ac53295e": {
+    "decl": "Scenario: The build key is not committed",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The build key is not committed",
+    "type": "scenario"
+  },
   "rq-aeab49a7": {
     "decl": "Scenario: Staged credential material is rejected without disclosure",
     "file": "agent-credential-isolation",
@@ -207,6 +427,30 @@
       }
     ],
     "title": "Staged credential material is rejected without disclosure",
+    "type": "scenario"
+  },
+  "rq-b06efb1e": {
+    "decl": "Scenario: Removing a pin returns the agents to the refresh schedule",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Removing a pin returns the agents to the refresh schedule",
+    "type": "scenario"
+  },
+  "rq-b25f8408": {
+    "decl": "Scenario: Agent installation is isolated from the tooling image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Agent installation is isolated from the tooling image",
     "type": "scenario"
   },
   "rq-b96d41dc": {
@@ -229,6 +473,30 @@
     "title": "CI rejects credential material without local hook installation",
     "type": "scenario"
   },
+  "rq-bba1fa27": {
+    "decl": "Scenario: A duplicate pin name stops the launch before any image is built",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A duplicate pin name stops the launch before any image is built",
+    "type": "scenario"
+  },
+  "rq-c82c7b32": {
+    "decl": "Scenario: A pin installs an exact release and suspends the weekly refresh",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A pin installs an exact release and suspends the weekly refresh",
+    "type": "scenario"
+  },
   "rq-cab43a04": {
     "decl": "# Feature: Template Traceability Boundary",
     "file": "template-traceability-boundary",
@@ -237,7 +505,7 @@
     "type": "file"
   },
   "rq-cb2cdd8e": {
-    "decl": "Scenario: Placeholder syntax remains valid template documentation",
+    "decl": "Scenario: Illustrative identifiers remain valid template content",
     "file": "template-traceability-boundary",
     "refs": [
       {
@@ -249,7 +517,27 @@
         "kind": "code"
       }
     ],
-    "title": "Placeholder syntax remains valid template documentation",
+    "title": "Illustrative identifiers remain valid template content",
+    "type": "scenario"
+  },
+  "rq-ce1eb03c": {
+    "decl": "## Agent Releases",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Agent Releases",
+    "type": "section"
+  },
+  "rq-d09c17d0": {
+    "decl": "Scenario: Agent programs are installed outside the credential volume paths",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Agent programs are installed outside the credential volume paths",
     "type": "scenario"
   },
   "rq-d89e4c89": {
@@ -283,6 +571,18 @@
     "title": "Windows batch scripts are marked for CRLF checkout",
     "type": "scenario"
   },
+  "rq-dc4bf1b1": {
+    "decl": "Scenario: A failed refresh falls back to a compatible agent image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A failed refresh falls back to a compatible agent image",
+    "type": "scenario"
+  },
   "rq-df3907ad": {
     "decl": "Scenario: Skill customization survives a Copier update",
     "file": "agent-neutral-skills",
@@ -303,6 +603,14 @@
     "title": "Gherkin Scenarios",
     "type": "section"
   },
+  "rq-f3736651": {
+    "decl": "## Agent Refresh Schedule",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Agent Refresh Schedule",
+    "type": "section"
+  },
   "rq-f3cf5b0e": {
     "decl": "## Project Identity",
     "file": "agent-credential-isolation",
@@ -312,7 +620,7 @@
     "type": "section"
   },
   "rq-f63c0743": {
-    "decl": "Scenario: Guardrails traceability validation rejects a concrete ID in the template tree",
+    "decl": "Scenario: Guardrails traceability validation rejects a Guardrails ID in the template tree",
     "file": "template-traceability-boundary",
     "refs": [
       {
@@ -324,7 +632,7 @@
         "kind": "code"
       }
     ],
-    "title": "Guardrails traceability validation rejects a concrete ID in the template tree",
+    "title": "Guardrails traceability validation rejects a Guardrails ID in the template tree",
     "type": "scenario"
   },
   "rq-f8bf5e72": {
@@ -349,6 +657,18 @@
       }
     ],
     "title": "Reset removes only selected project credential state",
+    "type": "scenario"
+  },
+  "rq-fae13c6f": {
+    "decl": "Scenario: Launching disables the agents' in-container automatic updaters",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Launching disables the agents' in-container automatic updaters",
     "type": "scenario"
   },
   "rq-fb3e7cc2": {

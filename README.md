@@ -83,6 +83,32 @@ Codex deliberately does not run a new project-local hook until you approve its e
 The container is built in two layers: a base image defined in `.guardrails/podman/Containerfile` provides the standard environment (Claude Code, Codex, the language toolchain, and supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
 Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the base image alone so that `copier update` can keep it in sync with upstream changes.
 
+#### Updating Claude Code and Codex
+
+The agents update themselves automatically, at most once a week, with no action from you.
+
+The agents will not auto-update *within* the container (such changes would only last as long as
+the container itself, and would need to be repeated every time you launch a new container).
+Instead, the launcher reinstalls them when the calendar week changes, so the agents are never more
+than a week behind their current releases. One launch a week therefore takes a few minutes longer
+while the agent layers rebuild; every other launch reuses the cache and contacts the network not
+at all. If a rebuild fails — no network, or a broken upstream release — the launcher says so and
+carries on with the image you already have, so a refresh can never block your work.
+
+##### Pinning a release
+
+If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
+for an upstream fix. Create `.guardrails/agent-pin.env`:
+
+```
+CLAUDE_VERSION=2.1.205
+CODEX_VERSION=0.144.6
+```
+
+Pinned agents are held at exactly those releases; any agent you leave out keeps tracking its
+current release. Only exact `x.y.z` versions are accepted; values such as `latest` will error.
+Delete the file to return to the weekly schedule described above.
+
 #### 2. Create an initial file structure
 
 The template seeds a skeletal, buildable project for you (unless you answered no to `include_rust_skeleton` / `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to set up an environment and check that the sample tests pass.

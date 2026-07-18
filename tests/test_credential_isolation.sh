@@ -29,6 +29,14 @@ echo "$*" >> "$PODMAN_LOG"
 if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
 if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
 if [ "$1 $2" = 'volume rm' ]; then rm -rf "$MOCK_VOLUMES/$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then
+  case "$*" in *tooling-image-id*) echo tooling-id ;; *) echo tooling-id ;; esac
+  exit
+fi
+if [ "$1 $2" = 'run --rm' ]; then
+  case "$*" in *' claude --version') echo '2.1.205 (Claude Code)' ;; *' codex --version') echo 'codex-cli 0.144.6' ;; esac
+  exit
+fi
 exit 0
 MOCK
   chmod +x "$MOCK_BIN/podman"
@@ -127,6 +135,198 @@ test_repository_scan_needs_no_hook() (
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
+build_key() { sed -n "s/^$1=//p" .guardrails/podman/agent-build.env | head -n 1; }
+
+# rq-7c6a2afa
+test_unpinned_launch_records_week_and_latest() (
+  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
+  test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude does not track the current release'
+  test "$(build_key CODEX_VERSION)" = latest || fail 'Codex does not track the current release'
+  test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
+    fail "build key records '$(build_key REFRESH)' rather than the current ISO week"
+)
+
+# The build key's contents are the cache identity, so a second launch in the same week must
+# leave it byte-identical; that is what keeps the agent layers cached.
+# rq-145d819f
+test_second_launch_in_same_week_is_unchanged() (
+  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
+  before=$(cksum .guardrails/podman/agent-build.env)
+  bash gr.sh </dev/null
+  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'build key changed within one week'
+)
+
+# A new week must change the key. The stamp is compared against a key left over from an
+# earlier week, which is exactly what the launcher sees on the first launch of a new week.
+# rq-62939bfc
+test_new_week_changes_the_build_key() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\n' \
+    > .guardrails/podman/agent-build.env
+  bash gr.sh </dev/null
+  test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'a new week did not update the build key'
+)
+
+# rq-c82c7b32
+test_pin_installs_exact_release_and_suspends_refresh() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .guardrails/agent-pin.env
+  bash gr.sh </dev/null
+  test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
+  test "$(build_key CODEX_VERSION)" = 0.144.6 || fail 'Codex pin not recorded'
+  test "$(build_key REFRESH)" = pinned || fail 'a fully pinned key still records a week'
+  # A later week must not disturb a fully pinned key.
+  before=$(cksum .guardrails/podman/agent-build.env)
+  bash gr.sh </dev/null
+  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'pinned key changed'
+)
+
+# An agent left out of the pin must keep tracking its current release, which requires the
+# week to survive in the key.
+# rq-c82c7b32
+test_partial_pin_keeps_the_unpinned_agent_current() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=2.1.205\n' > .guardrails/agent-pin.env
+  bash gr.sh </dev/null
+  test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
+  test "$(build_key CODEX_VERSION)" = latest || fail 'unpinned Codex was pinned'
+  test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
+    fail 'a partial pin suspended the refresh for the unpinned agent'
+)
+
+# rq-b06efb1e
+test_removing_the_pin_restores_the_schedule() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .guardrails/agent-pin.env
+  bash gr.sh </dev/null
+  rm .guardrails/agent-pin.env
+  bash gr.sh </dev/null
+  test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude did not return to the schedule'
+  test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'the week was not restored'
+)
+
+# rq-6c8f6c05
+test_malformed_pin_stops_the_launch() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=latest\n' > .guardrails/agent-pin.env
+  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'a non-exact pin was accepted'
+  grep -Fq 'CLAUDE_VERSION' <<<"$output" || fail 'the offending assignment is not identified'
+  # Ensuring the credential volumes already logged podman calls, so look for a build.
+  ! grep -q '^build ' "$PODMAN_LOG" || fail 'an image was built despite a malformed pin'
+)
+
+assert_invalid_pin() (
+  setup_project; cd "$PROJECT"; printf '%b' "$1" > .guardrails/agent-pin.env
+  ! output=$(bash gr.sh </dev/null 2>&1) || fail "$2 was accepted"
+  grep -Fiq "$3" <<<"$output" || fail "$2 did not identify $3"
+  ! grep -q '^build ' "$PODMAN_LOG" || fail "an image was built for $2"
+)
+
+# rq-0aa08b69
+test_empty_pin_stops_launch() { assert_invalid_pin '' 'an empty pin' 'empty'; }
+
+# rq-0b49d1fa
+test_empty_pin_value_stops_launch() { assert_invalid_pin 'CLAUDE_VERSION=\n' 'an empty pin value' 'empty value'; }
+
+# rq-5f5a1830
+test_unknown_pin_name_stops_launch() { assert_invalid_pin 'CLAUDE_VERSOIN=1.2.3\n' 'an unknown pin name' 'unknown'; }
+
+# rq-bba1fa27
+test_duplicate_pin_name_stops_launch() {
+  assert_invalid_pin 'CLAUDE_VERSION=1.2.3\nCLAUDE_VERSION=1.2.4\n' 'a duplicate pin name' 'duplicate'
+}
+
+# rq-08b8e355
+test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n' 'a malformed pin line' 'malformed'; }
+
+# A refresh needs the network, so a failed build must not cost the user a working
+# environment when a base image is already present.
+# rq-dc4bf1b1
+test_failed_refresh_falls_back_to_existing_image() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .guardrails/podman/agent-build.env
+  before=$(cksum .guardrails/podman/agent-build.env)
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then echo tooling-id; exit; fi
+if [ "$1" = build ]; then case "$*" in *Agent.Containerfile*) exit 1 ;; esac; fi
+if [ "$1 $2" = 'image exists' ]; then exit 0; fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+  output=$(bash gr.sh </dev/null 2>&1) || fail 'launch aborted despite an existing base image'
+  grep -Fq 'refresh failed' <<<"$output" || fail 'the failed refresh was not reported'
+  grep -q 'run --rm' "$PODMAN_LOG" || fail 'no development container was started'
+  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'failed refresh changed successful state'
+  test ! -e .guardrails/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
+)
+
+# rq-152d1311
+test_failed_build_without_an_image_stops_the_launch() (
+  setup_project; cd "$PROJECT"
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then echo tooling-id; exit; fi
+if [ "$1" = build ]; then case "$*" in *Agent.Containerfile*) exit 1 ;; esac; fi
+if [ "$1 $2" = 'image exists' ]; then exit 1; fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'launch continued with no base image'
+  grep -Fq 'no compatible agent image exists' <<<"$output" || fail 'the failure was not explained'
+  ! grep -q 'run --rm' "$PODMAN_LOG" || fail 'a development container was started anyway'
+)
+
+# rq-4097cd5c
+test_tooling_build_failure_never_falls_back() (
+  setup_project; cd "$PROJECT"
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1" = build ]; then exit 1; fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'tooling build failure used fallback'
+  grep -Fq 'tooling image build failed' <<<"$output" || fail 'tooling failure was not identified'
+  ! grep -Fq 'agent refresh failed' <<<"$output" || fail 'tooling failure was mislabeled as refresh failure'
+  test ! -e .guardrails/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
+)
+
+# rq-26d8643a
+test_iso_week_algorithms_cover_year_boundaries() (
+  setup_project
+  grep -Fq 'date -u +%G-W%V' "$PROJECT/.guardrails/agent-build.sh"
+  grep -Fq '$thursday.Year' "$PROJECT/.guardrails/agent-build.ps1"
+  grep -Fq '4 - $dayNumber' "$PROJECT/.guardrails/agent-build.ps1"
+)
+
+# rq-276c546b
+test_launchers_validate_reported_agent_versions() (
+  setup_project
+  grep -Fq 'is_exact_version "$claude_version"' "$PROJECT/gr.sh" || fail 'shell launcher does not validate Claude version'
+  grep -Fq 'is_exact_version "$codex_version"' "$PROJECT/gr.sh" || fail 'shell launcher does not validate Codex version'
+  test "$(grep -Fc "GUARDRAILS_VERSION_TO_CHECK -notmatch '^\d+\.\d+\.\d+$'" "$PROJECT/gr.bat")" -eq 2 || \
+    fail 'Windows launcher does not validate both reported versions'
+)
+
+# rq-ac53295e
+test_build_key_is_not_committed() (
+  setup_project; cd "$PROJECT"; git init -q; bash gr.sh </dev/null
+  test -f .guardrails/podman/agent-build.env || fail 'the launcher did not write a build key'
+  git check-ignore -q .guardrails/podman/agent-build.env || fail 'the build key is not git-ignored'
+  printf 'candidate\n' > .guardrails/podman/agent-build.candidate.env
+  git check-ignore -q .guardrails/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
+)
+
 attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
 
 # rq-d89e4c89
@@ -143,16 +343,36 @@ test_batch_marked_crlf() (
   eol=$(attr_eol gr.bat); test "$eol" = crlf || fail "gr.bat is not marked eol=crlf (got '$eol')"
 )
 
+# Only identifiers the registry records are Guardrails identifiers. Illustrative identifiers in
+# template documentation and in the requirements tooling's fixtures are legitimate content.
 # rq-f63c0743 rq-cb2cdd8e
 test_template_traceability_validation() (
   TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
-  mkdir -p "$TEST_TMP/template" "$TEST_TMP/rqm"
+  mkdir -p "$TEST_TMP/template/.guardrails" "$TEST_TMP/rqm"
+  printf '{"rq-deadbeef": {"title": "A recorded Guardrails requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
+  # A placeholder and a well-formed identifier the registry does not record.
   printf 'rq-XXXXXXXX\n' > "$TEST_TMP/template/documentation.md"
-  printf '{}\n' > "$TEST_TMP/rqm/registry.json"
-  bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP"
+  printf 'assert_stamped "<!-- rq-3a7f1c2e -->"\n' > "$TEST_TMP/template/.guardrails/fixture.sh"
+  bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" || \
+    fail 'illustrative identifiers were rejected'
+
   printf 'rq-deadbeef\n' > "$TEST_TMP/template/offender.md"
-  ! output=$(bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" 2>&1) || fail 'concrete template ID accepted'
-  grep -Fq 'template/offender.md' <<<"$output"
+  ! output=$(bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" 2>&1) || \
+    fail 'a registry-recorded ID in the template tree was accepted'
+  grep -Fq 'template/offender.md' <<<"$output" || fail 'offending path not identified'
+)
+
+# Most template content lives under hidden directories, so a check that skips them scans
+# almost nothing.
+# rq-59ada47d
+test_template_traceability_scans_hidden_directories() (
+  TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
+  mkdir -p "$TEST_TMP/template/.guardrails/podman" "$TEST_TMP/rqm"
+  printf '{"rq-deadbeef": {"title": "A recorded Guardrails requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
+  printf '# rq-deadbeef\n' > "$TEST_TMP/template/.guardrails/podman/Containerfile.jinja"
+  ! output=$(bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" 2>&1) || \
+    fail 'a registry-recorded ID inside a hidden template directory was accepted'
+  grep -Fq 'Containerfile.jinja' <<<"$output" || fail 'offending hidden path not identified'
 )
 
 # rq-70d8296b
@@ -170,5 +390,15 @@ test_scripts_marked_lf; test_batch_marked_crlf
 test_bad_identity_blocks_podman
 test_reset_is_project_and_agent_scoped; test_ignore_scope; test_staged_secrets_rejected_without_disclosure
 test_legitimate_integration_passes; test_hook_install_preserves_custom_path; test_repository_scan_needs_no_hook
-test_template_traceability_validation; test_generated_traceability_is_independent
+test_template_traceability_validation; test_template_traceability_scans_hidden_directories
+test_generated_traceability_is_independent
+test_unpinned_launch_records_week_and_latest; test_second_launch_in_same_week_is_unchanged
+test_new_week_changes_the_build_key; test_pin_installs_exact_release_and_suspends_refresh
+test_partial_pin_keeps_the_unpinned_agent_current; test_removing_the_pin_restores_the_schedule
+test_malformed_pin_stops_the_launch; test_empty_pin_stops_launch; test_empty_pin_value_stops_launch
+test_unknown_pin_name_stops_launch; test_duplicate_pin_name_stops_launch; test_malformed_pin_line_stops_launch
+test_failed_refresh_falls_back_to_existing_image; test_failed_build_without_an_image_stops_the_launch
+test_tooling_build_failure_never_falls_back; test_iso_week_algorithms_cover_year_boundaries
+test_launchers_validate_reported_agent_versions
+test_build_key_is_not_committed
 printf 'PASS: credential isolation and traceability boundary\n'
