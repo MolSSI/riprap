@@ -41,3 +41,22 @@ jobs:
 
       - name: Test credential isolation and traceability boundary
         run: bash tests/test_credential_isolation.sh
+
+  # Launch orchestration is validated against a mock container runtime, so this job needs no
+  # container runtime, virtualization, or Linux subsystem. Windows launch behavior is written
+  # in a separate language from the shell path and cannot be inferred from the Linux job.
+  windows-launcher:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        shell: powershell
+        run: |
+          pipx install 'copier>=9,<10'
+          "$env:USERPROFILE\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Test the Windows launch path
+        shell: powershell
+        run: .\tests\test_windows_launcher.ps1

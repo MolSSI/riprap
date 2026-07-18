@@ -1,10 +1,22 @@
 {
+  "rq-003ece26": {
+    "decl": "Scenario: A Windows checkout carries the line endings its interpreters need",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A Windows checkout carries the line endings its interpreters need",
+    "type": "scenario"
+  },
   "rq-08b8e355": {
     "decl": "Scenario: A malformed pin line stops the launch before any image is built",
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -16,7 +28,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -28,7 +40,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -40,7 +52,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -52,11 +64,35 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "Later launches reuse project credential state",
+    "type": "scenario"
+  },
+  "rq-13d744b1": {
+    "decl": "Scenario: The Windows launcher stops on a tooling build failure",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher stops on a tooling build failure",
+    "type": "scenario"
+  },
+  "rq-13f28b2e": {
+    "decl": "Scenario: Both launchers report the same defect for the same invalid pin",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "Both launchers report the same defect for the same invalid pin",
     "type": "scenario"
   },
   "rq-145d819f": {
@@ -64,11 +100,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -80,11 +116,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A failed refresh with no compatible agent image stops the launch",
+    "type": "scenario"
+  },
+  "rq-17a864bb": {
+    "decl": "Scenario: The Windows launcher validates the pin before building",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher validates the pin before building",
     "type": "scenario"
   },
   "rq-217d25aa": {
@@ -92,7 +140,7 @@
     "file": "agent-neutral-skills",
     "refs": [
       {
-        "file": "tests/test_agent_neutral_skills.sh",
+        "file": "/work/tests/test_agent_neutral_skills.sh",
         "kind": "code"
       }
     ],
@@ -112,7 +160,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -124,11 +176,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -156,11 +208,27 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A tooling image build failure never uses refresh fallback",
+    "type": "scenario"
+  },
+  "rq-41eeda01": {
+    "decl": "Scenario: The Windows launcher refuses an agent version it cannot parse",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher refuses an agent version it cannot parse",
     "type": "scenario"
   },
   "rq-43c9b2b8": {
@@ -184,7 +252,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -196,7 +264,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -208,15 +276,27 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "tests/check_template_traceability.sh",
+        "file": "/work/tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "Validation examines hidden directories in the template tree",
+    "type": "scenario"
+  },
+  "rq-5e481eb3": {
+    "decl": "Scenario: The Windows credential helper reuses an existing project identity",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows credential helper reuses an existing project identity",
     "type": "scenario"
   },
   "rq-5e710604": {
@@ -232,7 +312,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -251,7 +331,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -263,11 +343,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -290,32 +370,64 @@
     "title": "Repository Leak Prevention",
     "type": "section"
   },
+  "rq-6b0d184f": {
+    "decl": "Scenario: The Windows credential helper creates the same project identity",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows credential helper creates the same project identity",
+    "type": "scenario"
+  },
   "rq-6c8f6c05": {
     "decl": "Scenario: A malformed pin stops the launch before any image is built",
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A malformed pin stops the launch before any image is built",
     "type": "scenario"
   },
+  "rq-6ed9bff7": {
+    "decl": "## Launcher Validation",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Launcher Validation",
+    "type": "section"
+  },
   "rq-70d8296b": {
     "decl": "Scenario: A generated project starts with an independent traceability namespace",
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "tests/check_template_traceability.sh",
+        "file": "/work/tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A generated project starts with an independent traceability namespace",
+    "type": "scenario"
+  },
+  "rq-77328390": {
+    "decl": "Scenario: A malformed project identity blocks the Windows launcher",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A malformed project identity blocks the Windows launcher",
     "type": "scenario"
   },
   "rq-7c6a2afa": {
@@ -323,7 +435,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -335,7 +447,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -357,6 +469,18 @@
     "refs": [],
     "title": "Gherkin Scenarios",
     "type": "section"
+  },
+  "rq-8c955028": {
+    "decl": "Scenario: The Windows reset requires explicit confirmation",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows reset requires explicit confirmation",
+    "type": "scenario"
   },
   "rq-8d83394b": {
     "decl": "# Feature: Agent-Neutral Guardrails Skills",
@@ -386,7 +510,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -398,7 +522,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -410,7 +534,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -422,7 +546,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -434,7 +558,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -446,11 +570,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
     "title": "Agent installation is isolated from the tooling image",
+    "type": "scenario"
+  },
+  "rq-b68a63b5": {
+    "decl": "Scenario: The Windows launcher falls back to a compatible agent image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher falls back to a compatible agent image",
     "type": "scenario"
   },
   "rq-b96d41dc": {
@@ -466,7 +602,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -478,11 +614,27 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A duplicate pin name stops the launch before any image is built",
+    "type": "scenario"
+  },
+  "rq-c2cdf6d8": {
+    "decl": "Scenario: An unrecognized pin name outranks a non-exact pin value",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "An unrecognized pin name outranks a non-exact pin value",
     "type": "scenario"
   },
   "rq-c82c7b32": {
@@ -490,7 +642,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -509,11 +661,11 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "tests/check_template_traceability.sh",
+        "file": "/work/tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -524,16 +676,33 @@
     "decl": "## Agent Releases",
     "file": "development-container",
     "level": 2,
-    "refs": [],
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
     "title": "Agent Releases",
     "type": "section"
+  },
+  "rq-cfefd5aa": {
+    "decl": "Scenario: The shell launcher derives its refresh stamp on every supported Unix host",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The shell launcher derives its refresh stamp on every supported Unix host",
+    "type": "scenario"
   },
   "rq-d09c17d0": {
     "decl": "Scenario: Agent programs are installed outside the credential volume paths",
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -545,7 +714,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -564,7 +733,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -576,7 +745,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -588,7 +757,7 @@
     "file": "agent-neutral-skills",
     "refs": [
       {
-        "file": "tests/test_agent_neutral_skills.sh",
+        "file": "/work/tests/test_agent_neutral_skills.sh",
         "kind": "code"
       }
     ],
@@ -624,15 +793,27 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "tests/check_template_traceability.sh",
+        "file": "/work/tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "Guardrails traceability validation rejects a Guardrails ID in the template tree",
+    "type": "scenario"
+  },
+  "rq-f69aa150": {
+    "decl": "Scenario: The Windows launcher stops when no compatible agent image exists",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher stops when no compatible agent image exists",
     "type": "scenario"
   },
   "rq-f8bf5e72": {
@@ -640,7 +821,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -652,7 +833,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -664,7 +845,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "tests/test_development_container.sh",
+        "file": "/work/tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -676,7 +857,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "tests/test_credential_isolation.sh",
+        "file": "/work/tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -690,5 +871,21 @@
     "refs": [],
     "title": "Base Tooling",
     "type": "section"
+  },
+  "rq-fedf48c5": {
+    "decl": "Scenario: A launcher ignores an ambient variable named like a build-key assignment",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "/work/tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "/work/tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A launcher ignores an ambient variable named like a build-key assignment",
+    "type": "scenario"
   }
 }

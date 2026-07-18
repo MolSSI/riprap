@@ -301,21 +301,85 @@ MOCK
   test ! -e .guardrails/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
 )
 
+# The shell stamp is checked against ISO-8601 directly. Agreement between this
+# implementation and the Windows one is established on a Windows runner, which is the only
+# host that can execute both.
 # rq-26d8643a
-test_iso_week_algorithms_cover_year_boundaries() (
-  setup_project
-  grep -Fq 'date -u +%G-W%V' "$PROJECT/.guardrails/agent-build.sh"
-  grep -Fq '$thursday.Year' "$PROJECT/.guardrails/agent-build.ps1"
-  grep -Fq '4 - $dayNumber' "$PROJECT/.guardrails/agent-build.ps1"
+test_iso_week_matches_iso8601() (
+  setup_project; cd "$PROJECT"
+  for pair in 2019-12-30=2020-W01 2020-12-31=2020-W53 2021-01-01=2020-W53 \
+              2021-01-04=2021-W01 2022-01-01=2021-W52 2024-12-30=2025-W01 \
+              2026-12-31=2026-W53 2017-01-01=2016-W52 2023-06-15=2023-W24; do
+    actual=$(.guardrails/agent-build.sh week "${pair%%=*}")
+    test "$actual" = "${pair#*=}" || fail "week ${pair%%=*} is '$actual', not '${pair#*=}'"
+  done
+)
+
+# rq-cfefd5aa
+test_current_iso_week_uses_portable_date_options() (
+  setup_project; cd "$PROJECT"
+  cat > "$MOCK_BIN/date" <<'MOCK'
+#!/bin/sh
+for argument in "$@"; do
+  test "$argument" != -d || exit 64
+done
+printf '2042-W07\n'
+MOCK
+  chmod +x "$MOCK_BIN/date"
+  .guardrails/agent-build.sh prepare
+  refresh=$(sed -n 's/^REFRESH=//p' .guardrails/podman/agent-build.candidate.env)
+  test "$refresh" = 2042-W07 || fail 'the current refresh stamp did not use the portable date path'
+)
+
+# Validation precedence must not depend on which defect is checked first, or the two
+# launchers would describe the same file differently.
+# rq-c2cdf6d8
+test_unknown_pin_name_outranks_a_bad_value() (
+  setup_project; cd "$PROJECT"
+  printf 'CLAUDE_VERSOIN=not-a-version\n' > .guardrails/agent-pin.env
+  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'an unknown pin name was accepted'
+  grep -Fq 'unknown assignment' <<<"$output" || fail 'the unknown name was not identified'
+  ! grep -Fq 'exact release version' <<<"$output" || fail 'the value format outranked the unknown name'
+)
+
+# A launcher reads the release from the built image, never from its own environment.
+# rq-fedf48c5
+test_ambient_version_variable_is_ignored() (
+  setup_project; cd "$PROJECT"
+  CLAUDE_VERSION=9.9.9 CODEX_VERSION=8.8.8 bash gr.sh </dev/null
+  test "$(build_key INSTALLED_CLAUDE_VERSION)" = 2.1.205 || \
+    fail "recorded Claude release is '$(build_key INSTALLED_CLAUDE_VERSION)', not the one the image reports"
+  test "$(build_key INSTALLED_CODEX_VERSION)" = 0.144.6 || \
+    fail "recorded Codex release is '$(build_key INSTALLED_CODEX_VERSION)', not the one the image reports"
+  ! grep -q '9\.9\.9' "$PODMAN_LOG" || fail 'an ambient CLAUDE_VERSION reached the image labels'
 )
 
 # rq-276c546b
-test_launchers_validate_reported_agent_versions() (
-  setup_project
-  grep -Fq 'is_exact_version "$claude_version"' "$PROJECT/gr.sh" || fail 'shell launcher does not validate Claude version'
-  grep -Fq 'is_exact_version "$codex_version"' "$PROJECT/gr.sh" || fail 'shell launcher does not validate Codex version'
-  test "$(grep -Fc "GUARDRAILS_VERSION_TO_CHECK -notmatch '^\d+\.\d+\.\d+$'" "$PROJECT/gr.bat")" -eq 2 || \
-    fail 'Windows launcher does not validate both reported versions'
+# A version the launcher cannot parse is a refresh failure. The launcher is driven to that
+# state and its effects observed, rather than its source being searched for a check.
+# rq-41eeda01
+test_unparseable_agent_version_fails_the_refresh() (
+  setup_project; cd "$PROJECT"
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then echo tooling-id; exit; fi
+if [ "$1 $2" = 'image exists' ]; then exit 1; fi
+if [ "$1 $2" = 'run --rm' ]; then
+  case "$*" in
+    *' claude --version') echo 'unreleased-build' ;;
+    *' codex --version') echo 'codex-cli 0.144.6' ;;
+  esac
+  exit
+fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+  ! bash gr.sh </dev/null >/dev/null 2>&1 || fail 'an unparseable agent version was accepted'
+  ! grep -q 'AgentLabels' "$PODMAN_LOG" || fail 'the agent image was labeled with an unparseable version'
+  test ! -e .guardrails/podman/agent-build.env || fail 'an unparseable version was promoted'
 )
 
 # rq-ac53295e
@@ -398,7 +462,9 @@ test_partial_pin_keeps_the_unpinned_agent_current; test_removing_the_pin_restore
 test_malformed_pin_stops_the_launch; test_empty_pin_stops_launch; test_empty_pin_value_stops_launch
 test_unknown_pin_name_stops_launch; test_duplicate_pin_name_stops_launch; test_malformed_pin_line_stops_launch
 test_failed_refresh_falls_back_to_existing_image; test_failed_build_without_an_image_stops_the_launch
-test_tooling_build_failure_never_falls_back; test_iso_week_algorithms_cover_year_boundaries
-test_launchers_validate_reported_agent_versions
+test_tooling_build_failure_never_falls_back; test_iso_week_matches_iso8601
+test_current_iso_week_uses_portable_date_options
+test_unparseable_agent_version_fails_the_refresh; test_unknown_pin_name_outranks_a_bad_value
+test_ambient_version_variable_is_ignored
 test_build_key_is_not_committed
 printf 'PASS: credential isolation and traceability boundary\n'

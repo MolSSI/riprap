@@ -31,6 +31,12 @@ further tools without replacing either template-owned layer.
   path that is not a mounted volume, so the update is discarded when the container is removed and
   is repeated every session. The agent image is therefore the only thing that determines which
   agent release runs.
+- A launcher records an agent release only when the built candidate image's version output contains
+  a numeric `major.minor.patch` release core. Surrounding text and suffixes such as `1.2.3-beta`
+  are accepted; the recorded release is the numeric `1.2.3` core. Output without a parseable release
+  core is a refresh failure: the agent image is left unlabeled and the successful build key is
+  unchanged. A launcher never records a release value drawn from its ambient environment, so a
+  variable that happens to share a name with a build-key assignment cannot reach an image label.
 - Agent program files live in the image, never inside a credential volume. Where an agent installs
   its program beneath its own configuration home, the image installs the program under an
   image-owned configuration home and the container points that agent's configuration home at the
@@ -60,8 +66,13 @@ further tools without replacing either template-owned layer.
   refreshes sooner than a full seven days rather than later, so the bound always holds.
 - Because the build key's contents determine the refresh, launching repeatedly within one week
   reuses the cached agent layers and contacts no release metadata.
-- Shell and Windows launch paths derive the same ISO-8601 week and year, including dates at a
-  calendar-year boundary.
+- The shell and Windows launch paths derive the same ISO-8601 week-year and week for any given
+  date, including dates whose ISO week-year differs from their calendar year. Agreement is
+  established by deriving both stamps for the same date and comparing the results, not by
+  inspecting either implementation's source text.
+- The shell launch path derives its current refresh stamp using commands and options available in
+  the default userland of both supported Unix hosts, Linux and macOS. Normal launching does not
+  depend on GNU-only date parsing extensions.
 
 ## Optional Release Pin <!-- rq-5e710604 -->
 
@@ -82,6 +93,13 @@ further tools without replacing either template-owned layer.
   launch with an actionable message before any image is built. Falling back to the current release
   would silently discard the pin a user added deliberately, which is the opposite of what pinning
   is for.
+- Every launcher applies the same pin validation and reports the same defect for the same pin
+  content. Each line is checked in a fixed precedence: line structure, then whether the name is
+  recognized, then whether the name is repeated, then whether the value is nonempty, then whether
+  the value is an exact release version. The first failing check determines the message, so a name
+  that is both unrecognized and paired with a non-version value is reported as an unrecognized name
+  on every platform. A user who moves between hosts, or who reads a colleague's error message,
+  sees one account of what is wrong with the file.
 - The pin exists so that a bad agent release can be escaped without waiting for an upstream fix. It
   is ordinary project content: a user may commit it to hold a whole team at one release, or leave
   it untracked to affect one machine.
@@ -109,6 +127,25 @@ further tools without replacing either template-owned layer.
     state after failure or interruption.
   - Continue with a compatible successful agent image, after reporting the failure, only when the
     agent refresh fails.
+  - Read a numeric `major.minor.patch` release core for each agent from the built candidate image,
+    accepting surrounding text and release suffixes, and treat output without such a core as a
+    refresh failure.
+
+## Launcher Validation <!-- rq-6ed9bff7 -->
+
+- Each launcher is validated on the platform whose interpreter runs it: the shell launcher under a
+  POSIX shell, and the Windows launcher under `cmd.exe` with the PowerShell helpers it invokes.
+  Launch orchestration is written twice, in two languages with different quoting, control-flow, and
+  variable-expansion rules, so validating one launcher establishes nothing about the other.
+- Launcher validation substitutes a mock container runtime on `PATH` for Podman. Pin validation,
+  candidate and build-key state, build sequencing, version verification, and failure fallback are
+  all observable from the commands a launcher issues and the state it writes, so none of them
+  requires a real image build.
+- Windows launcher validation therefore requires no container runtime, virtualization, or Linux
+  subsystem, and it runs on a stock Windows continuous integration runner.
+- Image content is validated separately, by building the real images where a rootless Podman
+  runtime is available. The two validations do not overlap: a launcher check never builds an image,
+  and an image check never runs a launcher.
 
 ## Gherkin Scenarios <!-- rq-88b04d5f -->
 
@@ -273,9 +310,78 @@ Feature: Guardrails development container
 
   @rq-26d8643a
   Scenario: Windows and shell launchers agree at ISO year boundaries
-    Given a UTC date near a calendar-year boundary
-    When the shell and Windows launchers derive their refresh stamps for that date
-    Then both stamps equal the ISO-8601 week-year and week for that date
+    Given a set of UTC dates whose ISO week-year differs from their calendar year
+    When the shell and Windows implementations each derive a refresh stamp for every date
+    Then the two implementations produce identical stamps for every date
+    And each stamp equals the ISO-8601 week-year and week for its date
+
+  @rq-cfefd5aa
+  Scenario: The shell launcher derives its refresh stamp on every supported Unix host
+    Given a generated project on Linux or macOS with the host's default date utility
+    When the shell launcher prepares the current agent build key
+    Then preparation succeeds
+    And the refresh stamp is the current ISO-8601 week-year and week
+
+  @rq-13f28b2e
+  Scenario: Both launchers report the same defect for the same invalid pin
+    Given a release pin that fails validation
+    When each launcher validates that pin on its own platform
+    Then every launcher fails the launch
+    And every launcher identifies the same defect
+
+  @rq-c2cdf6d8
+  Scenario: An unrecognized pin name outranks a non-exact pin value
+    Given a release pin contains `CLAUDE_VERSOIN=not-a-version`
+    When the project launcher starts the development environment
+    Then launching fails
+    And the failure identifies the unknown name rather than the value format
+
+  @rq-17a864bb
+  Scenario: The Windows launcher validates the pin before building
+    Given a release pin records a value that is not an exact release version
+    When the Windows launcher starts the development environment
+    Then launching fails
+    And the failure message identifies the offending assignment
+    And no image is built
+
+  @rq-13d744b1
+  Scenario: The Windows launcher stops on a tooling build failure
+    Given the container runtime fails every image build
+    When the Windows launcher starts the development environment
+    Then launching fails
+    And the launcher does not describe the failure as an agent refresh failure
+    And no candidate state remains
+
+  @rq-b68a63b5
+  Scenario: The Windows launcher falls back to a compatible agent image
+    Given a successful agent image whose tooling-image label matches the current tooling image
+    And the agent image build fails
+    When the Windows launcher starts the development environment
+    Then the launcher reports that the agent refresh failed
+    And the development container starts from the successful agent image
+    And the successful build key is unchanged
+
+  @rq-f69aa150
+  Scenario: The Windows launcher stops when no compatible agent image exists
+    Given no successful agent image based on the current tooling image exists
+    And the agent image build fails
+    When the Windows launcher starts the development environment
+    Then launching fails
+    And no development container starts
+
+  @rq-41eeda01
+  Scenario: The Windows launcher refuses an agent version it cannot parse
+    Given the built candidate image reports output without a numeric `major.minor.patch` release core
+    When the Windows launcher starts the development environment
+    Then the agent image is not labeled with that version
+    And the successful build key is unchanged
+
+  @rq-fedf48c5
+  Scenario: A launcher ignores an ambient variable named like a build-key assignment
+    Given the environment sets `CLAUDE_VERSION` to an exact release version
+    And the built candidate image reports a different parseable Claude release core
+    When the project launcher starts the development environment
+    Then the recorded Claude release is the release core parsed from the candidate image
 
   @rq-ac53295e
   Scenario: The build key is not committed

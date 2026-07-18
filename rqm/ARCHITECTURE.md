@@ -98,8 +98,16 @@ rootless isolation systems, such as Apptainer, provided they preserve the securi
 not require agent-neutral workflows to depend on a particular runtime.
 
 Host launch scripts support Linux, macOS, and Windows while presenting a consistent workspace and
-tooling environment inside the container. The template-owned base image supplies common Guardrails
-and agent tooling; a user-owned image layer supplies project-specific additions.
+tooling environment inside the container. Each host's launcher is a separate implementation held to
+the same observable behavior, so a capability offered on one platform is offered on all of them.
+
+The container image is layered by how often each layer changes and by who owns it. A template-owned
+tooling image supplies the common Guardrails and language toolchain. A template-owned agent image
+builds on it and supplies the supported AI agents, refreshed on a bounded schedule that requires no
+routine user action. A user-owned image layer supplies project-specific additions. Isolating the
+agent layer keeps a failed agent download from being mistaken for a broken toolchain, and makes the
+installed agent releases a recorded property of the image rather than an accident of when the image
+happened to be built.
 
 ### Language Support
 
@@ -158,8 +166,19 @@ behavior.
 The end-to-end test matrix renders representative Rust and Python projects with Copier and verifies
 that generated projects build and test successfully. It also exercises `copier update` across
 supported ownership and customization boundaries. Container tests build the supported generated
-container configurations. Platform-specific launch behavior is tested only where suitable GitHub
-Actions runners and rootless runtime facilities make the result meaningful.
+container configurations.
+
+Launch behavior separates into two layers with different testability, and the distinction decides
+where each test runs. Launch orchestration — argument handling, validation of user-supplied
+configuration, build sequencing, local state transitions, and failure fallback — is observable from
+the commands a launcher issues and the state it writes, so it is tested against a mock container
+runtime and needs no container runtime, virtualization, or Linux subsystem on the runner. Each
+launcher is exercised under the interpreter that actually runs it, because the launch path is
+implemented once per supported host in languages with different quoting, control-flow, and
+variable-expansion rules; a launcher passing on one platform is no evidence about its counterpart.
+Container runtime behavior — image contents, volume semantics, and process isolation — requires a
+real rootless runtime and is tested only on runners that provide one. The two layers are tested
+separately: an orchestration test never builds an image, and a runtime test never runs a launcher.
 
 Focused tests cover deterministic tooling shipped by Guardrails, including requirements-management
 scripts, hooks, launch helpers, and other purely mechanical behavior. Failure paths and preservation

@@ -70,6 +70,15 @@ so they run on every supported host.
 - Windows batch scripts are checked out with CRLF endings so `cmd.exe` control-flow constructs remain
   valid.
 - Text files without a more specific rule are normalized to LF in the repository.
+- A checkout on each supported host produces working-tree files whose bytes carry the endings that
+  host's interpreters need. The endings are established from checked-out file content, because the
+  attributes Git reports describe the rules that should apply rather than the bytes an interpreter
+  will actually read. Validation discovers every version-controlled shell, PowerShell, batch, and
+  command script rather than relying on a maintained list, and rejects mixed line endings within a
+  file.
+- `credential-state.sh` and `credential-state.ps1` expose the same actions and produce the same
+  observable state: the same canonical project identity, the same project-scoped volume names, and
+  the same requirement for explicit confirmation before removing a volume.
 
 ## Feature Interface <!-- rq-22e021a0 -->
 
@@ -191,4 +200,39 @@ Feature: Isolate agent credentials from generated projects
     And no local Git hook is installed
     When the repository-mode secret scanner runs in GitHub Actions
     Then the workflow fails without printing the credential value
+
+  @rq-003ece26
+  Scenario: A Windows checkout carries the line endings its interpreters need
+    Given the repository is checked out on Windows
+    When every version-controlled script is discovered and its working-tree bytes are examined
+    Then every ".bat" and ".cmd" script uses CRLF for every line ending
+    And every ".sh" and ".ps1" script uses LF for every line ending
+    And the extensionless "pre-commit" hook ends its lines with LF
+
+  @rq-6b0d184f
+  Scenario: The Windows credential helper creates the same project identity
+    Given a generated project has no ".guardrails/project-id"
+    When the Windows credential helper ensures project state
+    Then it creates a canonical lowercase UUID in ".guardrails/project-id"
+    And it creates the Claude and Codex volume names the shell helper creates for that UUID
+
+  @rq-5e481eb3
+  Scenario: The Windows credential helper reuses an existing project identity
+    Given a generated project has a valid project UUID
+    When the Windows credential helper ensures project state
+    Then the project identity is unchanged
+    And the container runtime receives no volume creation command
+
+  @rq-8c955028
+  Scenario: The Windows reset requires explicit confirmation
+    Given a generated project with existing credential volumes
+    When the Windows credential helper resets agent state without a confirmation flag
+    Then no volume is removed
+
+  @rq-77328390
+  Scenario: A malformed project identity blocks the Windows launcher
+    Given ".guardrails/project-id" is malformed
+    When the Windows launcher starts the development environment
+    Then launching fails
+    And no development container starts
 ```

@@ -21,7 +21,7 @@ function Get-IsoWeekStamp([datetime]$Date = (Get-Date).ToUniversalTime()) {
 function Prepare-AgentBuild {
     $claudeVersion = "latest"
     $codexVersion = "latest"
-    $refresh = if ($env:GUARDRAILS_ISO_WEEK) { $env:GUARDRAILS_ISO_WEEK } else { Get-IsoWeekStamp }
+    $refresh = Get-IsoWeekStamp
 
     if (Test-Path -LiteralPath $pinFile) {
         if (-not (Test-Path -LiteralPath $pinFile -PathType Leaf)) { Fail "$pinFile must be a regular file" }
@@ -32,8 +32,10 @@ function Prepare-AgentBuild {
             if (-not $line -or $line -notmatch '^([^=]+)=(.*)$') { Fail "$pinFile contains a malformed line: '$line'" }
             $name = $Matches[1]
             $value = $Matches[2]
-            if ($seen.ContainsKey($name)) { Fail "$pinFile contains duplicate $name assignments" }
+            # Checks run in a fixed precedence so that every launcher reports the same defect
+            # for the same file: structure, then name, then repetition, then value.
             if ($name -notin @("CLAUDE_VERSION", "CODEX_VERSION")) { Fail "$pinFile contains unknown assignment '$name'" }
+            if ($seen.ContainsKey($name)) { Fail "$pinFile contains duplicate $name assignments" }
             if (-not $value) { Fail "$pinFile: $name has an empty value" }
             if ($value -notmatch $versionPattern) { Fail "$pinFile: $name must be an exact release version such as 1.2.3, but is '$value'" }
             $seen[$name] = $value
@@ -63,5 +65,12 @@ switch ($args[0]) {
         break
     }
     "discard" { Remove-Item -LiteralPath $candidateFile -ErrorAction SilentlyContinue; break }
+    "week" {
+        if (-not $args[1]) { Fail "week requires a date" }
+        # Parsed as UTC so the stamp does not shift with the host's time zone.
+        Get-IsoWeekStamp ([datetime]::Parse($args[1], [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal))
+        break
+    }
     default { Fail "unknown agent build action '$($args[0])'" }
 }
