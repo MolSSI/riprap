@@ -17,13 +17,21 @@ $Failures = 0
 function Fail([string]$Message) { throw "FAIL: $Message" }
 
 function Render-Project([string]$Destination) {
-    & copier copy --trust --defaults `
-        --data project_name='Windows Test' --data project_slug='windows-test' `
-        --data project_description='test' --data language=rust `
-        --data include_rust_skeleton=false --data author_name=Test `
-        --data author_email=test@example.com --data open_source_license='Not Open Source' `
-        $Root $Destination 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Fail "copier could not render a project" }
+    $savedPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 represents redirected native stderr as error records.
+        # Copier writes its harmless template-version notice there, so rely on its exit
+        # status rather than promoting that notice to a terminating PowerShell error.
+        $ErrorActionPreference = "Continue"
+        & copier copy --trust --defaults `
+            --data project_name='Windows Test' --data project_slug='windows-test' `
+            --data project_description='test' --data language=rust `
+            --data include_rust_skeleton=false --data author_name=Test `
+            --data author_email=test@example.com --data open_source_license='Not Open Source' `
+            $Root $Destination 2>&1 | Out-Null
+        $code = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $savedPreference }
+    if ($code -ne 0) { Fail "copier could not render a project" }
 }
 
 # The mock records every invocation and answers only the subcommands a launcher issues.
@@ -121,11 +129,18 @@ function Invoke-Launcher([string]$Project) {
 
 function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
     Push-Location $Project
+    $savedPreference = $ErrorActionPreference
     try {
+        # Several validation cases intentionally capture native stderr from a failing
+        # child process. Its exit code remains the source of truth.
+        $ErrorActionPreference = "Continue"
         $output = & powershell -NoProfile -ExecutionPolicy Bypass `
             -File ".guardrails/agent-build.ps1" @Arguments 2>&1
         $code = $LASTEXITCODE
-    } finally { Pop-Location }
+    } finally {
+        $ErrorActionPreference = $savedPreference
+        Pop-Location
+    }
     return [pscustomobject]@{ Output = ($output | Out-String); ExitCode = $code }
 }
 
@@ -291,9 +306,14 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
     foreach ($case in $pins) {
         [IO.File]::WriteAllText($pin, $case[0], [Text.UTF8Encoding]::new($false))
         Push-Location $t.Project
+        $savedPreference = $ErrorActionPreference
         try {
+            $ErrorActionPreference = "Continue"
             $shell = (& $bash.Source ".guardrails/agent-build.sh" prepare 2>&1 | Out-String)
-        } finally { Pop-Location }
+        } finally {
+            $ErrorActionPreference = $savedPreference
+            Pop-Location
+        }
         $windows = (Invoke-AgentBuild $t.Project @("prepare")).Output
 
         $shellMessage = ([regex]::Match($shell, 'Guardrails: [^\r\n]+')).Value.Trim()
