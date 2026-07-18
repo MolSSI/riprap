@@ -1,0 +1,9 @@
+# Keep version-controlled scripts runnable on every host. Git for Windows' bundled
+# bash cannot execute a script with CRLF endings, and cmd.exe control-flow blocks can
+# break with LF endings, so pin each script type to the endings its interpreter needs.
+* text=auto
+*.sh   text eol=lf
+*.ps1  text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+.guardrails/hooks/* text eol=lf
