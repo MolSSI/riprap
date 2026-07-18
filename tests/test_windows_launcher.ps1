@@ -132,20 +132,27 @@ function Invoke-Launcher([string]$Project) {
 }
 
 function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
+    $captureId = [Guid]::NewGuid().ToString("N")
+    $stdoutPath = Join-Path $Project ".guardrails/agent-build-$captureId.stdout"
+    $stderrPath = Join-Path $Project ".guardrails/agent-build-$captureId.stderr"
     Push-Location $Project
-    $savedPreference = $ErrorActionPreference
     try {
-        # Several validation cases intentionally capture native stderr from a failing
-        # child process. Its exit code remains the source of truth.
-        $ErrorActionPreference = "Continue"
-        $output = & powershell -NoProfile -ExecutionPolicy Bypass `
-            -File ".guardrails/agent-build.ps1" @Arguments 2>&1
-        $code = $LASTEXITCODE
+        # Windows PowerShell 5.1 converts piped native stderr into formatted error records,
+        # which can wrap and truncate diagnostics. Process-level redirection preserves the
+        # exact streams emitted by the child.
+        $processArguments = @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".guardrails/agent-build.ps1") + $Arguments
+        $process = Start-Process -FilePath "powershell.exe" -ArgumentList $processArguments `
+            -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $code = $process.ExitCode
+        $stdout = [IO.File]::ReadAllText($stdoutPath)
+        $stderr = [IO.File]::ReadAllText($stderrPath)
     } finally {
-        $ErrorActionPreference = $savedPreference
         Pop-Location
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
     }
-    return [pscustomobject]@{ Output = ($output | Out-String); ExitCode = $code }
+    return [pscustomobject]@{ Output = "$stdout$stderr"; ExitCode = $code }
 }
 
 function Get-PodmanLog { Get-Content -LiteralPath $env:PODMAN_LOG -Raw -ErrorAction SilentlyContinue }
