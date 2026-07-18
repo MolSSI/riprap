@@ -38,7 +38,12 @@ function Reset-State {
     $agents = if ($Agent -eq "all") { @("claude", "codex") } else { @($Agent) }
     $volumes = $agents | ForEach-Object { "guardrails-$id-$_" }
     Write-Host "Guardrails will remove credential state volumes:"; $volumes | ForEach-Object { Write-Host "  $_" }
-    if ($Confirmation -ne "--yes") { if ((Read-Host "Continue? [y/N]") -notmatch '^(y|yes)$') { Fail "reset cancelled" } }
+    if ($Confirmation -ne "--yes") {
+        $answer = Read-Host "Continue? [y/N]"
+        # Comparison operators return no value for a null input. Test membership instead so
+        # redirected or closed stdin is treated as denial rather than accidental consent.
+        if ($answer -notin @("y", "yes")) { Fail "reset cancelled" }
+    }
     foreach ($volume in $volumes) { podman volume rm $volume *> $null; if ($LASTEXITCODE -ne 0) { Fail "could not remove $volume" } }
 }
 function Install-Hooks {

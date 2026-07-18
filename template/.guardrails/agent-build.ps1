@@ -36,8 +36,8 @@ function Prepare-AgentBuild {
             # for the same file: structure, then name, then repetition, then value.
             if ($name -notin @("CLAUDE_VERSION", "CODEX_VERSION")) { Fail "$pinFile contains unknown assignment '$name'" }
             if ($seen.ContainsKey($name)) { Fail "$pinFile contains duplicate $name assignments" }
-            if (-not $value) { Fail "$pinFile: $name has an empty value" }
-            if ($value -notmatch $versionPattern) { Fail "$pinFile: $name must be an exact release version such as 1.2.3, but is '$value'" }
+            if (-not $value) { Fail "${pinFile}: $name has an empty value" }
+            if ($value -notmatch $versionPattern) { Fail "${pinFile}: $name must be an exact release version such as 1.2.3, but is '$value'" }
             $seen[$name] = $value
         }
         if ($seen.CLAUDE_VERSION) { $claudeVersion = $seen.CLAUDE_VERSION }
