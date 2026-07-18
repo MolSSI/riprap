@@ -85,9 +85,9 @@ assert_versions_match_recording() {
   reported="$(podman run --rm "$image" codex --version)"
   grep -Fq "$codex_recorded" <<<"$reported" || \
     fail "image reports Codex '$reported', but $codex_recorded is recorded"
-  test "$(podman image inspect --format '{{ index .Labels \"io.guardrails.claude-version\" }}' "$image")" = "$claude_recorded" || \
+  test "$(podman image inspect --format '{{ index .Labels "io.guardrails.claude-version" }}' "$image")" = "$claude_recorded" || \
     fail 'Claude image label does not match the installed release'
-  test "$(podman image inspect --format '{{ index .Labels \"io.guardrails.codex-version\" }}' "$image")" = "$codex_recorded" || \
+  test "$(podman image inspect --format '{{ index .Labels "io.guardrails.codex-version" }}' "$image")" = "$codex_recorded" || \
     fail 'Codex image label does not match the installed release'
 }
 
