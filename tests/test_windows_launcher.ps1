@@ -430,3 +430,6 @@ if ($Failures -gt 0) {
     exit 1
 }
 Write-Host "PASS: Windows launch path"
+# Expected-failure cases leave the process-wide native exit status nonzero. The assertions
+# above have accounted for those results, so return the suite's own successful status.
+exit 0
