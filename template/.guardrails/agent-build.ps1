@@ -5,7 +5,12 @@ $candidateFile = ".guardrails/podman/agent-build.candidate.env"
 $pinFile = ".guardrails/agent-pin.env"
 $versionPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 
-function Fail([string]$Message) { throw "Guardrails: $Message" }
+function Fail([string]$Message) {
+    # An uncaught exception is reformatted and line-wrapped by Windows PowerShell, making
+    # diagnostics host-width dependent. Emit the launcher contract directly instead.
+    [Console]::Error.WriteLine("Guardrails: $Message")
+    exit 1
+}
 
 function Get-IsoWeekStamp([datetime]$Date = (Get-Date).ToUniversalTime()) {
     $utc = $Date.ToUniversalTime()
