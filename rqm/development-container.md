@@ -9,6 +9,17 @@ further tools without replacing either template-owned layer.
 
 ## Base Tooling <!-- rq-fc6358df -->
 
+- The image the tooling layer builds on is a project property chosen when the project is generated,
+  defaulting to a current Ubuntu LTS release. A project whose software targets GPUs names a vendor
+  image that supplies the GPU toolchain, such as an NVIDIA CUDA development image.
+- Supported base images are Ubuntu- or Debian-derived, because the tooling and language layers
+  install packages with the Debian package manager and with `pipx`. Vendor GPU images built on
+  Ubuntu therefore carry the whole tooling layer unmodified, and a base image that is not
+  Debian-derived is outside what the tooling layer supports.
+- The base image selection changes only what the tooling layer builds on. The agent image is based
+  on the tooling image and the project-owned image on the agent image regardless of which base image
+  a project chose, so choosing a GPU base image costs a project none of the layering, refresh, or
+  fallback behavior described here.
 - The base image provides the Copier CLI for every supported project language.
 - Copier is installed as an isolated Python CLI application with `pipx`.
 - The installed Copier release is compatible with the template's declared minimum Copier major
@@ -116,6 +127,39 @@ further tools without replacing either template-owned layer.
 - When the agent-image build fails and no compatible successful agent image exists, launching fails.
   Starting without the agents or with an agent image based on different tooling would be misleading.
 
+## Container Run Options <!-- rq-70d01853 -->
+
+- `.riprap/podman/run-options` supplies container runtime options for the interactive development
+  container beyond those the template always applies. It is a user-owned seed file: the template
+  creates it once and preserves it thereafter, so options a project enables survive template
+  updates. It is ordinary project content, so a team may commit it to share one environment or
+  leave it untracked to configure a single machine.
+- As delivered, every line of the file is commentary, so a generated project starts with no
+  additional runtime options until a user enables some. The commentary documents the format and
+  carries a commented example granting the container access to the host's GPUs, so a project that
+  chose a GPU base image reaches a working GPU container by uncommenting delivered lines rather
+  than by composing runtime flags itself.
+- Each line that is neither blank nor a comment is exactly one container runtime argument, passed
+  to the runtime verbatim. A line whose first non-blank character is `#` is a comment. An option
+  carrying a value occupies one line in single-token `--name=value` form.
+- The options apply to the interactive development container in addition to the workspace mount,
+  credential volumes, agent configuration environment, and working directory, which are present on
+  every launch. The project's options are supplied after those, so a runtime that resolves a
+  repeated option in favor of its last occurrence resolves it in the project's favor.
+- One argument per line exists so that options reach the runtime without shell word splitting or
+  re-quoting, on hosts whose shells disagree about both. A launcher accepts a line only when it is
+  a single token that contains no whitespace and begins with `-`. Any other line fails the launch
+  before a container starts, identifying the file and the offending line. A user who writes an
+  option and its value separated by a space intends two arguments; passing that line as one
+  argument instead would fail obscurely inside the runtime, and splitting it would reintroduce the
+  quoting rules the format exists to avoid.
+- Structural acceptance is the launcher's only interpretation of the file. A launcher recognizes no
+  particular option, attaches no meaning to device or privilege options, and grants no access of
+  its own, so the container receives exactly the options the user wrote and nothing further. New
+  runtime options therefore need no launcher change.
+- Every launcher applies the same validation and reports the same defect for the same file
+  content, and an absent file is equivalent to one that enables no options.
+
 ## Feature Interface <!-- rq-4afcfc2c -->
 
 - `rr.sh` and `rr.bat`
@@ -130,6 +174,10 @@ further tools without replacing either template-owned layer.
   - Read a numeric `major.minor.patch` release core for each agent from the built candidate image,
     accepting surrounding text and release suffixes, and treat output without such a core as a
     refresh failure.
+  - Validate the project's container run options and stop before starting a container when a line
+    is not a single whitespace-free argument beginning with `-`.
+  - Start the interactive development container with the project's run options applied after the
+    workspace mount, credential volumes, agent configuration environment, and working directory.
 
 ## Launcher Validation <!-- rq-6ed9bff7 -->
 
@@ -394,5 +442,105 @@ Feature: Riprap development container
     Given a generated project with a valid project UUID
     When the project launcher starts the development environment
     Then the container environment sets "DISABLE_AUTOUPDATER"
+
+  @rq-c75bb5d9
+  Scenario: A project defaults to an Ubuntu LTS base image
+    Given a project is rendered from the Riprap template without naming a base image
+    When the generated template-owned tooling image definition is read
+    Then it builds on a current Ubuntu LTS release
+
+  @rq-d6488ee9
+  Scenario: A GPU base image carries the whole tooling layer
+    Given a project is rendered from the Riprap template naming an Ubuntu-derived CUDA base image
+    When the generated template-owned tooling image is built
+    Then the image build succeeds
+    And running "copier --version" in the built image succeeds
+    And the language toolchain for the project's language is present in the built image
+    And the CUDA compiler supplied by the base image is present in the built image
+
+  @rq-f2f0525e
+  Scenario: Agent and project layers are unaffected by the base image
+    Given a project is rendered from the Riprap template naming an Ubuntu-derived CUDA base image
+    When its template-owned images are built
+    Then the agent image is based on the tooling image
+    And the project-owned image is based on the agent image
+    And the tooling image contains no agent installation
+
+  @rq-83545aca
+  Scenario: A generated project enables no additional run options
+    Given a project is rendered from the Riprap template
+    When the project launcher starts the development environment
+    Then the container runtime receives no arguments beyond the template-owned ones
+
+  @rq-7471ee4f
+  Scenario: An enabled run option reaches the container runtime
+    Given a run options file whose only uncommented line is "--shm-size=8g"
+    When the project launcher starts the development environment
+    Then the container runtime receives the argument "--shm-size=8g"
+
+  @rq-f881a732
+  Scenario: Enabling the delivered GPU example grants device access
+    Given a run options file with the delivered GPU example lines uncommented
+    When the project launcher starts the development environment
+    Then the container runtime receives every uncommented line as a separate argument
+    And it receives them in the order the file lists them
+
+  @rq-a3420977
+  Scenario: Run options do not displace the template-owned container configuration
+    Given a run options file whose only uncommented line is "--shm-size=8g"
+    When the project launcher starts the development environment
+    Then the container runtime receives the workspace mount at "/work"
+    And it receives both credential volume mounts
+    And it receives the agent configuration environment
+    And the project's option follows the template-owned arguments
+
+  @rq-173cab03
+  Scenario: Comments and blank lines enable no options
+    Given a run options file containing only comment lines, indented comment lines, and blank lines
+    When the project launcher starts the development environment
+    Then the container runtime receives no arguments beyond the template-owned ones
+
+  @rq-b6ce2749
+  Scenario: An absent run options file enables no options
+    Given a generated project whose run options file has been deleted
+    When the project launcher starts the development environment
+    Then launching succeeds
+    And the container runtime receives no arguments beyond the template-owned ones
+
+  @rq-32ffafe7
+  Scenario: A run option containing whitespace stops the launch
+    Given a run options file whose only uncommented line is "--device nvidia.com/gpu=all"
+    When the project launcher starts the development environment
+    Then launching fails
+    And the failure message identifies the offending line
+    And no container starts
+
+  @rq-eb18200a
+  Scenario: A run option that is not an option stops the launch
+    Given a run options file whose only uncommented line is "device=all"
+    When the project launcher starts the development environment
+    Then launching fails
+    And the failure message identifies the offending line
+    And no container starts
+
+  @rq-0e32b682
+  Scenario: Both launchers report the same defect for the same invalid run options
+    Given a run options file that fails validation
+    When each launcher validates that file on its own platform
+    Then every launcher fails the launch
+    And every launcher identifies the same defect
+
+  @rq-0b67fe5f
+  Scenario: The Windows launcher applies the project's run options
+    Given a run options file whose only uncommented line is "--shm-size=8g"
+    When the Windows launcher starts the development environment
+    Then the container runtime receives the argument "--shm-size=8g"
+    And it receives the template-owned arguments
+
+  @rq-2f86b6aa
+  Scenario: A template update preserves enabled run options
+    Given a generated project whose run options file has been edited to enable an option
+    When the project adopts a later template release with "copier update"
+    Then the run options file retains the user's edit
 
 ```

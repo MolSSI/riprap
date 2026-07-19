@@ -28,6 +28,9 @@ _skip_if_exists:
   - /rqm/ARCHITECTURE.md
   # Stable local-resource identity, created on first launch and owned by the project.
   - /.riprap/project-id
+  # Container run options: seeded fully commented, then owned by the user, whose
+  # enabled options must survive an update.
+  - /.riprap/podman/run-options
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 
@@ -47,6 +50,19 @@ project_slug:
 project_description:
   type: str
   help: One-sentence description of what your project does
+
+# ---------------------------------------------------------------------------
+# Development container
+# ---------------------------------------------------------------------------
+
+base_image:
+  type: str
+  help: >-
+    Base image for the development tooling layer. Must be Ubuntu- or Debian-derived,
+    because the tooling and language layers install packages with apt and pipx. Name a
+    vendor GPU image to build CUDA software, for example
+    nvidia/cuda:12.6.3-devel-ubuntu24.04.
+  default: "ubuntu:24.04"
 
 # ---------------------------------------------------------------------------
 # Language

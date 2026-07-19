@@ -67,8 +67,15 @@ improvements through `copier update`. A template-owned file therefore exists twi
 repository — as the source under `template/` and as the rendered copy at the top level. The source
 under `template/` is the single point of edit; the rendered top-level copy is produced by
 `copier update` and is never modified by hand, because a later update would overwrite manual
-top-level edits. User-owned seed files and agent-neutral extension files are the exception: Copier
-creates them once and then preserves them, so they are maintained in place at the top level.
+top-level edits.
+
+User-owned seed files and agent-neutral extension files are a partial exception, and the exception
+covers maintenance rather than creation. Copier creates such a file once and preserves it
+thereafter, so its top-level copy is edited in place from then on. Its first appearance at the top
+level is still Copier's work: a seed file newly added to `template/` reaches the top level by
+rendering, never by being written there directly. Seeding a file by hand would leave the top level
+agreeing with the template by coincidence rather than by construction, and would retire the seeding
+path untested at the moment it was introduced.
 
 Beyond the rendered instance, the repository also carries development and evaluation artifacts that
 the template never distributes: Riprap' own requirements under `rqm/`, its tests, and

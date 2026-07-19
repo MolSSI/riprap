@@ -391,6 +391,119 @@ test_build_key_is_not_committed() (
   git check-ignore -q .riprap/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
 )
 
+# The last interactive launch the mock recorded. The mock also logs the non-interactive
+# "run --rm <image> <agent> --version" probes, which "-it" distinguishes from a session.
+run_line() { grep '^run --rm -it ' "$PODMAN_LOG" | tail -n 1; }
+
+# The template-owned arguments always end the run with the working directory, so anything
+# a project enables appears between "-w /work" and the image name.
+assert_run_tail() {
+  local expected="$1" image
+  image=$(cat .riprap/podman/image_name)
+  [[ "$(run_line)" == *"-w /work ${expected}${image} bash" ]] || \
+    fail "the run does not carry '${expected}' as its project options: $(run_line)"
+}
+
+write_run_options() { printf '%b' "$1" > .riprap/podman/run-options; }
+
+# rq-83545aca
+test_seeded_project_enables_no_run_options() (
+  setup_project; cd "$PROJECT"
+  test -f .riprap/podman/run-options || fail 'no run options file was seeded'
+  bash rr.sh </dev/null
+  assert_run_tail ''
+)
+
+# rq-7471ee4f
+test_enabled_run_option_reaches_the_runtime() (
+  setup_project; cd "$PROJECT"
+  write_run_options '--shm-size=8g\n'
+  bash rr.sh </dev/null
+  assert_run_tail '--shm-size=8g '
+)
+
+# The delivered example is the whole point of seeding a commented file, so it is enabled
+# the way a user would enable it rather than retyped here.
+# rq-f881a732
+test_delivered_gpu_example_can_be_enabled() (
+  setup_project; cd "$PROJECT"
+  sed 's/^# \(--device=nvidia\.com\/gpu=all\)$/\1/; s/^# \(--security-opt=label=disable\)$/\1/' \
+    .riprap/podman/run-options > run-options.new && mv run-options.new .riprap/podman/run-options
+  grep -q '^--device=nvidia\.com/gpu=all$' .riprap/podman/run-options || \
+    fail 'the seeded file carries no commented GPU device example'
+  grep -q '^--security-opt=label=disable$' .riprap/podman/run-options || \
+    fail 'the seeded file carries no commented SELinux labelling example'
+  bash rr.sh </dev/null
+  assert_run_tail '--device=nvidia.com/gpu=all --security-opt=label=disable '
+)
+
+# rq-a3420977
+test_run_options_do_not_displace_template_configuration() (
+  setup_project; cd "$PROJECT"
+  write_run_options '--shm-size=8g\n'
+  bash rr.sh </dev/null
+  id=$(cat .riprap/project-id); line=$(run_line)
+  grep -Eq -- "-v [^ ]+:/work( |$)" <<<"$line" || fail 'the workspace mount was displaced'
+  grep -Fq -- "-v riprap-$id-claude:/root/.claude" <<<"$line" || fail 'the Claude volume was displaced'
+  grep -Fq -- "-v riprap-$id-codex:/root/.codex" <<<"$line" || fail 'the Codex volume was displaced'
+  grep -Fq -- '-e CLAUDE_CONFIG_DIR=/root/.claude' <<<"$line" || fail 'the agent configuration was displaced'
+  assert_run_tail '--shm-size=8g '
+)
+
+# rq-173cab03
+test_comments_and_blank_lines_enable_nothing() (
+  setup_project; cd "$PROJECT"
+  write_run_options '# a comment\n\n   # an indented comment\n\t\n'
+  bash rr.sh </dev/null
+  assert_run_tail ''
+)
+
+# rq-b6ce2749
+test_absent_run_options_file_enables_nothing() (
+  setup_project; cd "$PROJECT"
+  rm .riprap/podman/run-options
+  bash rr.sh </dev/null || fail 'a deleted run options file stopped the launch'
+  assert_run_tail ''
+)
+
+# The message text is asserted verbatim because the Windows launcher is held to the same
+# text; see the matching assertions in tests/test_windows_launcher.ps1.
+assert_invalid_run_option() (
+  setup_project; cd "$PROJECT"; write_run_options "$1"
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail "$2 was accepted"
+  grep -Fq -- "$3" <<<"$output" || fail "$2 did not report: $3"
+  grep -Fq -- "$4" <<<"$output" || fail "$2 did not identify the offending line"
+  ! grep -q '^run --rm -it ' "$PODMAN_LOG" || fail "a container started despite $2"
+)
+
+# rq-32ffafe7 rq-0e32b682
+test_run_option_with_whitespace_stops_the_launch() {
+  assert_invalid_run_option '--device nvidia.com/gpu=all\n' 'an option written as two arguments' \
+    'an option must be a single argument with no spaces' '--device nvidia.com/gpu=all'
+}
+
+# rq-eb18200a rq-0e32b682
+test_run_option_that_is_not_an_option_stops_the_launch() {
+  assert_invalid_run_option 'device=all\n' 'a line that is not an option' \
+    "an option must begin with '-'" 'device=all'
+}
+
+# A line with both defects must be reported the same way by every launcher, so the
+# whitespace check is fixed ahead of the leading-dash check.
+# rq-0e32b682
+test_whitespace_outranks_a_missing_leading_dash() {
+  assert_invalid_run_option 'device all\n' 'a line with both defects' \
+    'an option must be a single argument with no spaces' 'device all'
+}
+
+# A terminal carriage return is CRLF syntax, but an embedded one is whitespace and must
+# not be silently removed from an option before validation.
+# rq-32ffafe7 rq-0e32b682
+test_run_option_with_embedded_carriage_return_stops_the_launch() {
+  assert_invalid_run_option '--label=first\rsecond\n' 'an option containing an embedded carriage return' \
+    'an option must be a single argument with no spaces' '--label=first'
+}
+
 attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
 
 # rq-d89e4c89
@@ -467,4 +580,11 @@ test_current_iso_week_uses_portable_date_options
 test_unparseable_agent_version_fails_the_refresh; test_unknown_pin_name_outranks_a_bad_value
 test_ambient_version_variable_is_ignored
 test_build_key_is_not_committed
+test_seeded_project_enables_no_run_options; test_enabled_run_option_reaches_the_runtime
+test_delivered_gpu_example_can_be_enabled; test_run_options_do_not_displace_template_configuration
+test_comments_and_blank_lines_enable_nothing; test_absent_run_options_file_enables_nothing
+test_run_option_with_whitespace_stops_the_launch
+test_run_option_that_is_not_an_option_stops_the_launch
+test_whitespace_outranks_a_missing_leading_dash
+test_run_option_with_embedded_carriage_return_stops_the_launch
 printf 'PASS: credential isolation and traceability boundary\n'

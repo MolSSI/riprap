@@ -425,6 +425,70 @@ Test-Case "a malformed project identity blocks the Windows launcher" {
     if ((Get-PodmanLog) -match "run --rm -it") { Fail "a development container started with a malformed identity" }
 }
 
+function Set-RunOptions($Project, [string[]]$Lines) {
+    Set-Content -LiteralPath (Join-Path $Project ".riprap/podman/run-options") -Value $Lines
+}
+
+function Get-RunLine {
+    $lines = (Get-PodmanLog) -split "`r?`n" | Where-Object { $_ -like "run --rm -it *" }
+    if (-not $lines) { return "" }
+    return $lines[-1]
+}
+
+# rq-0b67fe5f
+Test-Case "the Windows launcher applies the project's run options" {
+    $t = New-TestProject
+    Set-RunOptions $t.Project @("--shm-size=8g")
+    $result = Invoke-Launcher $t.Project
+    if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
+    $line = Get-RunLine
+    if ($line -notmatch [regex]::Escape("-w /work --shm-size=8g ")) {
+        Fail "the run does not carry the project's option after the template-owned ones: $line"
+    }
+    if ($line -notmatch [regex]::Escape("-e CLAUDE_CONFIG_DIR=/root/.claude")) {
+        Fail "the run options displaced the template-owned configuration: $line"
+    }
+}
+
+# rq-83545aca
+Test-Case "a seeded Windows project enables no run options" {
+    $t = New-TestProject
+    $result = Invoke-Launcher $t.Project
+    if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
+    if ((Get-RunLine) -match [regex]::Escape("-w /work --")) {
+        Fail "a seeded project passed extra options: $(Get-RunLine)"
+    }
+}
+
+# The expected text matches the shell launcher's verbatim; see the matching assertions in
+# tests/test_credential_isolation.sh.
+# rq-32ffafe7 rq-eb18200a rq-0e32b682
+$invalidRunOptions = @(
+    @{ Line = "--device nvidia.com/gpu=all"; Defect = "an option written as two arguments";
+       Message = "an option must be a single argument with no spaces" },
+    @{ Line = "device=all"; Defect = "a line that is not an option";
+       Message = "an option must begin with '-'" },
+    @{ Line = "device all"; Defect = "a line with both defects";
+       Message = "an option must be a single argument with no spaces" },
+    @{ Line = "--label=first`rsecond"; Defect = "an option containing an embedded carriage return";
+       Message = "an option must be a single argument with no spaces" }
+)
+foreach ($case in $invalidRunOptions) {
+    Test-Case "the Windows launcher rejects $($case.Defect)" {
+        $t = New-TestProject
+        Set-RunOptions $t.Project @($case.Line)
+        $result = Invoke-Launcher $t.Project
+        if ($result.ExitCode -eq 0) { Fail "$($case.Defect) was accepted" }
+        if ($result.Output -notmatch [regex]::Escape($case.Message)) {
+            Fail "the failure did not report '$($case.Message)': $($result.Output)"
+        }
+        if ($result.Output -notmatch [regex]::Escape($case.Line)) {
+            Fail "the failure did not identify the offending line: $($result.Output)"
+        }
+        if ((Get-PodmanLog) -match "run --rm -it") { Fail "a container started despite $($case.Defect)" }
+    }
+}
+
 if ($Failures -gt 0) {
     Write-Host "FAIL: $Failures Windows launcher test(s) failed"
     exit 1

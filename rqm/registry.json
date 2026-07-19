@@ -4,7 +4,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -16,7 +16,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -28,7 +28,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -40,11 +40,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "An empty pin value stops the launch before any image is built",
+    "type": "scenario"
+  },
+  "rq-0b67fe5f": {
+    "decl": "Scenario: The Windows launcher applies the project's run options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "The Windows launcher applies the project's run options",
     "type": "scenario"
   },
   "rq-0bb9767e": {
@@ -52,11 +64,27 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "Legitimate agent integration files pass secret scanning",
+    "type": "scenario"
+  },
+  "rq-0e32b682": {
+    "decl": "Scenario: Both launchers report the same defect for the same invalid run options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "Both launchers report the same defect for the same invalid run options",
     "type": "scenario"
   },
   "rq-113c8ccd": {
@@ -64,7 +92,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -76,7 +104,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -88,7 +116,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -100,11 +128,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -116,11 +144,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A failed refresh with no compatible agent image stops the launch",
+    "type": "scenario"
+  },
+  "rq-173cab03": {
+    "decl": "Scenario: Comments and blank lines enable no options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Comments and blank lines enable no options",
     "type": "scenario"
   },
   "rq-17a864bb": {
@@ -128,7 +168,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -140,7 +180,7 @@
     "file": "agent-neutral-skills",
     "refs": [
       {
-        "file": "/work/tests/test_agent_neutral_skills.sh",
+        "file": "tests/test_agent_neutral_skills.sh",
         "kind": "code"
       }
     ],
@@ -160,11 +200,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -176,15 +216,27 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
     "title": "Installed agent releases match authoritative image labels",
+    "type": "scenario"
+  },
+  "rq-2f86b6aa": {
+    "decl": "Scenario: A template update preserves enabled run options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A template update preserves enabled run options",
     "type": "scenario"
   },
   "rq-3105bde4": {
@@ -203,12 +255,28 @@
     "title": "Launch Resilience",
     "type": "section"
   },
+  "rq-32ffafe7": {
+    "decl": "Scenario: A run option containing whitespace stops the launch",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A run option containing whitespace stops the launch",
+    "type": "scenario"
+  },
   "rq-4097cd5c": {
     "decl": "Scenario: A tooling image build failure never uses refresh fallback",
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -220,11 +288,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -252,7 +320,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -264,7 +332,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -276,11 +344,11 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "/work/tests/check_template_traceability.sh",
+        "file": "tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -292,7 +360,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -312,7 +380,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -331,7 +399,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -343,11 +411,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -375,7 +443,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -387,7 +455,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -402,20 +470,40 @@
     "title": "Launcher Validation",
     "type": "section"
   },
+  "rq-70d01853": {
+    "decl": "## Container Run Options",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Container Run Options",
+    "type": "section"
+  },
   "rq-70d8296b": {
     "decl": "Scenario: A generated project starts with an independent traceability namespace",
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "/work/tests/check_template_traceability.sh",
+        "file": "tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "A generated project starts with an independent traceability namespace",
+    "type": "scenario"
+  },
+  "rq-7471ee4f": {
+    "decl": "Scenario: An enabled run option reaches the container runtime",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An enabled run option reaches the container runtime",
     "type": "scenario"
   },
   "rq-77328390": {
@@ -423,7 +511,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -435,11 +523,27 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
     "title": "An unpinned launch records the current week and tracks current releases",
+    "type": "scenario"
+  },
+  "rq-83545aca": {
+    "decl": "Scenario: A generated project enables no additional run options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A generated project enables no additional run options",
     "type": "scenario"
   },
   "rq-876d30dd": {
@@ -447,7 +551,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -475,7 +579,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -510,7 +614,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -522,11 +626,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
     "title": "Copier is available in a generated Rust development container",
+    "type": "scenario"
+  },
+  "rq-a3420977": {
+    "decl": "Scenario: Run options do not displace the template-owned container configuration",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Run options do not displace the template-owned container configuration",
     "type": "scenario"
   },
   "rq-ac53295e": {
@@ -534,7 +650,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -546,7 +662,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -558,7 +674,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -570,7 +686,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -582,11 +698,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
     "title": "The Windows launcher falls back to a compatible agent image",
+    "type": "scenario"
+  },
+  "rq-b6ce2749": {
+    "decl": "Scenario: An absent run options file enables no options",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An absent run options file enables no options",
     "type": "scenario"
   },
   "rq-b96d41dc": {
@@ -602,7 +730,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -614,7 +742,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -626,15 +754,27 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
     "title": "An unrecognized pin name outranks a non-exact pin value",
+    "type": "scenario"
+  },
+  "rq-c75bb5d9": {
+    "decl": "Scenario: A project defaults to an Ubuntu LTS base image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A project defaults to an Ubuntu LTS base image",
     "type": "scenario"
   },
   "rq-c82c7b32": {
@@ -642,7 +782,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -661,11 +801,11 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "/work/tests/check_template_traceability.sh",
+        "file": "tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -678,7 +818,7 @@
     "level": 2,
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
@@ -690,7 +830,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -702,11 +842,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
     "title": "Agent programs are installed outside the credential volume paths",
+    "type": "scenario"
+  },
+  "rq-d6488ee9": {
+    "decl": "Scenario: A GPU base image carries the whole tooling layer",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A GPU base image carries the whole tooling layer",
     "type": "scenario"
   },
   "rq-d89e4c89": {
@@ -714,7 +866,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -733,7 +885,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -745,7 +897,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -757,11 +909,27 @@
     "file": "agent-neutral-skills",
     "refs": [
       {
-        "file": "/work/tests/test_agent_neutral_skills.sh",
+        "file": "tests/test_agent_neutral_skills.sh",
         "kind": "code"
       }
     ],
     "title": "Skill customization survives a Copier update",
+    "type": "scenario"
+  },
+  "rq-eb18200a": {
+    "decl": "Scenario: A run option that is not an option stops the launch",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "A run option that is not an option stops the launch",
     "type": "scenario"
   },
   "rq-f13ed893": {
@@ -771,6 +939,18 @@
     "refs": [],
     "title": "Gherkin Scenarios",
     "type": "section"
+  },
+  "rq-f2f0525e": {
+    "decl": "Scenario: Agent and project layers are unaffected by the base image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Agent and project layers are unaffected by the base image",
+    "type": "scenario"
   },
   "rq-f3736651": {
     "decl": "## Agent Refresh Schedule",
@@ -793,11 +973,11 @@
     "file": "template-traceability-boundary",
     "refs": [
       {
-        "file": "/work/tests/check_template_traceability.sh",
+        "file": "tests/check_template_traceability.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -809,11 +989,23 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
     "title": "The Windows launcher stops when no compatible agent image exists",
+    "type": "scenario"
+  },
+  "rq-f881a732": {
+    "decl": "Scenario: Enabling the delivered GPU example grants device access",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Enabling the delivered GPU example grants device access",
     "type": "scenario"
   },
   "rq-f8bf5e72": {
@@ -821,7 +1013,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -833,7 +1025,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -845,7 +1037,7 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_development_container.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -857,7 +1049,7 @@
     "file": "agent-credential-isolation",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       }
     ],
@@ -877,11 +1069,11 @@
     "file": "development-container",
     "refs": [
       {
-        "file": "/work/tests/test_credential_isolation.sh",
+        "file": "tests/test_credential_isolation.sh",
         "kind": "code"
       },
       {
-        "file": "/work/tests/test_windows_launcher.ps1",
+        "file": "tests/test_windows_launcher.ps1",
         "kind": "code"
       }
     ],
