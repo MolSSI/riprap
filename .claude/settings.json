@@ -6,10 +6,17 @@
       "Bash(cargo build:*)",
       "Bash(cargo run:*)",
       "Bash(cargo test:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo fmt:*)",
 
 
-      "Skill(rr-architecture)",
-      "Skill(rr-plan)"
+      "Bash(.riprap/managed/skills/rr-plan/rqm.sh:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.claude/.credentials.json)",
+      "Read(./.codex/auth.json)"
     ]
   },
   "hooks": {
@@ -18,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".riprap/hooks/check-container.sh"
+            "command": ".riprap/managed/hooks/check-container.sh"
           }
         ]
       }

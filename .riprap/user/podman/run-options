@@ -1,0 +1,41 @@
+# Container runtime options for the interactive development container.
+#
+# This file belongs to your project. Riprap creates it once and never updates it,
+# so options you enable here survive `copier update`. It is ordinary project
+# content: commit it to share one environment with your team, or leave it
+# untracked to configure a single machine.
+#
+# Format
+#   One runtime argument per line. Blank lines, and lines whose first non-blank
+#   character is "#", are ignored. An option that carries a value must occupy a
+#   single line in "--name=value" form, with no space before the value:
+#
+#       --shm-size=8g            correct
+#       --shm-size 8g            rejected: this is two arguments on one line
+#
+#   Launching fails with the offending line when a line is not a single argument
+#   beginning with "-". Riprap passes every option through to the container
+#   runtime verbatim and attaches no meaning to any of them, so consult the
+#   `podman run` documentation for what an option does.
+#
+#   These options are applied in addition to the workspace mount, credential
+#   volumes, agent configuration, and working directory, which are always present.
+#
+# Expose the host's NVIDIA GPUs to the container
+#   Uncomment both lines below to build and run CUDA software inside the
+#   development container. This requires, on the host:
+#
+#     - the NVIDIA driver and the NVIDIA Container Toolkit
+#     - a generated CDI specification, written once with
+#           sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+#       and regenerated after a driver upgrade
+#
+#   The second line relaxes SELinux labelling for the container, which the
+#   injected driver files require on SELinux hosts such as Fedora and RHEL. Leave
+#   it commented on a host that does not enforce SELinux.
+#
+#   Replace "all" with a device index, for example "nvidia.com/gpu=0", to expose a
+#   single GPU.
+#
+# --device=nvidia.com/gpu=all
+# --security-opt=label=disable

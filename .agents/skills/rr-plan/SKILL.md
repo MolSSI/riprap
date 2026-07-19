@@ -3,7 +3,9 @@ name: rr-plan
 description: Plan or design a feature and write or revise its requirements documentation without implementing it.
 ---
 
-Read `.riprap/skills/rr-plan/SKILL.md` completely and follow it as the authoritative workflow.
+<!-- Riprap-managed adapter. The canonical implementation lives under .riprap/managed. -->
+
+Read `.riprap/managed/skills/rr-plan/SKILL.md` completely and follow it as the authoritative workflow.
 It is agent-neutral so Riprap has one maintained implementation. When applying it in Codex:
 
 - Treat `$rr-architecture` and `$rr-implement` as the Codex equivalents of `/rr-architecture` and

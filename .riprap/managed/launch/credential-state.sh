@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-id_file=.riprap/project-id
+id_file=.riprap/state/project-id
 uuid_pattern='^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
 
 die() {
@@ -19,6 +19,7 @@ validate_id() {
 }
 
 create_id() {
+    mkdir -p .riprap/state
     if [ -e "$id_file" ] || [ -L "$id_file" ]; then
         return 0
     fi
@@ -82,10 +83,10 @@ reset() {
 install_hooks() {
     git rev-parse --show-toplevel >/dev/null 2>&1 || die 'run this command inside a Git repository'
     current=$(git config --local --get core.hooksPath || true)
-    if [ -n "$current" ] && [ "$current" != .riprap/hooks ]; then
-        die "core.hooksPath is already '$current'; leave it unchanged and compose that hook with .riprap/hooks/check-secrets.sh --staged"
+    if [ -n "$current" ] && [ "$current" != .riprap/managed/hooks ]; then
+        die "core.hooksPath is already '$current'; leave it unchanged and compose that hook with .riprap/managed/hooks/check-secrets.sh --staged"
     fi
-    git config --local core.hooksPath .riprap/hooks
+    git config --local core.hooksPath .riprap/managed/hooks
     printf 'Riprap Git hooks installed.\n'
 }
 

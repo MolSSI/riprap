@@ -127,7 +127,7 @@ of the current intent, rather than appending change notes.
 ## Document Structure and Location
 
 Write the document to `rqm/ARCHITECTURE.md`. Keep the top-level heading as `# Architecture` so the
-`@rqm/ARCHITECTURE.md` reference in `.riprap/CLAUDE.md` continues to resolve to a titled
+`@rqm/ARCHITECTURE.md` reference in `.riprap/managed/CLAUDE.md` continues to resolve to a titled
 document. A good default section layout:
 
 ```markdown
@@ -178,5 +178,5 @@ index` as part of this skill.
 
 ## Project-Specific Extensions
 
-Read `.riprap/skills/rr-architecture/local.md` and follow any instructions it contains. Where those
+Read `.riprap/user/skills/rr-architecture/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.

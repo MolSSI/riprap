@@ -37,10 +37,11 @@ Every project is asked:
 | `project_name` | Human-readable name of the project (e.g. "My Project") |
 | `project_slug` | Short identifier used in image names, directory names, etc. Defaults to a lowercased, hyphenated form of `project_name`. |
 | `project_description` | One-sentence description of the project |
+| `base_image` | Ubuntu- or Debian-derived image used for the tooling layer. Defaults to `ubuntu:24.04`; projects that need CUDA may select an Ubuntu-derived vendor development image. |
 | `language` | Primary programming language: `rust` (default) or `python` |
 | `author_name` / `author_email` | Author information, used in packaging metadata and generated files |
-| `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. Any choice other than `Not Open Source` generates a corresponding `LICENSE` file. |
-| `copyright_year` | Year used in the `LICENSE` file. Only asked when a license is selected. |
+| `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. Open-source choices generate the selected license material; LGPL also generates its GPL basis and a project `NOTICE`. |
+| `copyright_year` | Year used in the project copyright notice. Only asked when a license is selected. |
 
 Projects that select `rust` are additionally asked:
 
@@ -59,7 +60,7 @@ Projects that select `python` are additionally asked:
 | `dependency_source` | Where project dependencies come from: `Prefer conda-forge with pip fallback` (default), `Prefer default anaconda channel with pip fallback`, or `Dependencies from pip only (no conda)`. Conda-based choices generate a `devtools/conda-envs/test_env.yaml` environment and configure the CI workflow and documentation builds to use conda; the pip-only choice uses `pip` and `venv` throughout. |
 
 The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms); the Rust scaffolding follows the same structure.
-Both languages also receive GitHub community files (`.github/CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `CODE_OF_CONDUCT.md`) and, when a skeleton is generated, a Codecov configuration (`.codecov.yml`).
+Both languages also receive GitHub community files (`.github/CONTRIBUTING.md` and `.github/PULL_REQUEST_TEMPLATE.md`) and, when a skeleton is generated, a Codecov configuration (`.codecov.yml`).
 Both languages also receive a CodeQL security-scanning workflow (`.github/workflows/codeql.yaml`).
 All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
 Because the CodeQL workflow is a seed, keeping its `github/codeql-action` versions current is the project's responsibility, as GitHub retires older versions over time.
@@ -81,8 +82,16 @@ only necessary the first time you use the container for this project.
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
-The container is built in two layers: a base image defined in `.riprap/podman/Containerfile` provides the standard environment (Claude Code, Codex, the language toolchain, and supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
-Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the base image alone so that `copier update` can keep it in sync with upstream changes.
+The container is built in three layers. The managed tooling definition at
+`.riprap/managed/podman/Containerfile` adds Copier, the language toolchain, and supporting
+utilities to the selected `base_image`. A separate managed agent layer installs Claude Code and
+Codex. Finally, the user-owned `Containerfile` at the project root adds project-specific tools.
+Each project's local image names are scoped by its stable project UUID, so projects with different
+base images do not overwrite one another's images.
+
+Edit the root `Containerfile` to install additional system packages or tools your project needs;
+leave the managed definitions alone so that `copier update` can keep them in sync with upstream
+changes.
 
 #### Updating Claude Code and Codex
 
@@ -99,7 +108,7 @@ carries on with the image you already have, so a refresh can never block your wo
 ##### Pinning a release
 
 If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
-for an upstream fix. Create `.riprap/agent-pin.env`:
+for an upstream fix. Create `.riprap/user/agent-pin.env`:
 
 ```
 CLAUDE_VERSION=2.1.205
@@ -237,16 +246,27 @@ Using this skill periodically is a great way to ensure that you aren't creating 
 
 ### Customizing skills
 
-The authoritative, agent-neutral skill implementations live under `.riprap/skills/`. Claude
-discovers adapters for them under `.claude/skills/`, while Codex discovers adapters under
-`.agents/skills/`. Each canonical skill directory contains a `local.md` file that belongs to your
-project.
-Riprap creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
-Use it to extend or override a skill with project-specific conventions—for example, pointing
-`rr-plan` at a project-specific exemplar requirements file, or requiring `rr-implement` to run a
-particular linter before finishing.
-Where `local.md` conflicts with a skill's built-in instructions, `local.md` wins.
-Avoid editing the `SKILL.md` files themselves; those are owned by the template, and local edits to them may produce merge conflicts when you run `copier update`.
+The authoritative, agent-neutral skill implementations live under `.riprap/managed/skills/`.
+Claude discovers managed adapters under `.claude/skills/`, while Codex discovers managed adapters
+under `.agents/skills/`. Project-owned extensions live separately under
+`.riprap/user/skills/<skill-name>/local.md`.
+
+Riprap creates each `local.md` when your project is generated and never touches it again, so your
+customizations survive `copier update`. Use these files to extend or override skills with
+project-specific conventions—for example, pointing `rr-plan` at an exemplar requirements file or
+requiring `rr-implement` to run a particular linter. Where `local.md` conflicts with a skill's
+built-in instructions, `local.md` wins. Avoid editing managed `SKILL.md` files directly.
+
+### File ownership
+
+Riprap-managed implementations live under `.riprap/managed/` and should not be edited. Supported
+project customizations live under `.riprap/user/`. Shared project identity and machine-local build
+state live under `.riprap/state/`; generated ignore rules distinguish which state should be
+committed. A few managed adapters remain at tool-mandated locations, including `rr.sh`, `rr.bat`,
+`.claude/skills/`, and `.agents/skills/`.
+
+Conventional files outside `.riprap`, such as source files, manifests, `README.md`, and the root
+`Containerfile`, belong to the generated project and are preserved by `copier update`.
 
 
 ## Key Rules of AI-Assisted Programming

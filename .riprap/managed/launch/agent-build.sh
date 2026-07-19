@@ -3,9 +3,9 @@
 
 set -eu
 
-key_file=.riprap/podman/agent-build.env
-candidate_file=.riprap/podman/agent-build.candidate.env
-pin_file=.riprap/agent-pin.env
+key_file=.riprap/state/podman/agent-build.env
+candidate_file=.riprap/state/podman/agent-build.candidate.env
+pin_file=.riprap/user/agent-pin.env
 version_pattern='^[0-9]+\.[0-9]+\.[0-9]+$'
 
 die() { printf 'Riprap: %s\n' "$*" >&2; exit 1; }
@@ -22,6 +22,7 @@ iso_week() {
 }
 
 prepare() {
+    mkdir -p .riprap/state/podman
     claude_version=latest
     codex_version=latest
     refresh="$(iso_week)"

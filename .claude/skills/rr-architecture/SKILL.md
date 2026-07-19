@@ -7,5 +7,7 @@ description: >-
 allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion, Write, Edit
 ---
 
-Read `.riprap/skills/rr-architecture/SKILL.md` completely and follow it as the authoritative
+<!-- Riprap-managed adapter. The canonical implementation lives under .riprap/managed. -->
+
+Read `.riprap/managed/skills/rr-architecture/SKILL.md` completely and follow it as the authoritative
 workflow.

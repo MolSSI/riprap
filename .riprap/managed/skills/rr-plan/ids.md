@@ -2,7 +2,7 @@
 
 This feature defines a scheme for assigning stable, opaque identifiers to requirements entities
 (files, sections, API items, and Gherkin scenarios) and provides a standalone bash script,
-`rqm.sh`, located at `.riprap/skills/rr-plan/rqm.sh`, that stamps, indexes, and validates
+`rqm.sh`, located at `.riprap/managed/skills/rr-plan/rqm.sh`, that stamps, indexes, and validates
 those identifiers across the codebase. The goal is to make it straightforward to locate every
 affected artefact when a requirement changes.
 
@@ -150,14 +150,14 @@ Fields per entry:
 
 ## Tool: rqm.sh
 
-A standalone bash script located at `.riprap/skills/rr-plan/rqm.sh`. Requires `bash` (≥ 4.0),
+A standalone bash script located at `.riprap/managed/skills/rr-plan/rqm.sh`. Requires `bash` (≥ 4.0),
 standard POSIX utilities (`grep`, `find`, `sed`, `awk`), and `jq` (for reading and writing the
-JSON registry). A companion test suite lives at `.riprap/skills/rr-plan/tests/test_rqm.sh`.
+JSON registry). A companion test suite lives at `.riprap/managed/skills/rr-plan/tests/test_rqm.sh`.
 
 ### Invocation
 
 ```
-.riprap/skills/rr-plan/rqm.sh <subcommand> [args]
+.riprap/managed/skills/rr-plan/rqm.sh <subcommand> [args]
 ```
 
 Subcommands: `stamp`, `index`, `check`, `clean`.
@@ -195,7 +195,7 @@ previous file. Never modifies markdown source files.
 If any `rq-XXXXXXXX` ID appears in more than one entity in the scanned markdown files, `index`
 reports each conflict, identifies which copy is likely the original (by comparing live declarations
 against the `decl` stored in the existing registry, if present), and suggests running
-`.riprap/skills/rr-plan/rqm.sh stamp --fix-duplicates`. It exits non-zero and does not write the registry.
+`.riprap/managed/skills/rr-plan/rqm.sh stamp --fix-duplicates`. It exits non-zero and does not write the registry.
 
 The index operation is otherwise idempotent.
 

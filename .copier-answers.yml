@@ -1,8 +1,9 @@
 # Changes here will be overwritten by Copier; DO NOT EDIT
-_commit: v0.1.0-9-g552b53f
+_commit: v0.2.1
 _src_path: gh:MolSSI/riprap
 author_email: taylor.a.barnes@gmail.com
 author_name: Taylor Barnes
+base_image: ubuntu:24.04
 copyright_year: '2026'
 include_rust_skeleton: false
 language: rust

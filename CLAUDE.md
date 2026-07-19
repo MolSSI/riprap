@@ -1,1 +1,1 @@
-@.riprap/CLAUDE.md
+@.riprap/managed/CLAUDE.md

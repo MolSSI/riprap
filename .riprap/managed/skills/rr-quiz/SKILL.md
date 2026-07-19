@@ -18,5 +18,5 @@ Question.
 
 ## Project-Specific Extensions
 
-Read `.riprap/skills/rr-quiz/local.md` and follow any instructions it contains. Where those
+Read `.riprap/user/skills/rr-quiz/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.

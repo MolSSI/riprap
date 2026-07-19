@@ -1,8 +1,8 @@
 $ErrorActionPreference = "Stop"
 
-$keyFile = ".riprap/podman/agent-build.env"
-$candidateFile = ".riprap/podman/agent-build.candidate.env"
-$pinFile = ".riprap/agent-pin.env"
+$keyFile = ".riprap/state/podman/agent-build.env"
+$candidateFile = ".riprap/state/podman/agent-build.candidate.env"
+$pinFile = ".riprap/user/agent-pin.env"
 $versionPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 
 function Fail([string]$Message) {
@@ -24,6 +24,7 @@ function Get-IsoWeekStamp([datetime]$Date = (Get-Date).ToUniversalTime()) {
 }
 
 function Prepare-AgentBuild {
+    New-Item -ItemType Directory -Force -Path ".riprap/state/podman" | Out-Null
     $claudeVersion = "latest"
     $codexVersion = "latest"
     $refresh = Get-IsoWeekStamp

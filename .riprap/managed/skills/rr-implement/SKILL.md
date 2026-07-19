@@ -27,7 +27,7 @@ When you encounter an `rq-XXXXXXXX` token in a comment in any source file you ar
 look up the requirement it refers to before making changes:
 
 ```
-.riprap/skills/rr-plan/rqm.sh show rq-XXXXXXXX
+.riprap/managed/skills/rr-plan/rqm.sh show rq-XXXXXXXX
 ```
 
 This prints the type, file, title, and declaration of the requirement. Read the referenced
@@ -77,7 +77,7 @@ Once all code and tests have been written, regenerate the registry so that the n
 are recorded:
 
 ```
-.riprap/skills/rr-plan/rqm.sh index
+.riprap/managed/skills/rr-plan/rqm.sh index
 ```
 
 If `index` exits non-zero (e.g. due to duplicate IDs in the markdown), follow the instructions it
@@ -85,5 +85,5 @@ prints before proceeding.
 
 ## Project-Specific Extensions
 
-Read `.riprap/skills/rr-implement/local.md` and follow any instructions it contains. Where those
+Read `.riprap/user/skills/rr-implement/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.
