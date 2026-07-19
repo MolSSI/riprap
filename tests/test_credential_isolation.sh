@@ -136,6 +136,55 @@ test_repository_scan_needs_no_hook() (
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
+# rq-a7cf7d43
+test_staged_type_change_is_scanned() (
+  setup_project; cd "$PROJECT"; git init -q; git config user.email x@y; git config user.name x
+  printf 'ordinary\n' > changed.txt; git add changed.txt; git commit -qm base
+  rm changed.txt
+  fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="sk-$fake"
+  ln -s "$token" changed.txt; git add changed.txt
+  ! output=$(.riprap/managed/hooks/check-secrets.sh --staged 2>&1) || fail 'secret in a staged type change was accepted'
+  grep -Fq 'changed.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
+)
+
+# rq-0a4106f0
+test_repository_scan_is_directory_independent() (
+  setup_project; cd "$PROJECT"; git init -q; git config user.email x@y; git config user.name x
+  mkdir -p nested/work
+  fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="ghp_$fake"
+  printf '%s\n' "$token" > nested/tracked.txt; git add nested/tracked.txt; git commit -qm fake
+  ! root_output=$(.riprap/managed/hooks/check-secrets.sh --repository 2>&1) || fail 'root scan accepted a token'
+  cd nested/work
+  ! nested_output=$(../../.riprap/managed/hooks/check-secrets.sh --repository 2>&1) || fail 'nested scan accepted a token'
+  test "$root_output" = "$nested_output" || fail 'repository scan output depends on the caller directory'
+  grep -Fq 'nested/tracked.txt (supported access token)' <<<"$nested_output"
+)
+
+# rq-0ce3a836
+test_scan_outside_repository_fails() (
+  setup_project; cd "$TEST_TMP"
+  ! output=$("$PROJECT/.riprap/managed/hooks/check-secrets.sh" --repository 2>&1) || fail 'scan outside Git succeeded'
+  grep -Fq 'not inside a Git working tree' <<<"$output" || fail 'outside-repository failure was not actionable'
+)
+
+# rq-cdb90fb3
+test_unreadable_git_object_fails_closed() (
+  setup_project; cd "$PROJECT"; git init -q; git config user.email x@y; git config user.name x
+  printf 'ordinary\n' > tracked.txt; git add tracked.txt; git commit -qm base
+  real_git=$(command -v git); fake_bin="$TEST_TMP/fake-git"; mkdir "$fake_bin"
+  sed "s|@REAL_GIT@|$real_git|" >"$fake_bin/git" <<'MOCK'
+#!/bin/sh
+if [ "$1" = show ]; then exit 1; fi
+exec @REAL_GIT@ "$@"
+MOCK
+  chmod +x "$fake_bin/git"
+  ! output=$(PATH="$fake_bin:$PATH" .riprap/managed/hooks/check-secrets.sh --repository 2>&1) ||
+    fail 'unreadable Git object was treated as clean'
+  grep -Fq "could not read Git object for path 'tracked.txt'" <<<"$output" ||
+    fail 'unreadable object failure did not identify its path'
+  ! grep -Fq 'ordinary' <<<"$output" || fail 'unreadable-object diagnostic disclosed content'
+)
+
 build_key() { sed -n "s/^$1=//p" .riprap/state/podman/agent-build.env | head -n 1; }
 
 # rq-7c6a2afa
@@ -244,7 +293,8 @@ test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n
 # environment when a base image is already present.
 # rq-dc4bf1b1
 test_failed_refresh_falls_back_to_existing_image() (
-  setup_project; cd "$PROJECT"
+  setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
+  id=$(cat .riprap/state/project-id)
   printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .riprap/state/podman/agent-build.env
   before=$(cksum .riprap/state/podman/agent-build.env)
   cat > "$MOCK_BIN/podman" <<'MOCK'
@@ -261,8 +311,66 @@ MOCK
   output=$(bash rr.sh </dev/null 2>&1) || fail 'launch aborted despite an existing base image'
   grep -Fq 'refresh failed' <<<"$output" || fail 'the failed refresh was not reported'
   grep -q 'run --rm' "$PODMAN_LOG" || fail 'no development container was started'
+  grep -Fq "image exists localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
+    fail 'fallback did not inspect the project-scoped agent image'
   test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'failed refresh changed successful state'
   test ! -e .riprap/state/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
+)
+
+# rq-4155ad59
+test_projects_use_distinct_image_names() (
+  setup_project
+  first="$PROJECT"; second="$TEST_TMP/second"
+  render_project "$second"
+  mkdir -p "$second/.riprap/state/podman"
+  cd "$first"; bash rr.sh </dev/null; first_id=$(cat .riprap/state/project-id)
+  cd "$second"; bash rr.sh </dev/null; second_id=$(cat .riprap/state/project-id)
+  test "$first_id" != "$second_id" || fail 'distinct projects received the same UUID'
+  for id in "$first_id" "$second_id"; do
+    grep -Fq "localhost/riprap-$id-tooling:latest" "$PODMAN_LOG" || fail "missing scoped tooling image for $id"
+    grep -Fq "localhost/riprap-$id-agent:candidate" "$PODMAN_LOG" || fail "missing scoped candidate image for $id"
+    grep -Fq "localhost/riprap-$id-agent:latest" "$PODMAN_LOG" || fail "missing scoped agent image for $id"
+    grep -Fq "localhost/riprap-$id-project:latest" "$PODMAN_LOG" || fail "missing scoped project image for $id"
+  done
+  ! grep -Eq '(^|[[:space:]])riprap-(tooling|agent):(latest|candidate)($|[[:space:]])' "$PODMAN_LOG" ||
+    fail 'launcher used a globally shared Riprap image name'
+)
+
+# rq-4155ad59
+test_legacy_project_container_uses_scoped_agent_image() (
+  setup_project; cd "$PROJECT"
+  printf 'FROM localhost/riprap-agent:latest\nRUN true\n' > Containerfile
+  bash rr.sh </dev/null
+  id=$(cat .riprap/state/project-id)
+  grep -Fqx 'ARG RIPRAP_AGENT_IMAGE' .riprap/state/podman/Project.Containerfile ||
+    fail 'legacy project Containerfile was not adapted'
+  grep -Fqx 'FROM ${RIPRAP_AGENT_IMAGE}' .riprap/state/podman/Project.Containerfile ||
+    fail 'adapted project Containerfile still names the shared agent image'
+  grep -Fq -- "-f .riprap/state/podman/Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
+    fail 'project build did not use its adapted Containerfile and scoped agent image'
+)
+
+# rq-8c24aa6e
+test_fallback_cannot_select_another_projects_image() (
+  setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
+  id=$(cat .riprap/state/project-id)
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then echo tooling-id; exit; fi
+if [ "$1" = build ]; then case "$*" in *Agent.Containerfile*) exit 1 ;; esac; fi
+if [ "$1 $2" = 'image exists' ]; then case "$3" in *"$PROJECT_ID"*) exit 1 ;; *) exit 0 ;; esac; fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+  export PROJECT_ID="$id"
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail 'fallback selected another project image'
+  grep -Fq 'no compatible agent image exists' <<<"$output" || fail 'cross-project fallback failure was not explained'
+  grep -Fq "image exists localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
+    fail 'launcher did not limit fallback to its project image'
+  ! grep -q 'run --rm -it' "$PODMAN_LOG" || fail 'container started from another project image'
 )
 
 # rq-152d1311
@@ -399,8 +507,9 @@ run_line() { grep '^run --rm -it ' "$PODMAN_LOG" | tail -n 1; }
 # The template-owned arguments always end the run with the working directory, so anything
 # a project enables appears between "-w /work" and the image name.
 assert_run_tail() {
-  local expected="$1" image
-  image=$(cat .riprap/managed/podman/image_name)
+  local expected="$1" image id
+  id=$(cat .riprap/state/project-id)
+  image="localhost/riprap-$id-project:latest"
   [[ "$(run_line)" == *"-w /work ${expected}${image} bash" ]] || \
     fail "the run does not carry '${expected}' as its project options: $(run_line)"
 }
@@ -568,6 +677,8 @@ test_scripts_marked_lf; test_batch_marked_crlf
 test_bad_identity_blocks_podman
 test_reset_is_project_and_agent_scoped; test_ignore_scope; test_staged_secrets_rejected_without_disclosure
 test_legitimate_integration_passes; test_hook_install_preserves_custom_path; test_repository_scan_needs_no_hook
+test_staged_type_change_is_scanned; test_repository_scan_is_directory_independent
+test_scan_outside_repository_fails; test_unreadable_git_object_fails_closed
 test_template_traceability_validation; test_template_traceability_scans_hidden_directories
 test_generated_traceability_is_independent
 test_unpinned_launch_records_week_and_latest; test_second_launch_in_same_week_is_unchanged
@@ -576,6 +687,8 @@ test_partial_pin_keeps_the_unpinned_agent_current; test_removing_the_pin_restore
 test_malformed_pin_stops_the_launch; test_empty_pin_stops_launch; test_empty_pin_value_stops_launch
 test_unknown_pin_name_stops_launch; test_duplicate_pin_name_stops_launch; test_malformed_pin_line_stops_launch
 test_failed_refresh_falls_back_to_existing_image; test_failed_build_without_an_image_stops_the_launch
+test_projects_use_distinct_image_names; test_legacy_project_container_uses_scoped_agent_image
+test_fallback_cannot_select_another_projects_image
 test_tooling_build_failure_never_falls_back; test_iso_week_matches_iso8601
 test_current_iso_week_uses_portable_date_options
 test_unparseable_agent_version_fails_the_refresh; test_unknown_pin_name_outranks_a_bad_value

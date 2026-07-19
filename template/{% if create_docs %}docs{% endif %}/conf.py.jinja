@@ -8,12 +8,14 @@
 
 # -- Path setup --------------------------------------------------------------
 
-# The package must be installed (e.g. `pip install -e .` from the repository
-# root) for autodoc to import it. Importing straight from ../src would bypass
-# the versioningit-generated _version module, so no sys.path manipulation is
-# done here.
-
+{% if create_python_skeleton %}
+# The generated package is installed by the documentation environment so
+# autodoc imports the same package layout that users install.
 import {{ package_name }}
+{% else %}
+# No package skeleton was requested. This configuration is deliberately
+# independent of any package that may already exist in the destination.
+{% endif %}
 
 
 # -- Project information -----------------------------------------------------
@@ -40,7 +42,9 @@ release = ''
 # ones.
 extensions = [
     'sphinx.ext.autosummary',
+{% if create_python_skeleton %}
     'sphinx.ext.autodoc',
+{% endif %}
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',

@@ -1,7 +1,12 @@
 API Documentation
 =================
 
+{% if create_python_skeleton %}
 .. autosummary::
    :toctree: autosummary
 
-   {{ package_name }}.canvas
+   {{ package_name }}.{{ first_module_name }}
+{% else %}
+Add the public API of your existing project here. Riprap did not create a Python package skeleton,
+so this page makes no assumptions about importable module names.
+{% endif %}

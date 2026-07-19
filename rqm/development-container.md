@@ -7,6 +7,22 @@ template updates. The agent image adds the supported AI agents at current releas
 bounded schedule that requires no routine action from the user. The project-owned image may add
 further tools without replacing either template-owned layer.
 
+## Project Image Identity <!-- rq-3555aab7 -->
+
+- Every locally tagged tooling, candidate-agent, successful-agent, and project image has a name
+  scoped by the generated project's canonical project UUID. Generic mutable names shared by all
+  Riprap projects, including `riprap-tooling:latest` and `riprap-agent:latest`, are not part of the
+  launch protocol.
+- Image definitions, build commands, label inspection, compatibility checks, fallback selection,
+  and container startup all use the same project-scoped names. A candidate or successful image
+  belonging to one project can never satisfy another project's compatibility or fallback check.
+- Repeated launches of the same project reuse its project-scoped images and build cache. Projects
+  with different UUIDs remain isolated even when they use different base images, run from
+  directories with the same name, or launch concurrently.
+- Resetting agent credential state does not remove development images. Image cleanup, including
+  cleanup of obsolete project-scoped images, remains an explicit container-runtime maintenance
+  operation.
+
 ## Base Tooling <!-- rq-fc6358df -->
 
 - The image the tooling layer builds on is a project property chosen when the project is generated,
@@ -163,6 +179,8 @@ further tools without replacing either template-owned layer.
 ## Feature Interface <!-- rq-4afcfc2c -->
 
 - `rr.sh` and `rr.bat`
+  - Derive the project's image names from its validated canonical project UUID before any image is
+    built, inspected, promoted, selected for fallback, or run.
   - Validate the complete optional pin and derive a candidate from it and the current ISO week
     before building any image.
   - Stop before building when a pin is malformed, identifying the offending content.
@@ -233,6 +251,24 @@ Feature: Riprap development container
     And the tooling image contains no agent installation
     And the agent image is based on the tooling image
     And the project-owned image is based on the agent image
+
+  @rq-4155ad59
+  Scenario: Projects use distinct local image identities
+    Given two generated projects have different canonical project UUIDs
+    And the projects use different supported base images
+    When both projects build their development images
+    Then their tooling, candidate-agent, successful-agent, and project image names are distinct
+    And each project image is based only on agent and tooling images scoped to the same project UUID
+
+  @rq-8c24aa6e
+  Scenario: Concurrent project launches cannot select each other's images
+    Given two generated projects have different canonical project UUIDs
+    And both projects launch concurrently
+    And one project's agent refresh fails
+    When that project evaluates agent-image fallback
+    Then it considers only a successful agent image scoped to its own project UUID
+    And neither project's build, promotion, inspection, or container startup names the other
+      project's images
 
   @rq-d09c17d0
   Scenario: Agent programs are installed outside the credential volume paths

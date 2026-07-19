@@ -195,13 +195,49 @@ Test-Case "the Windows launcher validates the pin before building" {
 # rq-13d744b1
 Test-Case "the Windows launcher stops on a tooling build failure" {
     $t = New-TestProject
-    $env:MOCK_FAIL_BUILD = "riprap-tooling"
+    $env:MOCK_FAIL_BUILD = "tooling:latest"
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -eq 0) { Fail "a tooling build failure did not stop the launch" }
     if ($result.Output -notmatch "tooling image build failed") { Fail "the tooling failure was not identified" }
     if ($result.Output -match "agent refresh failed") { Fail "a tooling failure was described as a refresh failure" }
     if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.candidate.env")) {
         Fail "the tooling failure left candidate state behind"
+    }
+}
+
+# rq-3555aab7 rq-4155ad59
+Test-Case "the Windows launcher scopes every image to the project identity" {
+    $t = New-TestProject
+    $result = Invoke-Launcher $t.Project
+    if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
+    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
+    $log = Get-PodmanLog
+    foreach ($image in @("tooling:latest", "agent:candidate", "agent:latest", "project:latest")) {
+        if ($log -notmatch [regex]::Escape("localhost/riprap-$id-$image")) {
+            Fail "the launcher did not use the project-scoped $image image"
+        }
+    }
+    if ($log -match '(?m)(^|\s)riprap-(tooling|agent):(latest|candidate)(\s|$)') {
+        Fail "the launcher used a globally shared Riprap image name"
+    }
+}
+
+# rq-4155ad59
+Test-Case "the Windows launcher adapts a legacy project Containerfile" {
+    $t = New-TestProject
+    Set-Content -LiteralPath (Join-Path $t.Project "Containerfile") `
+        -Value @("FROM localhost/riprap-agent:latest", "RUN echo legacy")
+    $result = Invoke-Launcher $t.Project
+    if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
+    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
+    $adapted = Get-Content -LiteralPath `
+        (Join-Path $t.Project ".riprap/state/podman/Project.Containerfile") -Raw
+    if ($adapted -notmatch [regex]::Escape('FROM ${RIPRAP_AGENT_IMAGE}')) {
+        Fail "the legacy shared agent base was not adapted"
+    }
+    $log = Get-PodmanLog
+    if ($log -notmatch [regex]::Escape("-f .riprap\state\podman\Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest")) {
+        Fail "the project build did not use the adapted Containerfile and scoped agent image"
     }
 }
 

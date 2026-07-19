@@ -33,6 +33,9 @@ jobs:
       - name: Test template ownership layout
         run: bash tests/check_template_ownership.sh
 
+      - name: Test generated project variants
+        run: bash tests/test_generated_project_variants.sh
+
       - name: Test requirements tooling
         run: bash template/.riprap/managed/skills/rr-plan/tests/test_rqm.sh
 

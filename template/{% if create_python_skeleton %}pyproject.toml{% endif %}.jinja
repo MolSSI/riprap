@@ -14,7 +14,11 @@ authors = [
 ]
 {% if create_license %}
 license = "{{ open_source_license }}"
+{% if open_source_license == "LGPL-3.0-or-later" %}
+license-files = ["LICENSE", "LICENSE.GPL", "NOTICE"]
+{% else %}
 license-files = ["LICENSE"]
+{% endif %}
 {% endif %}
 # See https://pypi.org/classifiers/
 classifiers = [

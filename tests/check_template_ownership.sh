@@ -331,6 +331,58 @@ test_project_ignore_rules_survive_managed_update() (
   ! grep -q '<<<<<<<' "$ignore" || fail 'ignore-file update produced a merge conflict'
 )
 
+# rq-7749b071
+test_updated_variants_satisfy_ownership_contract() (
+  local temp source projects project variant customization
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  source="$temp/source"; projects="$temp/projects"
+  cp -a "$ROOT/." "$source/"; rm -rf "$source/.git"; mkdir -p "$projects"
+  git -C "$source" init --quiet
+  git -C "$source" config user.name 'Riprap Tests'
+  git -C "$source" config user.email 'riprap@example.com'
+  git -C "$source" add .; git -C "$source" commit --quiet -m 'template v1'; git -C "$source" tag v1.0.0
+
+  for variant in rust-full rust-existing python-full python-existing-docs python-minimal; do
+    project="$projects/$variant"
+    common=(--defaults --vcs-ref v1.0.0 --data project_name="Update $variant" \
+      --data project_slug="update-$variant" --data project_description='update validation' \
+      --data author_name='Riprap Tests' --data author_email='riprap@example.com' \
+      --data open_source_license=MIT)
+    case "$variant" in
+      rust-full) copier copy "${common[@]}" --data language=rust --data include_rust_skeleton=true "$source" "$project" >/dev/null ;;
+      rust-existing) copier copy "${common[@]}" --data language=rust --data include_rust_skeleton=false "$source" "$project" >/dev/null ;;
+      python-full) copier copy "${common[@]}" --data language=python --data include_python_skeleton=true \
+        --data include_docs=true --data dependency_source='Dependencies from pip only (no conda)' "$source" "$project" >/dev/null ;;
+      python-existing-docs) copier copy "${common[@]}" --data language=python --data include_python_skeleton=false \
+        --data include_docs=true --data dependency_source='Prefer conda-forge with pip fallback' "$source" "$project" >/dev/null ;;
+      python-minimal) copier copy "${common[@]}" --data language=python --data include_python_skeleton=false \
+        --data include_docs=false --data dependency_source='Dependencies from pip only (no conda)' "$source" "$project" >/dev/null ;;
+    esac
+    customization="$project/.riprap/user/skills/rr-plan/local.md"
+    printf '\nproject-owned-update-marker-%s\n' "$variant" >>"$customization"
+    git -C "$project" init --quiet
+    git -C "$project" config user.name 'Riprap Tests'; git -C "$project" config user.email 'riprap@example.com'
+    git -C "$project" add .; git -C "$project" commit --quiet -m 'customized project'
+  done
+
+  printf '\ncandidate-managed-update-marker\n' >>"$source/template/.riprap/managed/skills/rr-plan/SKILL.md.jinja"
+  printf 'candidate-rendered-path-marker\n' >"$source/template/.riprap/managed/update-marker"
+  git -C "$source" add template/.riprap/managed
+  git -C "$source" commit --quiet -m 'template v2'; git -C "$source" tag v2.0.0
+
+  for variant in rust-full rust-existing python-full python-existing-docs python-minimal; do
+    project="$projects/$variant"
+    copier update --defaults --vcs-ref v2.0.0 "$project" >/dev/null
+    validate_project "$project"
+    grep -Fq 'candidate-managed-update-marker' "$project/.riprap/managed/skills/rr-plan/SKILL.md" ||
+      fail "$variant did not adopt changed managed content"
+    grep -Fq 'candidate-rendered-path-marker' "$project/.riprap/managed/update-marker" ||
+      fail "$variant did not adopt a new managed path"
+    grep -Fq "project-owned-update-marker-$variant" "$project/.riprap/user/skills/rr-plan/local.md" ||
+      fail "$variant lost customized user-owned content"
+  done
+)
+
 # rq-8b0a20e7
 test_ignore_rules_distinguish_machine_and_project_state() (
   local project="$1"
@@ -382,6 +434,7 @@ main() {
   test_missing_managed_reference_is_rejected "$project"
   test_generate_and_update_need_no_trust_option
   test_project_ignore_rules_survive_managed_update
+  test_updated_variants_satisfy_ownership_contract
   test_ignore_rules_distinguish_machine_and_project_state "$project"
   test_ownership_layout_has_no_symbolic_links "$project"
   test_direct_component_directories_are_absent "$project"

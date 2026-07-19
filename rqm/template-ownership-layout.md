@@ -48,6 +48,12 @@ external tool from discovering it.
 
 - Template validation classifies every rendered path and fails when a path has no ownership class,
   has more than one ownership class, or violates the location rules for its class.
+- Template validation exercises both fresh rendering and `copier update` for every supported
+  project variant. Update validation begins from a previously rendered revision, applies the
+  candidate template revision, and subjects the resulting paths to the same ownership,
+  reference-integrity, ignore, marker, and symbolic-link checks as a fresh render.
+- Update validation verifies both sides of the ownership contract: managed content adopts the
+  candidate revision, while user-owned content customized before the update remains unchanged.
 - Validation rejects a managed file outside `.riprap/managed/` unless it is an approved
   required-location exception.
 - Validation rejects an approved required-location exception that carries no managed marker unless
@@ -91,9 +97,9 @@ external tool from discovering it.
   - Enumerates the approved managed required-location exceptions and identifies which of them are
     marker-exempt.
 - Template ownership validation
-  - Classifies every path rendered by each supported project variant and enforces the ownership,
-    exception, marker, reference-integrity, preservation, ignore, and symbolic-link rules in this
-    document.
+  - Classifies every path produced by fresh rendering and template update for each supported project
+    variant and enforces the ownership, exception, marker, reference-integrity, preservation,
+    ignore, and symbolic-link rules in this document.
 
 ## Gherkin Scenarios <!-- rq-5d572c3c -->
 
@@ -182,6 +188,16 @@ Feature: Make generated-file ownership visible from location
     When "copier update" applies the later revision
     Then the customized user-owned file is unchanged
     And the managed implementations contain the later revision
+
+  @rq-7749b071
+  Scenario: Updated projects satisfy the complete ownership contract
+    Given every supported project variant was rendered from an earlier template revision
+    And representative user-owned seed files were customized in each project
+    And the candidate template revision changes managed content and rendered paths
+    When "copier update" applies the candidate revision to every project
+    Then every updated project passes the same ownership validation as a fresh render
+    And every changed managed file contains the candidate revision
+    And every customized user-owned file is unchanged
 
   @rq-602c57d1
   Scenario: Project ignore rules survive a managed ignore-rule update

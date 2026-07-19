@@ -15,13 +15,17 @@ dependencies:
   - sphinx-copybutton
 
     # Pip-only installs
+{% if create_python_skeleton %}
   - pip:
     - -e ../
+{% endif %}
 {% else %}
 
   # Pip-only installs
   - pip:
+{% if create_python_skeleton %}
     - -e ../
+{% endif %}
     - sphinx
     - pydata-sphinx-theme
     - sphinx-design

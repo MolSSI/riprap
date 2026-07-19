@@ -64,12 +64,13 @@ write_build_key() {
 }
 
 build_agent_image() {
-  local project="$1" image="$2" claude_version codex_version
+  local project="$1" image="$2" tooling_image="${3:-localhost/riprap-tooling:latest}" claude_version codex_version
   claude_version="$(build_key "$project" CLAUDE_VERSION)"
   codex_version="$(build_key "$project" CODEX_VERSION)"
   podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" \
     --build-arg "CLAUDE_VERSION=$claude_version" \
     --build-arg "CODEX_VERSION=$codex_version" \
+    --build-arg "RIPRAP_TOOLING_IMAGE=$tooling_image" \
     --tag "$image" "$project/.riprap/managed/podman"
 }
 
@@ -77,7 +78,7 @@ build_agent_image() {
 # so the agent downloads happen once rather than once per assertion.
 with_built_image() (
   local language="$1"; shift
-  local temp project image assertion
+  local temp project image assertion tooling_image candidate_image
   temp="$(mktemp -d)"
   image="riprap-agent-test-$language-$$"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
@@ -86,11 +87,15 @@ with_built_image() (
   # Exact releases rather than "latest", so the recorded value can be compared against
   # what the built image reports.
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  podman build --tag riprap-tooling:latest "$project/.riprap/managed/podman"
-  build_agent_image "$project" riprap-agent:candidate
+  tooling_image="localhost/riprap-test-$language-$$-tooling:latest"
+  candidate_image="localhost/riprap-test-$language-$$-agent:candidate"
+  podman build --tag "$tooling_image" "$project/.riprap/managed/podman"
+  build_agent_image "$project" "$candidate_image" "$tooling_image"
   podman build -f "$project/.riprap/managed/podman/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
-    --build-arg TOOLING_IMAGE_ID=test-tooling --tag "$image" "$project/.riprap/managed/podman"
+    --build-arg TOOLING_IMAGE_ID=test-tooling \
+    --build-arg "RIPRAP_AGENT_CANDIDATE_IMAGE=$candidate_image" \
+    --tag "$image" "$project/.riprap/managed/podman"
   for assertion in "$@"; do "$assertion" "$project" "$image"; done
 )
 
@@ -154,31 +159,32 @@ test_agents_are_isolated_from_tooling_image() (
   agent="$project/.riprap/managed/podman/Agent.Containerfile"
   project_container="$project/Containerfile"
   ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh' "$tooling" || fail 'tooling image installs agents'
-  grep -Fq 'FROM localhost/riprap-tooling:latest' "$agent" || fail 'agent image is not based on tooling'
-  grep -Fq 'FROM localhost/riprap-agent:latest' "$project_container" || fail 'project image is not based on agents'
+  grep -Fq 'FROM ${RIPRAP_TOOLING_IMAGE}' "$agent" || fail 'agent image does not accept its scoped tooling image'
+  grep -Fq 'FROM ${RIPRAP_AGENT_IMAGE}' "$project_container" || fail 'project image does not accept its scoped agent image'
 )
 
 # A build key change must rebuild the agent layers, and an unchanged key must reuse them.
 # rq-62939bfc rq-145d819f
 test_build_key_drives_the_layer_cache() (
-  local temp project image first second
+  local temp project image first second tooling_image
   temp="$(mktemp -d)"; image="riprap-cache-test-$$"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project rust "$project"
 
-  podman build --tag riprap-tooling:latest "$project/.riprap/managed/podman" >/dev/null
+  tooling_image="localhost/riprap-cache-test-$$-tooling:latest"
+  podman build --tag "$tooling_image" "$project/.riprap/managed/podman" >/dev/null
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  build_agent_image "$project" "$image" >/dev/null
+  build_agent_image "$project" "$image" "$tooling_image" >/dev/null
   first="$(podman run --rm "$image" claude --version)"
 
-  second="$(build_agent_image "$project" "$image" 2>&1)"
+  second="$(build_agent_image "$project" "$image" "$tooling_image" 2>&1)"
   grep -Fq 'Using cache' <<<"$second" || fail 'an unchanged build key did not reuse cached layers'
 
   # 2.1.204 is an earlier published release; any release other than the first one
   # demonstrates that the key's contents alone drive the rebuild.
   write_build_key "$project" 2.1.204 0.144.6 pinned
-  build_agent_image "$project" "$image" >/dev/null
+  build_agent_image "$project" "$image" "$tooling_image" >/dev/null
   second="$(podman run --rm "$image" claude --version)"
   test "$first" != "$second" || fail 'changing the build key did not rebuild the agent layer'
   grep -Fq '2.1.204' <<<"$second" || fail "image reports '$second' after recording 2.1.204"
@@ -256,10 +262,10 @@ test_layering_is_unaffected_by_the_base_image() (
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
   grep -Fqx "FROM $CUDA_BASE_IMAGE" "$project/.riprap/managed/podman/Containerfile" || \
     fail 'the tooling image does not build on the chosen base image'
-  grep -Fqx 'FROM localhost/riprap-tooling:latest' "$project/.riprap/managed/podman/Agent.Containerfile" || \
-    fail 'the agent image is not based on the tooling image'
-  grep -Fqx 'FROM localhost/riprap-agent:latest' "$project/Containerfile" || \
-    fail 'the project-owned image is not based on the agent image'
+  grep -Fqx 'FROM ${RIPRAP_TOOLING_IMAGE}' "$project/.riprap/managed/podman/Agent.Containerfile" || \
+    fail 'the agent image does not accept the project-scoped tooling image'
+  grep -Fqx 'FROM ${RIPRAP_AGENT_IMAGE}' "$project/Containerfile" || \
+    fail 'the project-owned image does not accept the project-scoped agent image'
   ! grep -Eq 'claude|codex' "$project/.riprap/managed/podman/Containerfile" || \
     fail 'the tooling image installs an agent'
 )

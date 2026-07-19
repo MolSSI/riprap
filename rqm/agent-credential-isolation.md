@@ -50,9 +50,18 @@ so they run on every supported host.
 - A managed secret scanner examines staged Git content without printing matched secret
   values. It rejects known credential paths, private-key material, and high-confidence supported
   token formats.
+- Staged scanning examines every added, copied, modified, renamed, or type-changed path represented
+  by the index. It reads the staged blob rather than the working-tree file, so changing a path
+  between regular-file and symbolic-link modes cannot remove that path from inspection.
 - The scanner uses fake, unmistakably nonfunctional credentials in its tests.
 - The same scanner supports a CI mode that examines repository content independently of local Git
   hook installation.
+- Both modes produce the same result from the repository root and from any subdirectory. Failure to
+  enumerate a requested set of paths or read a requested Git object is a scanner failure, not a
+  successful clean scan. Diagnostic output identifies the operation and affected path or object
+  without printing inspected content.
+- Invoking either mode outside a Git working tree fails with an actionable diagnostic instead of
+  scanning an unrelated directory or reporting that no secrets were found.
 - Generated projects provide an explicit command to install the scanner as a Git hook through
   `core.hooksPath`. Installation does not replace or modify an existing custom hooks path; it stops
   with instructions for composing the hooks instead.
@@ -182,6 +191,16 @@ Feature: Isolate agent credentials from generated projects
     And it identifies each affected path and credential category
     And its output does not contain the matched credential values
 
+  @rq-a7cf7d43
+  Scenario: A staged type change remains subject to secret scanning
+    Given a generated Git repository has a tracked regular file
+    And the index changes that path to a symbolic link whose staged blob contains a fake supported
+      credential pattern
+    When the staged-content secret scanner runs
+    Then it exits nonzero
+    And it identifies the affected path and credential category
+    And its output does not contain the matched credential value
+
   @rq-0bb9767e
   Scenario: Legitimate agent integration files pass secret scanning
     Given a generated Git repository has staged ordinary Riprap agent settings and adapters
@@ -201,6 +220,28 @@ Feature: Isolate agent credentials from generated projects
     And no local Git hook is installed
     When the repository-mode secret scanner runs in GitHub Actions
     Then the workflow fails without printing the credential value
+
+  @rq-0a4106f0
+  Scenario: Repository scanning is independent of the caller's directory
+    Given a generated repository contains a fake supported credential in tracked content
+    When the repository-mode secret scanner runs from the repository root and from a subdirectory
+    Then both invocations exit nonzero
+    And both identify the same affected repository-relative path and credential category
+
+  @rq-0ce3a836
+  Scenario: Scanning outside a Git repository fails explicitly
+    Given the current directory is outside a Git working tree
+    When either secret-scanner mode runs
+    Then it exits nonzero
+    And its diagnostic states that no repository could be identified
+
+  @rq-cdb90fb3
+  Scenario: An unreadable requested Git object fails closed
+    Given Git reports a path or object for inspection
+    And the scanner cannot read that requested object
+    When the secret scanner runs
+    Then it exits nonzero
+    And its diagnostic identifies the failed inspection without printing repository content
 
   @rq-003ece26
   Scenario: A Windows checkout carries the line endings its interpreters need

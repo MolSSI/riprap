@@ -7,6 +7,8 @@ _skip_if_exists:
   - /AGENTS.md
   - /.riprap/user/skills/*/local.md
   - /LICENSE
+  - /LICENSE.GPL
+  - /NOTICE
   # Package/crate skeletons: seeded once, owned by the user thereafter
   - /pyproject.toml
   - /Cargo.toml

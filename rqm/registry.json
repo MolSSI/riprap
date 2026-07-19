@@ -23,6 +23,18 @@
     "title": "A malformed pin line stops the launch before any image is built",
     "type": "scenario"
   },
+  "rq-0a4106f0": {
+    "decl": "Scenario: Repository scanning is independent of the caller's directory",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Repository scanning is independent of the caller's directory",
+    "type": "scenario"
+  },
   "rq-0aa08b69": {
     "decl": "Scenario: An empty pin stops the launch before any image is built",
     "file": "development-container",
@@ -69,6 +81,18 @@
       }
     ],
     "title": "Legitimate agent integration files pass secret scanning",
+    "type": "scenario"
+  },
+  "rq-0ce3a836": {
+    "decl": "Scenario: Scanning outside a Git repository fails explicitly",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Scanning outside a Git repository fails explicitly",
     "type": "scenario"
   },
   "rq-0e32b682": {
@@ -186,6 +210,18 @@
       }
     ],
     "title": "The Windows launcher validates the pin before building",
+    "type": "scenario"
+  },
+  "rq-197626f6": {
+    "decl": "Scenario: LGPL distribution includes its complete license basis",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "LGPL distribution includes its complete license basis",
     "type": "scenario"
   },
   "rq-215e96be": {
@@ -316,6 +352,19 @@
     "title": "A run option containing whitespace stops the launch",
     "type": "scenario"
   },
+  "rq-3555aab7": {
+    "decl": "## Project Image Identity",
+    "file": "development-container",
+    "level": 2,
+    "refs": [
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "Project Image Identity",
+    "type": "section"
+  },
   "rq-37192a21": {
     "decl": "Scenario: A required external entry point delegates to managed implementation",
     "file": "template-ownership-layout",
@@ -332,6 +381,30 @@
     "title": "A required external entry point delegates to managed implementation",
     "type": "scenario"
   },
+  "rq-3d28cd5f": {
+    "decl": "Scenario: Permissive licenses carry the project notice",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Permissive licenses carry the project notice",
+    "type": "scenario"
+  },
+  "rq-3eec4386": {
+    "decl": "Scenario: A closed-source project makes no open-source license claim",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A closed-source project makes no open-source license claim",
+    "type": "scenario"
+  },
   "rq-4097cd5c": {
     "decl": "Scenario: A tooling image build failure never uses refresh fallback",
     "file": "development-container",
@@ -342,6 +415,22 @@
       }
     ],
     "title": "A tooling image build failure never uses refresh fallback",
+    "type": "scenario"
+  },
+  "rq-4155ad59": {
+    "decl": "Scenario: Projects use distinct local image identities",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
+    "title": "Projects use distinct local image identities",
     "type": "scenario"
   },
   "rq-41eeda01": {
@@ -400,6 +489,26 @@
     "title": "Hook installation preserves an existing hook configuration",
     "type": "scenario"
   },
+  "rq-51db1fdd": {
+    "decl": "## Python Documentation",
+    "file": "generated-project-variants",
+    "level": 2,
+    "refs": [],
+    "title": "Python Documentation",
+    "type": "section"
+  },
+  "rq-5724d2c4": {
+    "decl": "Scenario: Documentation without a generated Python package is self-contained",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Documentation without a generated Python package is self-contained",
+    "type": "scenario"
+  },
   "rq-59ada47d": {
     "decl": "Scenario: Validation examines hidden directories in the template tree",
     "file": "template-traceability-boundary",
@@ -422,6 +531,14 @@
     "level": 2,
     "refs": [],
     "title": "Ownership Classes",
+    "type": "section"
+  },
+  "rq-5cab8102": {
+    "decl": "## License Distribution",
+    "file": "generated-project-variants",
+    "level": 2,
+    "refs": [],
+    "title": "License Distribution",
     "type": "section"
   },
   "rq-5d572c3c": {
@@ -619,6 +736,18 @@
     "title": "A malformed project identity blocks the Windows launcher",
     "type": "scenario"
   },
+  "rq-7749b071": {
+    "decl": "Scenario: Updated projects satisfy the complete ownership contract",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Updated projects satisfy the complete ownership contract",
+    "type": "scenario"
+  },
   "rq-7c6a2afa": {
     "decl": "Scenario: An unpinned launch records the current week and tracks current releases",
     "file": "development-container",
@@ -642,6 +771,14 @@
     ],
     "title": "Conventional project content remains user-owned at conventional paths",
     "type": "scenario"
+  },
+  "rq-7de9b8bd": {
+    "decl": "## Gherkin Scenarios",
+    "file": "generated-project-variants",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
   },
   "rq-83545aca": {
     "decl": "Scenario: A generated project enables no additional run options",
@@ -697,6 +834,18 @@
       }
     ],
     "title": "Ignore rules distinguish machine and project state",
+    "type": "scenario"
+  },
+  "rq-8c24aa6e": {
+    "decl": "Scenario: Concurrent project launches cannot select each other's images",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Concurrent project launches cannot select each other's images",
     "type": "scenario"
   },
   "rq-8c955028": {
@@ -781,6 +930,25 @@
     ],
     "title": "Run options do not displace the template-owned container configuration",
     "type": "scenario"
+  },
+  "rq-a7cf7d43": {
+    "decl": "Scenario: A staged type change remains subject to secret scanning",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A staged type change remains subject to secret scanning",
+    "type": "scenario"
+  },
+  "rq-a953fcc4": {
+    "decl": "# Feature: Valid Generated Project Variants",
+    "file": "generated-project-variants",
+    "refs": [],
+    "title": "Feature: Valid Generated Project Variants",
+    "type": "file"
   },
   "rq-ac53295e": {
     "decl": "Scenario: The build key is not committed",
@@ -914,6 +1082,18 @@
     "title": "An unrecognized pin name outranks a non-exact pin value",
     "type": "scenario"
   },
+  "rq-c39f2457": {
+    "decl": "Scenario: Documentation accompanies a generated Python package",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Documentation accompanies a generated Python package",
+    "type": "scenario"
+  },
   "rq-c5824068": {
     "decl": "Scenario: Generating and updating a project need no trust option",
     "file": "template-ownership-layout",
@@ -983,6 +1163,18 @@
       }
     ],
     "title": "Illustrative identifiers remain valid template content",
+    "type": "scenario"
+  },
+  "rq-cdb90fb3": {
+    "decl": "Scenario: An unreadable requested Git object fails closed",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An unreadable requested Git object fails closed",
     "type": "scenario"
   },
   "rq-ce1eb03c": {

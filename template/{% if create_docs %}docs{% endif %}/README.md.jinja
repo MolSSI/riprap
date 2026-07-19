@@ -4,8 +4,8 @@ The docs for this project are built with [Sphinx](http://www.sphinx-doc.org/en/m
 To compile the docs, first ensure that the necessary dependencies are installed.
 {% if use_conda %}
 You can use the provided `requirements.yaml` file to create a conda environment
-with the necessary dependencies (including the package itself, installed in
-editable mode so that `autodoc` can import it) by running
+with the necessary dependencies{% if create_python_skeleton %} (including the generated package itself, installed in
+editable mode so that `autodoc` can import it){% endif %} by running
 
 ```bash
 conda env create -f requirements.yaml
@@ -22,12 +22,13 @@ conda env update --file requirements.yaml
 pip install -r requirements.txt
 ```
 
-The package itself must also be installed so that `autodoc` can import it. From
+{% if create_python_skeleton %}The package itself must also be installed so that `autodoc` can import it. From
 the repository root:
 
 ```bash
 pip install -e .
 ```
+{% endif %}
 {% endif %}
 
 Once installed, you can use the `Makefile` in this directory to compile static HTML pages by

@@ -6,6 +6,9 @@ description = "{{ project_description }}"
 authors = ["{{ author_name }} <{{ author_email }}>"]
 {%- if create_license %}
 license = "{{ open_source_license }}"
+{%- if open_source_license == "LGPL-3.0-or-later" %}
+include = ["/src/**", "/tests/**", "/Cargo.toml", "/README.md", "/LICENSE", "/LICENSE.GPL", "/NOTICE"]
+{%- endif %}
 {%- endif %}
 
 [dependencies]
