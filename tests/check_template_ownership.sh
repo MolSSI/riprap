@@ -151,9 +151,12 @@ test_conventional_project_content_remains_user_owned() (
     test -f "$project/$path" || fail "conventional user-owned path is missing: $path"
   done
   load_exceptions "$project"
-  for path in CLAUDE.md AGENTS.md; do
+  # Workflows are project-owned: a project chooses its own CI steps, scan languages, query
+  # suites, and schedule, so neither is claimed as a managed exception.
+  for path in CLAUDE.md AGENTS.md .github/workflows/CI.yaml .github/workflows/codeql.yaml; do
+    test -f "$project/$path" || fail "conventional user-owned path is missing: $path"
     ! is_approved_exception "$path" ||
-      fail "root agent instruction file is claimed as a managed exception: $path"
+      fail "user-owned file is claimed as a managed exception: $path"
   done
 )
 

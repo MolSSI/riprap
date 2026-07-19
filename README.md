@@ -60,8 +60,9 @@ Projects that select `python` are additionally asked:
 
 The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms); the Rust scaffolding follows the same structure.
 Both languages also receive GitHub community files (`.github/CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `CODE_OF_CONDUCT.md`) and, when a skeleton is generated, a Codecov configuration (`.codecov.yml`).
+Both languages also receive a CodeQL security-scanning workflow (`.github/workflows/codeql.yaml`).
 All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
-The exception is `.github/workflows/codeql.yaml` (generated for both languages), which is owned by the template and receives improvements through `copier update`; prefer leaving it unedited.
+Because the CodeQL workflow is a seed, keeping its `github/codeql-action` versions current is the project's responsibility, as GitHub retires older versions over time.
 
 ### Developing with Riprap
 

@@ -18,10 +18,11 @@ _skip_if_exists:
   - /src/**
   - /tests/**
   - /.github/workflows/CI.yaml
+  # Code scanning setup: seeded once, then owned by the project, which chooses its
+  # languages, query suites, and scan schedule.
+  - /.github/workflows/codeql.yaml
   - /.codecov.yml
   # GitHub prose files: seeded once, owned by the user thereafter.
-  # Note: .github/workflows/codeql.yaml is deliberately NOT listed here —
-  # it is template-owned and receives updates via `copier update`.
   - /.github/CONTRIBUTING.md
   - /.github/PULL_REQUEST_TEMPLATE.md
   - /CODE_OF_CONDUCT.md

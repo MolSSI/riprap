@@ -130,11 +130,11 @@ yours to edit.
 {% endif %}
 {% endif %}
 
-The template also provides a CodeQL security-scanning workflow at
-`.github/workflows/codeql.yaml`. Unlike seeded files such as
-`.github/CONTRIBUTING.md`, this file is owned by the template and receives
-improvements through `copier update`, so prefer leaving it unedited; local
-changes may produce merge conflicts when updating.
+The template also seeds a CodeQL security-scanning workflow at
+`.github/workflows/codeql.yaml`. Like the other seeded files, it is yours to
+edit: choose the languages it analyzes, the query suites it runs, and how often
+it is scheduled. Keeping its `github/codeql-action` versions current is the
+project's responsibility, as GitHub retires older versions over time.
 
 ## Development Workflow
 

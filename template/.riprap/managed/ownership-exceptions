@@ -9,7 +9,6 @@
 .claude/skills/**
 .codex/hooks.json	marker-exempt
 .gitattributes
-.github/workflows/codeql.yaml
 .gitignore
 rr.bat
 rr.sh

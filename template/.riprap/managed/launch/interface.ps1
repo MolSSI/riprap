@@ -25,7 +25,11 @@ function Fail([string]$Message) {
 $runOptions = @()
 if (Test-Path -LiteralPath $runOptionsFile) {
     $lineNumber = 0
-    foreach ($line in Get-Content -LiteralPath $runOptionsFile) {
+    # Get-Content treats a lone carriage return as a line boundary. Split the raw text only
+    # at LF/CRLF boundaries so an embedded carriage return remains visible to the whitespace
+    # validator, matching the shell launcher's behavior.
+    $lines = [regex]::Split([IO.File]::ReadAllText($runOptionsFile), "`r?`n")
+    foreach ($line in $lines) {
         $lineNumber++
         $option = $line.Trim()
         if ($option -eq "" -or $option.StartsWith("#")) { continue }
