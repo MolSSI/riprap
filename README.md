@@ -1,4 +1,4 @@
-# Guardrails
+# Riprap
 
 **Important:** This repository and the ideas expressed within represent an early effort to identify best practices for AI-assisted development, and do not yet reflect official MolSSI recommendations.
 
@@ -18,10 +18,10 @@ This repository is a Copier template.
 To create a new project, you can do:
 
 ```bash
-copier copy gh:MolSSI/guardrails my-new-project
+copier copy gh:MolSSI/riprap my-new-project
 ```
 
-To pull the latest Guardrails updates into your project, you can do:
+To pull the latest Riprap updates into your project, you can do:
 
 ```bash
 copier update
@@ -46,14 +46,14 @@ Projects that select `rust` are additionally asked:
 
 | Question | Description |
 |---|---|
-| `include_rust_skeleton` | Whether to create skeletal Rust crate files: `Cargo.toml`, `src/lib.rs`, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`) that checks formatting, runs clippy, and runs the test suite with coverage. Defaults to yes; answer no when adding Guardrails to an existing Rust project. |
+| `include_rust_skeleton` | Whether to create skeletal Rust crate files: `Cargo.toml`, `src/lib.rs`, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`) that checks formatting, runs clippy, and runs the test suite with coverage. Defaults to yes; answer no when adding Riprap to an existing Rust project. |
 
 Projects that select `python` are additionally asked:
 
 | Question | Description |
 |---|---|
 | `package_name` | Python import name of the package (the directory under `src/`). Defaults to `project_slug` with hyphens replaced by underscores. |
-| `include_python_skeleton` | Whether to create skeletal Python package files: `pyproject.toml`, the `src/` package, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`). Defaults to yes; answer no when adding Guardrails to an existing Python package. |
+| `include_python_skeleton` | Whether to create skeletal Python package files: `pyproject.toml`, the `src/` package, a `tests/` directory, and a CI workflow (`.github/workflows/CI.yaml`). Defaults to yes; answer no when adding Riprap to an existing Python package. |
 | `first_module_name` | Name of the first module created inside the package. Defaults to `package_name`. Only asked when the skeleton is included. |
 | `include_docs` | Whether to create a Sphinx documentation skeleton in `docs/` with a ReadTheDocs configuration (`.readthedocs.yaml`). Defaults to yes. |
 | `dependency_source` | Where project dependencies come from: `Prefer conda-forge with pip fallback` (default), `Prefer default anaconda channel with pip fallback`, or `Dependencies from pip only (no conda)`. Conda-based choices generate a `devtools/conda-envs/test_env.yaml` environment and configure the CI workflow and documentation builds to use conda; the pip-only choice uses `pip` and `venv` throughout. |
@@ -63,13 +63,13 @@ Both languages also receive GitHub community files (`.github/CONTRIBUTING.md`, `
 All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
 The exception is `.github/workflows/codeql.yaml` (generated for both languages), which is owned by the template and receives improvements through `copier update`; prefer leaving it unedited.
 
-### Developing with Guardrails
+### Developing with Riprap
 
 #### 1. Launch a development container
 
 All development **must** take place within a Podman container.
 The template includes hooks that prevent Claude Code and Codex from answering prompts unless you are running in a containerized environment.
-To launch a development environment, run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
+To launch a development environment, run `bash rr.sh` on Linux/Mac, or `rr.bat` on Windows.
 This builds the container and drops you into an interactive bash shell in `/work`.
 Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
 Before using Codex for the first time in a project, authenticate from inside the container with
@@ -80,7 +80,7 @@ only necessary the first time you use the container for this project.
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
-The container is built in two layers: a base image defined in `.guardrails/podman/Containerfile` provides the standard environment (Claude Code, Codex, the language toolchain, and supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
+The container is built in two layers: a base image defined in `.riprap/podman/Containerfile` provides the standard environment (Claude Code, Codex, the language toolchain, and supporting utilities), and a user-owned `Containerfile` at the project root layers on top of it.
 Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the base image alone so that `copier update` can keep it in sync with upstream changes.
 
 #### Updating Claude Code and Codex
@@ -98,7 +98,7 @@ carries on with the image you already have, so a refresh can never block your wo
 ##### Pinning a release
 
 If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
-for an upstream fix. Create `.guardrails/agent-pin.env`:
+for an upstream fix. Create `.riprap/agent-pin.env`:
 
 ```
 CLAUDE_VERSION=2.1.205
@@ -117,23 +117,23 @@ If you opted out of the skeleton, initialize the project manually — e.g. `carg
 #### 3. Define the project architecture
 
 Before writing requirements for individual features, establish the project's high-level goals and architecture.
-The template includes a `gr-architecture` skill for this, and running it is normally the first thing you do in a new project. In Claude Code, use:
+The template includes a `rr-architecture` skill for this, and running it is normally the first thing you do in a new project. In Claude Code, use:
 
 ```
-/gr-architecture I want to build a molecular dynamics code.
+/rr-architecture I want to build a molecular dynamics code.
 ```
 
 In Codex, use:
 
 ```
-$gr-architecture I want to build a molecular dynamics code.
+$rr-architecture I want to build a molecular dynamics code.
 ```
 
 The agent will ask a series of questions to turn a broad ambition into concrete, load-bearing decisions — the intended scale and audience, execution targets (CPU, GPU, distributed), which features carry architectural weight, how the system should be extended (for example, whether it needs a plugin system for user-defined components), the key libraries, and how whole-project testing should be handled.
 It records the results in `rqm/ARCHITECTURE.md`, which the agent's project guidance references so that every later planning and implementation step shares the same architectural context.
 
 The goal is not to specify every detail — that is the job of the per-feature requirements files below — but to capture the decisions that would be expensive to reverse later.
-You can re-run the `gr-architecture` skill at any time to refine or extend the document as the project matures.
+You can re-run the `rr-architecture` skill at any time to refine or extend the document as the project matures.
 
 #### 4. Generate a requirements document
 
@@ -151,13 +151,13 @@ I want to add a parser to my code that parses XYZ molecular structure files. Hel
 You can also invoke the skill explicitly in Claude Code:
 
 ```
-/gr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
+/rr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
 In Codex, use:
 
 ```
-$gr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
+$rr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
 
 The agent will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
@@ -185,13 +185,13 @@ Then, you can prompt:
 Help me flesh out the requirements file in rqm/basis/bse.md
 ```
 
-The agent will then automatically use the `gr-plan` skill.
+The agent will then automatically use the `rr-plan` skill.
 
 
 
 #### 5. Implement the feature
 
-You may now ask the agent to implement the feature, which will automatically invoke the `gr-implement` skill:
+You may now ask the agent to implement the feature, which will automatically invoke the `rr-implement` skill:
 
 ```
 Implement the feature in rqm/requirements.md
@@ -228,21 +228,21 @@ In this approach, it may be helpful to view the development process as natural-l
 ### Quizzes
 
 It is important that you understand the functionality of your code.
-To help with this, the template includes a `gr-quiz` skill. Invoke it as `/gr-quiz` in Claude Code
-or `$gr-quiz` in Codex.
+To help with this, the template includes a `rr-quiz` skill. Invoke it as `/rr-quiz` in Claude Code
+or `$rr-quiz` in Codex.
 If you prompt the LLM with this skill, it will ask you a question about the implementation details of your code.
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
 
 ### Customizing skills
 
-The authoritative, agent-neutral skill implementations live under `.guardrails/skills/`. Claude
+The authoritative, agent-neutral skill implementations live under `.riprap/skills/`. Claude
 discovers adapters for them under `.claude/skills/`, while Codex discovers adapters under
 `.agents/skills/`. Each canonical skill directory contains a `local.md` file that belongs to your
 project.
-Guardrails creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
+Riprap creates it when your project is generated and never touches it again, so anything you write there survives `copier update`.
 Use it to extend or override a skill with project-specific conventions—for example, pointing
-`gr-plan` at a project-specific exemplar requirements file, or requiring `gr-implement` to run a
+`rr-plan` at a project-specific exemplar requirements file, or requiring `rr-implement` to run a
 particular linter before finishing.
 Where `local.md` conflicts with a skill's built-in instructions, `local.md` wins.
 Avoid editing the `SKILL.md` files themselves; those are owned by the template, and local edits to them may produce merge conflicts when you run `copier update`.

@@ -1,15 +1,15 @@
-# Feature: Agent-Neutral Guardrails Skills <!-- rq-8d83394b -->
+# Feature: Agent-Neutral Riprap Skills <!-- rq-8d83394b -->
 
-Guardrails stores each canonical skill implementation and its project-owned customization in an
+Riprap stores each canonical skill implementation and its project-owned customization in an
 agent-neutral directory. Agent-specific skill directories contain only the adapters required for
 skill discovery and for translating agent-specific conventions.
 
 ## Template Layout <!-- rq-8f041d7b -->
 
 - Canonical skill implementations and their supporting files live under
-  `.guardrails/skills/<skill-name>/`.
+  `.riprap/skills/<skill-name>/`.
 - Each canonical skill reads project-specific extensions from
-  `.guardrails/skills/<skill-name>/local.md`.
+  `.riprap/skills/<skill-name>/local.md`.
 - Claude discovers thin adapters under `.claude/skills/<skill-name>/SKILL.md`.
 - Codex discovers thin adapters under `.agents/skills/<skill-name>/SKILL.md`.
 - Both adapters delegate to the same canonical implementation and translate only conventions that
@@ -33,22 +33,22 @@ skill discovery and for translating agent-specific conventions.
 ## Gherkin Scenarios <!-- rq-637415e2 -->
 
 ```gherkin
-Feature: Agent-neutral Guardrails skills
+Feature: Agent-neutral Riprap skills
 
   @rq-217d25aa
   Scenario: A generated project uses the agent-neutral skill layout
-    Given the Guardrails template is rendered with Copier
+    Given the Riprap template is rendered with Copier
     When the generated project is inspected
-    Then every supported skill has one canonical implementation under ".guardrails/skills"
+    Then every supported skill has one canonical implementation under ".riprap/skills"
     And Claude and Codex each have a discovery adapter for every supported skill
     And canonical supporting resources are not duplicated in either agent-specific directory
 
   @rq-df3907ad
   Scenario: Skill customization survives a Copier update
-    Given a project was generated from an earlier Guardrails template revision
-    And a user has modified ".guardrails/skills/gr-plan/local.md"
-    And a later template revision changes the canonical gr-plan implementation
+    Given a project was generated from an earlier Riprap template revision
+    And a user has modified ".riprap/skills/rr-plan/local.md"
+    And a later template revision changes the canonical rr-plan implementation
     When "copier update" applies the later revision to the project
     Then the user's local customization is unchanged
-    And the generated canonical gr-plan implementation contains the later template revision
+    And the generated canonical rr-plan implementation contains the later template revision
 ```

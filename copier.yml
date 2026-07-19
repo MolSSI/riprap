@@ -5,7 +5,7 @@ _skip_if_exists:
   - /Containerfile
   - /CLAUDE.md
   - /AGENTS.md
-  - /.guardrails/skills/*/local.md
+  - /.riprap/skills/*/local.md
   - /LICENSE
   # Package/crate skeletons: seeded once, owned by the user thereafter
   - /pyproject.toml
@@ -23,11 +23,11 @@ _skip_if_exists:
   # Documentation skeleton: seeded once, owned by the user thereafter
   - /docs/**
   - /.readthedocs.yaml
-  # Architecture overview: seeded once, filled out via gr-architecture,
+  # Architecture overview: seeded once, filled out via rr-architecture,
   # owned by the user thereafter
   - /rqm/ARCHITECTURE.md
   # Stable local-resource identity, created on first launch and owned by the project.
-  - /.guardrails/project-id
+  - /.riprap/project-id
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 
@@ -68,7 +68,7 @@ include_rust_skeleton:
   type: bool
   help: >-
     Create skeletal Rust crate files (Cargo.toml, src/, tests/, CI workflow)?
-    Answer no when adding Guardrails to an existing Rust project.
+    Answer no when adding Riprap to an existing Rust project.
   default: true
   when: "{{ language == 'rust' }}"
 
@@ -87,7 +87,7 @@ include_python_skeleton:
   type: bool
   help: >-
     Create skeletal Python package files (pyproject.toml, src/, tests/)?
-    Answer no when adding Guardrails to an existing Python package.
+    Answer no when adding Riprap to an existing Python package.
   default: true
   when: "{{ language == 'python' }}"
 

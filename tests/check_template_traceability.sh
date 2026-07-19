@@ -4,12 +4,12 @@ set -euo pipefail
 ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
 REGISTRY="$ROOT/rqm/registry.json"
 
-# An identifier belongs to Guardrails only when the requirements registry records it.
+# An identifier belongs to Riprap only when the requirements registry records it.
 # Template documentation and the requirements tooling's own fixtures legitimately contain
-# illustrative identifiers, which are not Guardrails identifiers and are not violations.
+# illustrative identifiers, which are not Riprap identifiers and are not violations.
 #
 # grep is used rather than a search tool that skips hidden files by default: most template
-# content lives under hidden directories such as "template/.guardrails", and skipping them
+# content lives under hidden directories such as "template/.riprap", and skipping them
 # would leave this check scanning almost nothing.
 # rq-f63c0743 rq-59ada47d rq-cb2cdd8e
 validate_template_ids() {
@@ -23,7 +23,7 @@ validate_template_ids() {
 
   matches="$(grep -rFn -f <(printf '%s\n' "$identifiers") "$ROOT/template" || true)"
   if [[ -n "$matches" ]]; then
-    printf 'Guardrails requirement IDs are forbidden in the template tree:\n%s\n' "$matches" >&2
+    printf 'Riprap requirement IDs are forbidden in the template tree:\n%s\n' "$matches" >&2
     return 1
   fi
 }
@@ -31,7 +31,7 @@ validate_template_ids() {
 # rq-70d8296b
 validate_registry_boundary() {
   if [[ -f "$REGISTRY" ]] && grep -nE '"path"[[:space:]]*:[[:space:]]*"template/' "$REGISTRY"; then
-    printf 'Guardrails registry must not index template source paths.\n' >&2
+    printf 'Riprap registry must not index template source paths.\n' >&2
     return 1
   fi
 }

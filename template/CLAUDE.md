@@ -1,1 +1,1 @@
-@.guardrails/CLAUDE.md
+@.riprap/CLAUDE.md
