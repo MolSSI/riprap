@@ -217,9 +217,19 @@ paths, including `rr.sh`, `rr.bat`, and the agent discovery directories. Convent
 outside `.riprap`, such as source files, manifests, `README.md`, and the root `Containerfile`, belong
 to the project.
 
-Run template updates with `copier update --trust`. Riprap uses a pre-update migration to move
-preserved customization and state from older layouts into `.riprap/user/` and `.riprap/state/`;
-review the template source before granting trust when updating from an untrusted source.
+Run template updates with `copier update`.
+
+### Agent permissions
+
+`.claude/settings.json` is Riprap-managed. It pre-approves the commands Riprap's own skills run and
+your language's routine build, test, and lint commands, and it denies reading credential files. It
+deliberately does not pre-approve a general interpreter, a package installer, or a shell, so those
+prompt the first time they are used.
+
+Add your project's own permissions to `.claude/settings.local.json`, which Claude Code merges with
+the managed settings rather than replacing them. Choosing "don't ask again" at a prompt writes the
+rule there for you. That file is ignored by Git, so your approvals stay yours and template updates
+never disturb them.
 
 ## Key Rules
 

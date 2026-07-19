@@ -23,6 +23,13 @@
     "title": "A malformed pin line stops the launch before any image is built",
     "type": "scenario"
   },
+  "rq-0996aefa": {
+    "decl": "# Feature: Agent Permission Defaults",
+    "file": "agent-permission-defaults",
+    "refs": [],
+    "title": "Feature: Agent Permission Defaults",
+    "type": "file"
+  },
   "rq-0a4106f0": {
     "decl": "Scenario: Repository scanning is independent of the caller's directory",
     "file": "agent-credential-isolation",
@@ -109,6 +116,18 @@
       }
     ],
     "title": "Both launchers report the same defect for the same invalid run options",
+    "type": "scenario"
+  },
+  "rq-1016a30a": {
+    "decl": "Scenario: A project's own permissions survive a template update",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A project's own permissions survive a template update",
     "type": "scenario"
   },
   "rq-113c8ccd": {
@@ -222,6 +241,18 @@
       }
     ],
     "title": "LGPL distribution includes its complete license basis",
+    "type": "scenario"
+  },
+  "rq-19afb5fd": {
+    "decl": "Scenario: Credential-shaped reads are denied",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Credential-shaped reads are denied",
     "type": "scenario"
   },
   "rq-215e96be": {
@@ -379,6 +410,18 @@
       }
     ],
     "title": "A required external entry point delegates to managed implementation",
+    "type": "scenario"
+  },
+  "rq-38ddfa1e": {
+    "decl": "Scenario: Language variants grant comparable breadth",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Language variants grant comparable breadth",
     "type": "scenario"
   },
   "rq-3d28cd5f": {
@@ -644,6 +687,14 @@
     "title": "Repository Leak Prevention",
     "type": "section"
   },
+  "rq-6429f635": {
+    "decl": "## Credential-Path Denials",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Credential-Path Denials",
+    "type": "section"
+  },
   "rq-64f745b6": {
     "decl": "Scenario: An approved exception without a managed marker fails validation",
     "file": "template-ownership-layout",
@@ -836,6 +887,14 @@
     "title": "Ignore rules distinguish machine and project state",
     "type": "scenario"
   },
+  "rq-8ba9f1d4": {
+    "decl": "## Default Allow Scope",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Default Allow Scope",
+    "type": "section"
+  },
   "rq-8c24aa6e": {
     "decl": "Scenario: Concurrent project launches cannot select each other's images",
     "file": "development-container",
@@ -895,6 +954,18 @@
     "title": "Cross-Platform Script Execution",
     "type": "section"
   },
+  "rq-93f9b6ff": {
+    "decl": "Scenario: Shipped defaults grant no interpreter, installer, or shell",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Shipped defaults grant no interpreter, installer, or shell",
+    "type": "scenario"
+  },
   "rq-9d9dea75": {
     "decl": "Scenario: First launch creates a stable project identity and credential volumes",
     "file": "agent-credential-isolation",
@@ -930,6 +1001,14 @@
     ],
     "title": "Run options do not displace the template-owned container configuration",
     "type": "scenario"
+  },
+  "rq-a71e12c8": {
+    "decl": "## Gherkin Scenarios",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
   },
   "rq-a7cf7d43": {
     "decl": "Scenario: A staged type change remains subject to secret scanning",
@@ -1281,6 +1360,14 @@
     "title": "A failed refresh falls back to a compatible agent image",
     "type": "scenario"
   },
+  "rq-dc554228": {
+    "decl": "## Project Additions",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Project Additions",
+    "type": "section"
+  },
   "rq-df3907ad": {
     "decl": "Scenario: Skill customization survives a Copier update",
     "file": "agent-neutral-skills",
@@ -1369,6 +1456,18 @@
     "title": "Project Identity",
     "type": "section"
   },
+  "rq-f40bdc52": {
+    "decl": "Scenario: Shipped defaults cover the commands Riprap's own skills invoke",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Shipped defaults cover the commands Riprap's own skills invoke",
+    "type": "scenario"
+  },
   "rq-f63c0743": {
     "decl": "Scenario: Riprap traceability validation rejects a Riprap ID in the template tree",
     "file": "template-traceability-boundary",
@@ -1397,6 +1496,14 @@
     "title": "The Windows launcher stops when no compatible agent image exists",
     "type": "scenario"
   },
+  "rq-f75ca93e": {
+    "decl": "## Feature Interface",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Feature Interface",
+    "type": "section"
+  },
   "rq-f881a732": {
     "decl": "Scenario: Enabling the delivered GPU example grants device access",
     "file": "development-container",
@@ -1419,6 +1526,18 @@
       }
     ],
     "title": "Known credential files are ignored without hiding integration configuration",
+    "type": "scenario"
+  },
+  "rq-f928505b": {
+    "decl": "Scenario: A project's own permissions are not version-controlled",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A project's own permissions are not version-controlled",
     "type": "scenario"
   },
   "rq-f9576090": {
