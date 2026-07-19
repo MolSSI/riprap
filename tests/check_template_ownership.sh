@@ -240,46 +240,47 @@ test_missing_managed_reference_is_rejected() (
     fail 'unresolved path was not identified'
 )
 
-# rq-e558bda9
-test_layout_migration_preserves_existing_customizations() (
-  local temp project migration
+# rq-c5824068
+# The documented commands carry no trust option, so the template must declare no Copier feature
+# that requires one. Rendering and updating are checked together because only update was ever
+# gated: `copier copy` succeeds without trust even when a trust-gated feature is declared.
+test_generate_and_update_need_no_trust_option() (
+  local temp source project rc
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  source="$temp/source"
   project="$temp/project"
-  migration="$ROOT/template/.riprap/managed/migrate-layout.py"
-  mkdir -p "$project/.riprap/skills/rr-plan" "$project/.riprap/podman"
-  printf 'user skill marker\n' > "$project/.riprap/skills/rr-plan/local.md"
-  printf '%s\n' '--shm-size=8g' > "$project/.riprap/podman/run-options"
-  printf '00000000-0000-4000-8000-000000000000\n' > "$project/.riprap/project-id"
-  printf 'REFRESH=1970-W01\n' > "$project/.riprap/podman/agent-build.env"
 
-  (cd "$project" && python3 "$migration")
+  cp -a "$ROOT/." "$source/"
+  rm -rf "$source/.git"
+  git -C "$source" init --quiet
+  git -C "$source" config user.name 'Riprap Tests'
+  git -C "$source" config user.email 'riprap@example.com'
+  git -C "$source" add .
+  git -C "$source" commit --quiet -m 'template v1'
+  git -C "$source" tag v1.0.0
 
-  grep -Fq 'user skill marker' "$project/.riprap/user/skills/rr-plan/local.md" ||
-    fail 'skill customization was not migrated'
-  grep -Fq -- '--shm-size=8g' "$project/.riprap/user/podman/run-options" ||
-    fail 'run options were not migrated'
-  test -f "$project/.riprap/state/project-id" || fail 'shared project state was not migrated'
-  test -f "$project/.riprap/state/podman/agent-build.env" || fail 'machine state was not migrated'
-  test ! -e "$project/.riprap/skills/rr-plan/local.md" || fail 'old skill customization remains'
-)
+  copier copy --defaults --vcs-ref v1.0.0 \
+    --data project_name='Trust Test' --data project_slug='trust-test' \
+    --data project_description='Exercises trust-free generation and update' \
+    --data language=rust --data author_name='Riprap Tests' \
+    --data author_email='riprap@example.com' --data open_source_license=MIT \
+    "$source" "$project" >/dev/null || fail 'copier copy required a trust option'
+  git -C "$project" init --quiet
+  git -C "$project" config user.name 'Riprap Tests'
+  git -C "$project" config user.email 'riprap@example.com'
+  git -C "$project" add .
+  git -C "$project" commit --quiet -m 'generated project'
 
-# rq-e558bda9
-test_layout_migration_rejects_conflicting_customizations() (
-  local temp project migration output
-  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
-  project="$temp/project"
-  migration="$ROOT/template/.riprap/managed/migrate-layout.py"
-  mkdir -p "$project/.riprap/skills/rr-plan" "$project/.riprap/user/skills/rr-plan"
-  printf 'old customization\n' > "$project/.riprap/skills/rr-plan/local.md"
-  printf 'new customization\n' > "$project/.riprap/user/skills/rr-plan/local.md"
+  printf '\ntemplate-v2-marker\n' >> \
+    "$source/template/.riprap/managed/skills/rr-plan/SKILL.md.jinja"
+  git -C "$source" add template/.riprap/managed/skills/rr-plan/SKILL.md.jinja
+  git -C "$source" commit --quiet -m 'template v2'
+  git -C "$source" tag v2.0.0
 
-  ! output="$(cd "$project" && python3 "$migration" 2>&1)" ||
-    fail 'conflicting customizations were silently accepted'
-  grep -Fq 'reconcile them before updating' <<<"$output" || fail 'conflict is not actionable'
-  grep -Fq 'old customization' "$project/.riprap/skills/rr-plan/local.md" ||
-    fail 'old customization changed during conflict handling'
-  grep -Fq 'new customization' "$project/.riprap/user/skills/rr-plan/local.md" ||
-    fail 'new customization changed during conflict handling'
+  ( cd "$project" && copier update --defaults --vcs-ref v2.0.0 ) >/dev/null && rc=0 || rc=$?
+  test "$rc" -eq 0 || fail 'copier update required a trust option'
+  grep -Fq 'template-v2-marker' "$project/.riprap/managed/skills/rr-plan/SKILL.md" ||
+    fail 'the update did not deliver the later managed implementation'
 )
 
 # rq-602c57d1
@@ -379,8 +380,7 @@ main() {
   test_marker_exempt_is_rejected_for_commentable_format "$project"
   test_undefined_component_directory_reference_is_rejected "$project"
   test_missing_managed_reference_is_rejected "$project"
-  test_layout_migration_preserves_existing_customizations
-  test_layout_migration_rejects_conflicting_customizations
+  test_generate_and_update_need_no_trust_option
   test_project_ignore_rules_survive_managed_update
   test_ignore_rules_distinguish_machine_and_project_state "$project"
   test_ownership_layout_has_no_symbolic_links "$project"

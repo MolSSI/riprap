@@ -914,6 +914,18 @@
     "title": "An unrecognized pin name outranks a non-exact pin value",
     "type": "scenario"
   },
+  "rq-c5824068": {
+    "decl": "Scenario: Generating and updating a project need no trust option",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Generating and updating a project need no trust option",
+    "type": "scenario"
+  },
   "rq-c618df8b": {
     "decl": "Scenario: An unapproved managed exception fails ownership validation",
     "file": "template-ownership-layout",
@@ -1093,10 +1105,6 @@
     "decl": "Scenario: User customization survives a template update",
     "file": "template-ownership-layout",
     "refs": [
-      {
-        "file": "tests/check_template_ownership.sh",
-        "kind": "code"
-      },
       {
         "file": "tests/test_agent_neutral_skills.sh",
         "kind": "code"

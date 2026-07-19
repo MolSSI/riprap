@@ -1,10 +1,5 @@
 _min_copier_version: "9"
 _subdirectory: template
-_migrations:
-  - command:
-      - "{{ _copier_python }}"
-      - "{{ _copier_conf.src_path }}/template/.riprap/managed/migrate-layout.py"
-    when: "{{ _stage == 'before' }}"
 _skip_if_exists:
   - /README.md
   - /Containerfile

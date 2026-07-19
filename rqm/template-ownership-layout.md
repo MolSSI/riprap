@@ -62,6 +62,10 @@ external tool from discovering it.
   creates, so their absence at render time is not a failure.
 - `copier update` updates managed implementations and managed required-location exceptions while
   preserving user-owned files.
+- Riprap declares no Copier feature that requires a trust option. Generating a project and
+  updating one both succeed with the commands the documentation gives, and the rendered layout is
+  the only layout Riprap produces, so no update has to reconcile an earlier arrangement of the
+  same files.
 - Generated ignore rules exclude machine-local state but do not hide shared project state,
   user-owned customization, or managed files.
 - A managed file that projects are expected to extend separates a managed region from a clearly
@@ -162,6 +166,14 @@ Feature: Make generated-file ownership visible from location
     When template ownership validation runs
     Then validation exits nonzero
     And it identifies the referencing file and the unresolved path
+
+  @rq-c5824068
+  Scenario: Generating and updating a project need no trust option
+    Given a later revision of the template changes a managed implementation
+    When "copier copy" generates a project without a trust option
+    And "copier update" applies the later revision without a trust option
+    Then both commands exit zero
+    And the project contains the later revision of the managed implementation
 
   @rq-e558bda9
   Scenario: User customization survives a template update
