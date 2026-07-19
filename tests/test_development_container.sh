@@ -8,6 +8,19 @@ fail() {
   exit 1
 }
 
+copier_major() {
+  sed -nE 's/^copier ([0-9]+)(\..*)?$/\1/p' | head -n 1
+}
+
+test_copier_version_parser_ignores_base_image_banner() {
+  local output
+  output='CUDA Version 12.6.3
+
+copier 9.17.0'
+  test "$(printf '%s\n' "$output" | copier_major)" = 9 ||
+    fail 'Copier version parsing was confused by a base-image startup banner'
+}
+
 render_project() {
   local language="$1" destination="$2"
   local skeleton_key="include_${language}_skeleton"
@@ -34,7 +47,7 @@ assert_copier_in_container() (
   render_project "$language" "$project"
   podman build --tag "$image" "$project/.riprap/managed/podman"
   version="$(podman run --rm "$image" copier --version)"
-  major="$(printf '%s\n' "$version" | grep -Eo '[0-9]+' | head -n 1)"
+  major="$(printf '%s\n' "$version" | copier_major)"
   test "$major" = 9 || fail "expected Copier major 9 in $language image, got: $version"
 )
 
@@ -219,7 +232,7 @@ test_gpu_base_image_carries_the_tooling_layer() (
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
   podman build --tag "$image" "$project/.riprap/managed/podman"
   version="$(podman run --rm "$image" copier --version)"
-  test "$(grep -Eo '[0-9]+' <<<"$version" | head -n 1)" = 9 || \
+  test "$(printf '%s\n' "$version" | copier_major)" = 9 || \
     fail "expected Copier major 9 in the CUDA image, got: $version"
   podman run --rm "$image" cargo --version >/dev/null || \
     fail 'the Rust toolchain is missing from the CUDA tooling image'
@@ -274,6 +287,7 @@ test_update_preserves_enabled_run_options() (
     fail 'the update discarded the project'"'"'s enabled run option'
 )
 
+test_copier_version_parser_ignores_base_image_banner
 test_default_base_image_is_ubuntu_lts
 test_layering_is_unaffected_by_the_base_image
 test_update_preserves_enabled_run_options
