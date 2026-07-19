@@ -1,12 +1,15 @@
 # Managed files whose conventional or tool-mandated paths are outside .riprap/managed.
 # Paths ending in /** authorize every file beneath that directory.
+#
+# Every file listed here carries the "Riprap-managed" marker among its leading lines, so its
+# ownership is visible from the file itself. A path followed by "marker-exempt" is in a format with
+# no comment syntax and therefore carries no marker; only comment-less formats may be exempt.
 .agents/skills/**
-.claude/settings.json
+.claude/settings.json	marker-exempt
 .claude/skills/**
-.codex/hooks.json
+.codex/hooks.json	marker-exempt
 .gitattributes
 .github/workflows/codeql.yaml
 .gitignore
-CLAUDE.md
 rr.bat
 rr.sh

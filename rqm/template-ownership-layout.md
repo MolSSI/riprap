@@ -17,8 +17,9 @@ external tool from discovering it.
   declares whether it is shared project metadata that may be committed or machine-local state that
   is ignored.
 - Conventional project content remains at its standard location and is user-owned. This includes
-  source files, language manifests, `README.md`, `LICENSE`, and the project-owned root
-  `Containerfile`.
+  source files, language manifests, `README.md`, `LICENSE`, the project-owned root
+  `Containerfile`, and the root agent instruction files, which a project extends with its own
+  guidance while the managed instructions they reference remain under `.riprap/managed/`.
 - No canonical managed implementation or supported customization file lives directly under
   `.riprap/skills`, `.riprap/hooks`, or `.riprap/podman`.
 
@@ -32,8 +33,12 @@ external tool from discovering it.
 - Agent discovery files and settings at agent-mandated paths contain only the discovery,
   configuration, and convention translation that cannot live in the canonical agent-neutral
   implementation.
-- A required-location file that cannot delegate is visibly marked as managed and contains only the
-  configuration required at that path.
+- Every managed required-location exception carries a visible managed marker among its leading
+  lines, whether or not it delegates, and contains only the delegation or configuration required at
+  that path. The marker may follow an interpreter directive rather than opening the file.
+- A managed required-location exception whose file format cannot express comments carries no
+  marker. The marker-exempt exceptions are enumerated explicitly, and an exception whose format can
+  express comments is never marker-exempt.
 - The set of managed required-location exceptions is explicit and mechanically validated. Adding
   an exception requires a deliberate ownership decision rather than silently expanding the set.
 - Riprap uses portable wrapper scripts or a tool's native delegation mechanism for managed
@@ -45,8 +50,16 @@ external tool from discovering it.
   has more than one ownership class, or violates the location rules for its class.
 - Validation rejects a managed file outside `.riprap/managed/` unless it is an approved
   required-location exception.
+- Validation rejects an approved required-location exception that carries no managed marker unless
+  that exception is marker-exempt, and rejects a marker-exempt declaration for a format that can
+  express comments.
 - Validation rejects a user customization under `.riprap/managed/` and machine-local state outside
   `.riprap/state/`.
+- Every `.riprap` path a rendered file references names one of the three ownership directories, so
+  a reference to a component directory that the layout does not define fails validation.
+- Every referenced path under `.riprap/managed/` resolves to a file in the rendered project.
+  References under `.riprap/user/` and `.riprap/state/` name files that a project or a launch
+  creates, so their absence at render time is not a failure.
 - `copier update` updates managed implementations and managed required-location exceptions while
   preserving user-owned files.
 - Generated ignore rules exclude machine-local state but do not hide shared project state,
@@ -66,9 +79,13 @@ external tool from discovering it.
     working directory.
 - `.riprap/managed/hooks/`
   - Contains the canonical version-controlled Git hook and secret-scanning implementations.
+- `.riprap/managed/ownership-exceptions`
+  - Enumerates the approved managed required-location exceptions and identifies which of them are
+    marker-exempt.
 - Template ownership validation
   - Classifies every path rendered by each supported project variant and enforces the ownership,
-    exception, preservation, ignore, and symbolic-link rules in this document.
+    exception, marker, reference-integrity, preservation, ignore, and symbolic-link rules in this
+    document.
 
 ## Gherkin Scenarios <!-- rq-5d572c3c -->
 
@@ -108,6 +125,39 @@ Feature: Make generated-file ownership visible from location
     When template ownership validation runs
     Then validation exits nonzero
     And it identifies the unapproved path
+
+  @rq-64f745b6
+  Scenario: An approved exception without a managed marker fails validation
+    Given a rendered file at an approved required-location exception path
+    And its format can express comments
+    And none of its leading lines carry the managed marker
+    When template ownership validation runs
+    Then validation exits nonzero
+    And it identifies the unmarked path
+
+  @rq-23cdd66f
+  Scenario: A marker-exempt exception needs no managed marker
+    Given a rendered file at an approved required-location exception path
+    And its format cannot express comments
+    And the exception is enumerated as marker-exempt
+    When template ownership validation runs
+    Then validation accepts the unmarked file
+
+  @rq-215e96be
+  Scenario: A reference to an undefined component directory fails validation
+    Given a rendered file references a path under ".riprap"
+    And the first path segment after ".riprap" is not "managed", "user", or "state"
+    When template ownership validation runs
+    Then validation exits nonzero
+    And it identifies the referencing file and the undefined path
+
+  @rq-f3bedd31
+  Scenario: A reference to a missing managed implementation fails validation
+    Given a rendered file references a path under ".riprap/managed"
+    And no file exists at that path in the rendered project
+    When template ownership validation runs
+    Then validation exits nonzero
+    And it identifies the referencing file and the unresolved path
 
   @rq-e558bda9
   Scenario: User customization survives a template update

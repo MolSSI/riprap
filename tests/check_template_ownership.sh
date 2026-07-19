@@ -3,6 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+# The literal token that makes a managed file's ownership visible from the file itself.
+MARKER='Riprap-managed'
+# A marker may follow an interpreter directive or a tool-mandated header block (a shebang, or the
+# YAML frontmatter that agents require at the top of a skill adapter), so it is not always line 1.
+MARKER_LINES=15
+
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1
@@ -12,39 +18,117 @@ render_project() {
   copier copy --trust --defaults --vcs-ref HEAD \
     --data project_name='Ownership Test' --data project_slug='ownership-test' \
     --data project_description='Exercises rendered ownership classes' \
-    --data language=rust --data author_name='Riprap Tests' \
+    --data language="${2:-rust}" --data author_name='Riprap Tests' \
     --data author_email='riprap@example.com' --data open_source_license=MIT \
     "$ROOT" "$1" >/dev/null
 }
 
-is_approved_exception() {
-  local project="$1" path="$2" pattern
-  while IFS= read -r pattern || [[ -n "$pattern" ]]; do
-    [[ -n "$pattern" && "$pattern" != \#* ]] || continue
-    case "$pattern" in
-      */'**') [[ "$path" == "${pattern%/**}/"* ]] && return 0 ;;
-      *) [[ "$path" == "$pattern" ]] && return 0 ;;
-    esac
+# Mutating tests work on a throwaway copy so they cannot perturb later tests.
+copy_project() {
+  local dest="$2"
+  cp -a "$1" "$dest"
+  printf '%s' "$dest"
+}
+
+# Approved required-location exceptions, held as parallel arrays.
+EXC_PATTERN=()
+EXC_EXEMPT=()
+
+# rq-12165531
+load_exceptions() {
+  local project="$1" line pattern flag
+  EXC_PATTERN=()
+  EXC_EXEMPT=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"
+    [[ -n "${line//[[:space:]]/}" ]] || continue
+    read -r pattern flag <<<"$line"
+    [[ -z "$flag" || "$flag" == marker-exempt ]] ||
+      fail "unknown ownership-exceptions flag '$flag' for $pattern"
+    EXC_PATTERN+=("$pattern")
+    EXC_EXEMPT+=("$flag")
   done < "$project/.riprap/managed/ownership-exceptions"
+}
+
+# Sets EXC_MATCH_EXEMPT and returns 0 when $1 is an approved exception.
+is_approved_exception() {
+  local path="$1" i pattern
+  EXC_MATCH_EXEMPT=
+  for i in "${!EXC_PATTERN[@]}"; do
+    pattern="${EXC_PATTERN[$i]}"
+    case "$pattern" in
+      */'**') [[ "$path" == "${pattern%/**}/"* ]] || continue ;;
+      *) [[ "$path" == "$pattern" ]] || continue ;;
+    esac
+    EXC_MATCH_EXEMPT="${EXC_EXEMPT[$i]}"
+    return 0
+  done
   return 1
 }
 
-validate_project() {
-  local project="$1" path first file
+# Whether a path's format has comment syntax that can carry the marker.
+can_express_comments() {
+  case "$1" in
+    *.json) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+has_marker() {
+  head -n "$MARKER_LINES" "$1" 2>/dev/null | grep -Fq "$MARKER"
+}
+
+# rq-f9576090 rq-12165531
+# A managed file outside .riprap/managed must be approved, and every approved exception must make
+# its ownership visible. The two directions together keep the marker and the exception list from
+# drifting apart.
+check_exception_ownership() {
+  local project="$1" path file
   while IFS= read -r -d '' file; do
     path="${file#"$project"/}"
     case "$path" in
-      .riprap/managed/*|.riprap/user/*|.riprap/state/*) ;;
-      *)
-        if is_approved_exception "$project" "$path"; then
-          continue
-        fi
-        first="$(sed -n '1p' "$file")"
-        [[ "$first" != *Riprap-managed* ]] ||
-          fail "managed path outside .riprap/managed is not approved: $path"
-        ;;
+      .riprap/managed/*|.riprap/user/*|.riprap/state/*) continue ;;
     esac
+    if is_approved_exception "$path"; then
+      if [[ "$EXC_MATCH_EXEMPT" == marker-exempt ]]; then
+        can_express_comments "$path" &&
+          fail "marker-exempt is only for comment-less formats: $path"
+      elif ! has_marker "$file"; then
+        fail "approved managed exception carries no '$MARKER' marker: $path"
+      fi
+    elif has_marker "$file"; then
+      fail "managed path outside .riprap/managed is not approved: $path"
+    fi
   done < <(find "$project" -type f -print0)
+}
+
+# rq-f9576090
+# Every .riprap path a rendered file names must belong to the ownership layout, and a managed
+# reference must resolve. References under user/ and state/ name files a project or a launch
+# creates, so they are not existence-checked.
+check_riprap_references() {
+  local project="$1" file path ref
+  while IFS= read -r file; do
+    path="${file#"$project"/}"
+    while IFS= read -r ref; do
+      case "$ref" in
+        .riprap/managed|.riprap/user|.riprap/state) continue ;;
+        .riprap/user/*|.riprap/state/*) continue ;;
+        .riprap/managed/*)
+          test -e "$project/$ref" ||
+            fail "$path references a missing managed path: $ref"
+          ;;
+        *) fail "$path references an undefined component directory: $ref" ;;
+      esac
+    done < <(grep -oE '\.riprap/[A-Za-z0-9_./-]+' "$file" |
+      sed 's/[.,:;)]*$//' | sort -u)
+  done < <(grep -rIl '\.riprap/' "$project" --exclude-dir=.git)
+}
+
+validate_project() {
+  load_exceptions "$1"
+  check_exception_ownership "$1"
+  check_riprap_references "$1"
 }
 
 # rq-b9f824f4
@@ -63,8 +147,13 @@ test_rendered_project_separates_ownership_classes() (
 # rq-7c9116c2
 test_conventional_project_content_remains_user_owned() (
   local project="$1" path
-  for path in README.md LICENSE Containerfile Cargo.toml src/lib.rs; do
+  for path in README.md LICENSE Containerfile Cargo.toml src/lib.rs CLAUDE.md AGENTS.md; do
     test -f "$project/$path" || fail "conventional user-owned path is missing: $path"
+  done
+  load_exceptions "$project"
+  for path in CLAUDE.md AGENTS.md; do
+    ! is_approved_exception "$path" ||
+      fail "root agent instruction file is claimed as a managed exception: $path"
   done
 )
 
@@ -80,11 +169,72 @@ test_root_launchers_are_managed_adapters() (
 
 # rq-c618df8b
 test_unapproved_managed_exception_is_rejected() (
-  local project="$1" output
+  local temp project output
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$(copy_project "$1" "$temp/project")"
   mkdir -p "$project/.github"
   printf '# Riprap-managed test file\n' > "$project/.github/unapproved.sh"
   ! output="$(validate_project "$project" 2>&1)" || fail 'unapproved managed exception was accepted'
   grep -Fq '.github/unapproved.sh' <<<"$output" || fail 'unapproved path was not identified'
+)
+
+# rq-64f745b6
+test_exception_without_marker_is_rejected() (
+  local temp project output
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$(copy_project "$1" "$temp/project")"
+  grep -v "$MARKER" "$project/.gitattributes" > "$project/.gitattributes.stripped"
+  mv "$project/.gitattributes.stripped" "$project/.gitattributes"
+  ! output="$(validate_project "$project" 2>&1)" || fail 'unmarked approved exception was accepted'
+  grep -Fq '.gitattributes' <<<"$output" || fail 'unmarked path was not identified'
+)
+
+# rq-23cdd66f
+test_marker_exempt_exception_needs_no_marker() (
+  local project="$1"
+  load_exceptions "$project"
+  is_approved_exception .claude/settings.json || fail 'settings.json is not an approved exception'
+  test "$EXC_MATCH_EXEMPT" = marker-exempt || fail 'settings.json is not marker-exempt'
+  ! has_marker "$project/.claude/settings.json" || fail 'test premise: settings.json carries a marker'
+  validate_project "$project"
+)
+
+# rq-23cdd66f
+test_marker_exempt_is_rejected_for_commentable_format() (
+  local temp project output
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$(copy_project "$1" "$temp/project")"
+  sed -i 's|^\.gitattributes$|.gitattributes\tmarker-exempt|' \
+    "$project/.riprap/managed/ownership-exceptions"
+  grep -q 'marker-exempt' <<<"$(grep '^\.gitattributes' \
+    "$project/.riprap/managed/ownership-exceptions")" || fail 'test premise: exempt flag not applied'
+  ! output="$(validate_project "$project" 2>&1)" ||
+    fail 'marker-exempt was accepted for a commentable format'
+  grep -Fq 'comment-less formats' <<<"$output" || fail 'exempt misuse is not actionable'
+)
+
+# rq-215e96be
+test_undefined_component_directory_reference_is_rejected() (
+  local temp project output
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$(copy_project "$1" "$temp/project")"
+  printf 'run: .riprap/hooks/check-secrets.sh --repository\n' >> "$project/.github/workflows/CI.yaml"
+  ! output="$(validate_project "$project" 2>&1)" ||
+    fail 'reference to an undefined component directory was accepted'
+  grep -Fq '.riprap/hooks' <<<"$output" || fail 'undefined path was not identified'
+  grep -Fq '.github/workflows/CI.yaml' <<<"$output" || fail 'referencing file was not identified'
+)
+
+# rq-f3bedd31
+test_missing_managed_reference_is_rejected() (
+  local temp project output
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$(copy_project "$1" "$temp/project")"
+  rm "$project/.riprap/managed/hooks/check-secrets.sh"
+  ! output="$(validate_project "$project" 2>&1)" ||
+    fail 'reference to a missing managed implementation was accepted'
+  grep -Fq '.riprap/managed/hooks/check-secrets.sh' <<<"$output" ||
+    fail 'unresolved path was not identified'
 )
 
 # rq-e558bda9
@@ -157,14 +307,27 @@ test_direct_component_directories_are_absent() (
 )
 
 main() {
-  local temp project
+  local temp project language
   temp="$(mktemp -d)"; trap "rm -rf '$temp'" EXIT
-  project="$temp/project"
-  render_project "$project"
+
+  # Ownership and reference rules must hold for every rendered variant, not just the default.
+  for language in rust python; do
+    project="$temp/$language"
+    render_project "$project" "$language"
+    load_exceptions "$project"
+    validate_project "$project"
+  done
+
+  project="$temp/rust"
   test_rendered_project_separates_ownership_classes "$project"
   test_conventional_project_content_remains_user_owned "$project"
   test_root_launchers_are_managed_adapters "$project"
   test_unapproved_managed_exception_is_rejected "$project"
+  test_exception_without_marker_is_rejected "$project"
+  test_marker_exempt_exception_needs_no_marker "$project"
+  test_marker_exempt_is_rejected_for_commentable_format "$project"
+  test_undefined_component_directory_reference_is_rejected "$project"
+  test_missing_managed_reference_is_rejected "$project"
   test_layout_migration_preserves_existing_customizations
   test_layout_migration_rejects_conflicting_customizations
   test_ignore_rules_distinguish_machine_and_project_state "$project"

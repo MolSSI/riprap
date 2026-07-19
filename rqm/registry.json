@@ -103,7 +103,12 @@
     "decl": "## Required-Location Exceptions",
     "file": "template-ownership-layout",
     "level": 2,
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Required-Location Exceptions",
     "type": "section"
   },
@@ -183,6 +188,18 @@
     "title": "The Windows launcher validates the pin before building",
     "type": "scenario"
   },
+  "rq-215e96be": {
+    "decl": "Scenario: A reference to an undefined component directory fails validation",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A reference to an undefined component directory fails validation",
+    "type": "scenario"
+  },
   "rq-217d25aa": {
     "decl": "Scenario: A generated project uses the agent-neutral skill layout",
     "file": "agent-neutral-skills",
@@ -202,6 +219,18 @@
     "refs": [],
     "title": "Feature Interface",
     "type": "section"
+  },
+  "rq-23cdd66f": {
+    "decl": "Scenario: A marker-exempt exception needs no managed marker",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A marker-exempt exception needs no managed marker",
+    "type": "scenario"
   },
   "rq-26d8643a": {
     "decl": "Scenario: Windows and shell launchers agree at ISO year boundaries",
@@ -485,6 +514,18 @@
     "refs": [],
     "title": "Repository Leak Prevention",
     "type": "section"
+  },
+  "rq-64f745b6": {
+    "decl": "Scenario: An approved exception without a managed marker fails validation",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An approved exception without a managed marker fails validation",
+    "type": "scenario"
   },
   "rq-6b0d184f": {
     "decl": "Scenario: The Windows credential helper creates the same project identity",
@@ -1096,6 +1137,18 @@
     "title": "Agent Refresh Schedule",
     "type": "section"
   },
+  "rq-f3bedd31": {
+    "decl": "Scenario: A reference to a missing managed implementation fails validation",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A reference to a missing managed implementation fails validation",
+    "type": "scenario"
+  },
   "rq-f3cf5b0e": {
     "decl": "## Project Identity",
     "file": "agent-credential-isolation",
@@ -1160,7 +1213,12 @@
     "decl": "## Update and Validation Contract",
     "file": "template-ownership-layout",
     "level": 2,
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Update and Validation Contract",
     "type": "section"
   },
