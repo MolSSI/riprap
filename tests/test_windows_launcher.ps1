@@ -475,7 +475,8 @@ $invalidRunOptions = @(
     @{ Line = "device all"; Defect = "a line with both defects";
        Message = "an option must be a single argument with no spaces" },
     @{ Line = "--label=first`rsecond"; Defect = "an option containing an embedded carriage return";
-       Message = "an option must be a single argument with no spaces" }
+       Message = "an option must be a single argument with no spaces";
+       IdentifyingText = "--label=first" }
 )
 foreach ($case in $invalidRunOptions) {
     Test-Case "the Windows launcher rejects $($case.Defect)" {
@@ -486,7 +487,8 @@ foreach ($case in $invalidRunOptions) {
         if ($result.Output -notmatch [regex]::Escape($case.Message)) {
             Fail "the failure did not report '$($case.Message)': $($result.Output)"
         }
-        if ($result.Output -notmatch [regex]::Escape($case.Line)) {
+        $identifyingText = if ($case.IdentifyingText) { $case.IdentifyingText } else { $case.Line }
+        if ($result.Output -notmatch [regex]::Escape($identifyingText)) {
             Fail "the failure did not identify the offending line: $($result.Output)"
         }
         if ((Get-PodmanLog) -match "run --rm -it") { Fail "a container started despite $($case.Defect)" }
