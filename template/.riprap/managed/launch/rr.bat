@@ -77,5 +77,6 @@ exit /b 1
 call podman build -t %IMAGE% .
 
 powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\interface.ps1 -Image %IMAGE% -ProjectId %PROJECT_ID%
+if errorlevel 1 exit /b !ERRORLEVEL!
 
 pause

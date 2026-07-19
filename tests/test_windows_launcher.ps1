@@ -209,6 +209,7 @@ Test-Case "the Windows launcher stops on a tooling build failure" {
 Test-Case "the Windows launcher falls back to a compatible agent image" {
     $t = New-TestProject
     $key = Join-Path $t.Project ".riprap/state/podman/agent-build.env"
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $key) | Out-Null
     Set-Content -LiteralPath $key -Value @(
         "CLAUDE_VERSION=latest", "CODEX_VERSION=latest", "REFRESH=1970-W01",
         "INSTALLED_CLAUDE_VERSION=1.0.0", "INSTALLED_CODEX_VERSION=1.0.0")
@@ -420,7 +421,9 @@ Test-Case "the Windows reset requires explicit confirmation" {
 # rq-77328390
 Test-Case "a malformed project identity blocks the Windows launcher" {
     $t = New-TestProject
-    Set-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Value "not-a-uuid"
+    $idPath = Join-Path $t.Project ".riprap/state/project-id"
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $idPath) | Out-Null
+    Set-Content -LiteralPath $idPath -Value "not-a-uuid"
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -eq 0) { Fail "a malformed project identity did not stop the launch" }
     if ((Get-PodmanLog) -match "run --rm -it") { Fail "a development container started with a malformed identity" }
@@ -431,7 +434,7 @@ function Set-RunOptions($Project, [string[]]$Lines) {
 }
 
 function Get-RunLine {
-    $lines = (Get-PodmanLog) -split "`r?`n" | Where-Object { $_ -like "run --rm -it *" }
+    [array]$lines = (Get-PodmanLog) -split "`r?`n" | Where-Object { $_ -like "run --rm -it *" }
     if (-not $lines) { return "" }
     return $lines[-1]
 }
