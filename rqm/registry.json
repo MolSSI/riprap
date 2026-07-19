@@ -102,6 +102,18 @@
     "title": "Scanning outside a Git repository fails explicitly",
     "type": "scenario"
   },
+  "rq-0da67b01": {
+    "decl": "Scenario: A push to main runs repository CI",
+    "file": "repository-ci",
+    "refs": [
+      {
+        "file": "tests/test_repository_ci.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A push to main runs repository CI",
+    "type": "scenario"
+  },
   "rq-0e32b682": {
     "decl": "Scenario: Both launchers report the same defect for the same invalid run options",
     "file": "development-container",
@@ -255,6 +267,14 @@
     "title": "Credential-shaped reads are denied",
     "type": "scenario"
   },
+  "rq-1d50425d": {
+    "decl": "## Contributor Guidance",
+    "file": "generated-project-variants",
+    "level": 2,
+    "refs": [],
+    "title": "Contributor Guidance",
+    "type": "section"
+  },
   "rq-215e96be": {
     "decl": "Scenario: A reference to an undefined component directory fails validation",
     "file": "template-ownership-layout",
@@ -285,6 +305,14 @@
     "level": 2,
     "refs": [],
     "title": "Feature Interface",
+    "type": "section"
+  },
+  "rq-230de53f": {
+    "decl": "## Gherkin Scenarios",
+    "file": "repository-ci",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
     "type": "section"
   },
   "rq-23cdd66f": {
@@ -540,6 +568,18 @@
     "title": "Python Documentation",
     "type": "section"
   },
+  "rq-56ec2cc3": {
+    "decl": "Scenario: Contributor guidance does not invent a test command",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Contributor guidance does not invent a test command",
+    "type": "scenario"
+  },
   "rq-5724d2c4": {
     "decl": "Scenario: Documentation without a generated Python package is self-contained",
     "file": "generated-project-variants",
@@ -551,6 +591,13 @@
     ],
     "title": "Documentation without a generated Python package is self-contained",
     "type": "scenario"
+  },
+  "rq-574589db": {
+    "decl": "# Feature: Riprap Repository Continuous Integration",
+    "file": "repository-ci",
+    "refs": [],
+    "title": "Feature: Riprap Repository Continuous Integration",
+    "type": "file"
   },
   "rq-59ada47d": {
     "decl": "Scenario: Validation examines hidden directories in the template tree",
@@ -707,6 +754,18 @@
     "title": "An approved exception without a managed marker fails validation",
     "type": "scenario"
   },
+  "rq-69a673e1": {
+    "decl": "Scenario: Contributor guidance matches a generated language skeleton",
+    "file": "generated-project-variants",
+    "refs": [
+      {
+        "file": "tests/test_generated_project_variants.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Contributor guidance matches a generated language skeleton",
+    "type": "scenario"
+  },
   "rq-6b0d184f": {
     "decl": "Scenario: The Windows credential helper creates the same project identity",
     "file": "agent-credential-isolation",
@@ -737,6 +796,14 @@
     "level": 2,
     "refs": [],
     "title": "Launcher Validation",
+    "type": "section"
+  },
+  "rq-6f163c7d": {
+    "decl": "## Event Policy",
+    "file": "repository-ci",
+    "level": 2,
+    "refs": [],
+    "title": "Event Policy",
     "type": "section"
   },
   "rq-70d01853": {
@@ -1075,6 +1142,18 @@
       }
     ],
     "title": "Agent installation is isolated from the tooling image",
+    "type": "scenario"
+  },
+  "rq-b4c43b87": {
+    "decl": "Scenario: Every pull request runs repository CI",
+    "file": "repository-ci",
+    "refs": [
+      {
+        "file": "tests/test_repository_ci.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Every pull request runs repository CI",
     "type": "scenario"
   },
   "rq-b68a63b5": {
@@ -1466,6 +1545,18 @@
       }
     ],
     "title": "Shipped defaults cover the commands Riprap's own skills invoke",
+    "type": "scenario"
+  },
+  "rq-f5edc2ae": {
+    "decl": "Scenario: Other pushes do not run repository CI",
+    "file": "repository-ci",
+    "refs": [
+      {
+        "file": "tests/test_repository_ci.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Other pushes do not run repository CI",
     "type": "scenario"
   },
   "rq-f63c0743": {

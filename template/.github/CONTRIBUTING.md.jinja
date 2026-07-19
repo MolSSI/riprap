@@ -1,7 +1,7 @@
 # How to contribute
 
 We welcome contributions from external contributors, and this document
-describes how to merge code changes into this {{ project_name }}. 
+describes how to contribute code changes to {{ project_name }}.
 
 ## Getting Started
 
@@ -23,11 +23,14 @@ describes how to merge code changes into this {{ project_name }}.
   request](https://help.github.com/articles/using-pull-requests/) (PR). Note that
   after you launch a PR from one of your fork's branches, all
   subsequent commits to that branch will be added to the open pull request
-  automatically.  Each commit added to the PR will be validated for
-  mergability, compilation and test suite compliance; the results of these tests
+  automatically. Each commit added to the PR will be validated for
+  mergeability, compilation, and test-suite compliance; the results of these tests
   will be visible on the PR page.
 * If you're providing a new feature, you must add test cases and documentation.
-* When the code is ready to go, make sure you run the test suite using {% if language == "rust" %}`cargo test`{% else %}pytest{% endif %}.
+{% if create_rust_skeleton %}* When the code is ready to go, run the test suite using `cargo test`.
+{% elif create_python_skeleton %}* When the code is ready to go, run the test suite using `pytest`.
+{% else %}* When the code is ready to go, follow this project's test instructions before opening the PR.
+{% endif %}
 * When you're ready to be considered for merging, check the "Ready to go"
   box on the PR page to let the {{ project_name }} devs know that the changes are complete.
   The code will not be merged until this box is checked, the continuous

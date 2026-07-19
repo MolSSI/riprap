@@ -99,7 +99,7 @@ coincidence rather than by construction, and would retire the seeding path untes
 it was introduced.
 
 Beyond the rendered instance, the repository also carries development and evaluation artifacts that
-the template never distributes: Riprap' own requirements under `rqm/`, its tests, and
+the template never distributes: Riprap's own requirements under `rqm/`, its tests, and
 point-in-time analyses under `review/`. The `review/` directory holds occasional AI-generated
 assessments of the project itself — for example, comparisons against similar tools or security
 reviews — each recorded at `review/<category>/<date>/README.md` with its goal, date, corresponding
@@ -157,7 +157,7 @@ lives in focused requirements documents under `rqm/`; implementation follows tho
 Stable opaque identifiers provide traceability for requirements that correspond to executable code
 or tests.
 
-Riprap' own traceability identifiers belong to the top-level repository: its requirements under
+Riprap's own traceability identifiers belong to the top-level repository: its requirements under
 `rqm/` and the implementation or tests that satisfy them outside `template/`. Concrete
 `rq-XXXXXXXX` identifiers from the Riprap repository do not appear anywhere under `template/`.
 Template content is distributed into generated repositories, whose requirements and traceability

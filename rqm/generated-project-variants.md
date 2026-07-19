@@ -2,7 +2,9 @@
 
 Every supported answer combination renders a coherent project. Optional documentation describes
 only artifacts that exist in the rendered or pre-existing project, and generated licensing material
-contains the notices and complete license texts needed to communicate the selected terms.
+contains the notices and complete license texts needed to communicate the selected terms. Generated
+contributor guidance distinguishes commands supplied by a rendered skeleton from commands that an
+existing project must define for itself.
 
 ## Python Documentation <!-- rq-51db1fdd -->
 
@@ -31,6 +33,15 @@ contains the notices and complete license texts needed to communicate the select
   SPDX license in a generated language manifest.
 - License texts remain unmodified upstream legal texts. Project-specific names, authors, years, and
   explanatory notices live outside those verbatim texts.
+
+## Contributor Guidance <!-- rq-1d50425d -->
+
+- Contributor guidance is grammatical and refers to the generated project by name.
+- When Riprap creates a Rust or Python skeleton, contributor guidance names the corresponding
+  rendered test command.
+- When a project omits its language skeleton, contributor guidance does not claim that Riprap
+  supplied a test command or prescribe a command whose supporting files were not rendered. It
+  directs contributors to the project's own test instructions instead.
 
 ## Gherkin Scenarios <!-- rq-7de9b8bd -->
 
@@ -76,4 +87,17 @@ Feature: Render coherent project variants
     When the project is rendered
     Then no open-source license text is generated
     And generated language metadata makes no open-source SPDX license claim
+
+  @rq-69a673e1
+  Scenario: Contributor guidance matches a generated language skeleton
+    Given a project requests a Rust or Python language skeleton
+    When the project is rendered
+    Then its contributor guidance names the test command supplied by that skeleton
+
+  @rq-56ec2cc3
+  Scenario: Contributor guidance does not invent a test command
+    Given a project omits its language skeleton
+    When the project is rendered
+    Then its contributor guidance does not prescribe a language test command supplied by Riprap
+    And it directs contributors to the project's own test instructions
 ```

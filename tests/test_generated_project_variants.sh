@@ -17,11 +17,11 @@ render_python() {
 }
 
 render_rust() {
-  local destination="$1" license="$2"
+  local destination="$1" license="$2" skeleton="${3:-true}"
   copier copy --defaults --vcs-ref HEAD \
     --data project_name='Variant Test' --data project_slug='variant-test' \
     --data project_description='Exercises coherent generated variants' \
-    --data language=rust --data include_rust_skeleton=true \
+    --data language=rust --data include_rust_skeleton="$skeleton" \
     --data author_name='Variant Author' --data author_email='variant@example.com' \
     --data copyright_year=2042 --data open_source_license="$license" \
     "$ROOT" "$destination" >/dev/null
@@ -98,9 +98,41 @@ test_closed_source_variant_makes_no_open_source_claim() (
   ! grep -Eq '^license(-file)?[[:space:]]*=' "$project/Cargo.toml" || fail 'closed-source manifest claims an open-source license'
 )
 
+# rq-69a673e1
+test_contributor_guidance_matches_generated_skeleton() (
+  local temp rust_project python_project
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  rust_project="$temp/rust-project"
+  python_project="$temp/python-project"
+  render_rust "$rust_project" 'Not Open Source' true
+  render_python "$python_project" true false 'Not Open Source' 'Dependencies from pip only (no conda)'
+  grep -Fq 'run the test suite using `cargo test`' "$rust_project/.github/CONTRIBUTING.md" ||
+    fail 'Rust contributor guidance omits the rendered skeleton test command'
+  grep -Fq 'run the test suite using `pytest`' "$python_project/.github/CONTRIBUTING.md" ||
+    fail 'Python contributor guidance omits the rendered skeleton test command'
+)
+
+# rq-56ec2cc3
+test_contributor_guidance_does_not_invent_test_command() (
+  local temp rust_project python_project project
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  rust_project="$temp/rust-project"
+  python_project="$temp/python-project"
+  render_rust "$rust_project" 'Not Open Source' false
+  render_python "$python_project" false false 'Not Open Source' 'Dependencies from pip only (no conda)'
+  for project in "$rust_project" "$python_project"; do
+    ! grep -Eq '`cargo test`|`pytest`' "$project/.github/CONTRIBUTING.md" ||
+      fail 'skeleton-free contributor guidance invents a language test command'
+    grep -Fq "follow this project's test instructions" "$project/.github/CONTRIBUTING.md" ||
+      fail 'skeleton-free contributor guidance does not defer to project test instructions'
+  done
+)
+
 test_docs_without_package_are_self_contained
 test_docs_with_package_describe_generated_package
 test_lgpl_distribution_is_complete
 test_permissive_licenses_carry_project_notice
 test_closed_source_variant_makes_no_open_source_claim
+test_contributor_guidance_matches_generated_skeleton
+test_contributor_guidance_does_not_invent_test_command
 printf 'PASS: generated project variants are coherent\n'

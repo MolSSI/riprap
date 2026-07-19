@@ -22,15 +22,12 @@ _skip_if_exists:
   # GitHub prose files: seeded once, owned by the user thereafter.
   - /.github/CONTRIBUTING.md
   - /.github/PULL_REQUEST_TEMPLATE.md
-  - /CODE_OF_CONDUCT.md
   # Documentation skeleton: seeded once, owned by the user thereafter
   - /docs/**
   - /.readthedocs.yaml
   # Architecture overview: seeded once, filled out via rr-architecture,
   # owned by the user thereafter
   - /rqm/ARCHITECTURE.md
-  # Stable local-resource identity, created on first launch and owned by the project.
-  - /.riprap/state/project-id
   # Container run options: seeded fully commented, then owned by the user, whose
   # enabled options must survive an update.
   - /.riprap/user/podman/run-options

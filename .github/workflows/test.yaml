@@ -1,12 +1,11 @@
 name: Test Riprap
 
+# rq-b4c43b87 rq-0da67b01 rq-f5edc2ae
 on:
   push:
     branches:
-      - '**'
+      - main
   pull_request:
-    branches:
-      - '**'
 
 permissions:
   contents: read
@@ -38,6 +37,9 @@ jobs:
 
       - name: Test generated project variants
         run: bash tests/test_generated_project_variants.sh
+
+      - name: Test repository CI event policy
+        run: bash tests/test_repository_ci.sh
 
       - name: Test requirements tooling
         run: bash template/.riprap/managed/skills/rr-plan/tests/test_rqm.sh
