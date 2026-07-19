@@ -42,11 +42,13 @@ set "CODEX_VERSION="
 for /f "tokens=1" %%i in ('podman run --rm guardrails-agent:candidate claude --version') do set CLAUDE_VERSION=%%i
 for /f "tokens=2" %%i in ('podman run --rm guardrails-agent:candidate codex --version') do set CODEX_VERSION=%%i
 set "GUARDRAILS_VERSION_TO_CHECK=!CLAUDE_VERSION!"
-powershell -NoProfile -Command "if ($env:GUARDRAILS_VERSION_TO_CHECK -notmatch '^\d+\.\d+\.\d+$') { exit 1 }"
+powershell -NoProfile -Command "if ($env:GUARDRAILS_VERSION_TO_CHECK -notmatch '\d+\.\d+\.\d+') { exit 1 }"
 if errorlevel 1 goto agent_refresh_failed
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "[regex]::Match($env:GUARDRAILS_VERSION_TO_CHECK, '\d+\.\d+\.\d+').Value"`) do set CLAUDE_VERSION=%%i
 set "GUARDRAILS_VERSION_TO_CHECK=!CODEX_VERSION!"
-powershell -NoProfile -Command "if ($env:GUARDRAILS_VERSION_TO_CHECK -notmatch '^\d+\.\d+\.\d+$') { exit 1 }"
+powershell -NoProfile -Command "if ($env:GUARDRAILS_VERSION_TO_CHECK -notmatch '\d+\.\d+\.\d+') { exit 1 }"
 if errorlevel 1 goto agent_refresh_failed
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "[regex]::Match($env:GUARDRAILS_VERSION_TO_CHECK, '\d+\.\d+\.\d+').Value"`) do set CODEX_VERSION=%%i
 set "GUARDRAILS_VERSION_TO_CHECK="
 podman build -f .guardrails\podman\AgentLabels.Containerfile --build-arg CLAUDE_VERSION=!CLAUDE_VERSION! --build-arg CODEX_VERSION=!CODEX_VERSION! --build-arg TOOLING_IMAGE_ID=!TOOLING_ID! -t guardrails-agent:latest .guardrails\podman
 if errorlevel 1 goto agent_refresh_failed
