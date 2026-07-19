@@ -487,7 +487,11 @@ foreach ($case in $invalidRunOptions) {
         if ($result.Output -notmatch [regex]::Escape($case.Message)) {
             Fail "the failure did not report '$($case.Message)': $($result.Output)"
         }
-        $identifyingText = if ($case.IdentifyingText) { $case.IdentifyingText } else { $case.Line }
+        $identifyingText = if ($case.ContainsKey("IdentifyingText")) {
+            $case["IdentifyingText"]
+        } else {
+            $case["Line"]
+        }
         if ($result.Output -notmatch [regex]::Escape($identifyingText)) {
             Fail "the failure did not identify the offending line: $($result.Output)"
         }
