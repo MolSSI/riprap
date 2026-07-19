@@ -464,6 +464,18 @@
     "title": "An unknown pin name stops the launch before any image is built",
     "type": "scenario"
   },
+  "rq-602c57d1": {
+    "decl": "Scenario: Project ignore rules survive a managed ignore-rule update",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Project ignore rules survive a managed ignore-rule update",
+    "type": "scenario"
+  },
   "rq-60eee682": {
     "decl": "# Feature: Agent Credential Isolation",
     "file": "agent-credential-isolation",

@@ -279,6 +279,54 @@ test_layout_migration_rejects_conflicting_customizations() (
     fail 'new customization changed during conflict handling'
 )
 
+# rq-602c57d1
+# The managed region precedes the project-owned one so that a managed rule change and a project's
+# own additions never touch the same lines. Without that ordering copier reports a conflict on
+# every update that follows a project adding an ignore rule.
+test_project_ignore_rules_survive_managed_update() (
+  local temp source project ignore
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  source="$temp/source"
+  project="$temp/project"
+
+  cp -a "$ROOT/." "$source/"
+  rm -rf "$source/.git"
+  git -C "$source" init --quiet
+  git -C "$source" config user.name 'Riprap Tests'
+  git -C "$source" config user.email 'riprap@example.com'
+  git -C "$source" add .
+  git -C "$source" commit --quiet -m 'template v1'
+  git -C "$source" tag v1.0.0
+
+  copier copy --trust --defaults --vcs-ref v1.0.0 \
+    --data project_name='Ignore Test' --data project_slug='ignore-test' \
+    --data project_description='Exercises ignore-region ownership' \
+    --data language=rust --data author_name='Riprap Tests' \
+    --data author_email='riprap@example.com' --data open_source_license=MIT \
+    "$source" "$project" >/dev/null
+  ignore="$project/.gitignore"
+  printf '/scratch/\n*.bin\n' >> "$ignore"
+  git -C "$project" init --quiet
+  git -C "$project" config user.name 'Riprap Tests'
+  git -C "$project" config user.email 'riprap@example.com'
+  git -C "$project" add .
+  git -C "$project" commit --quiet -m 'generated project with its own ignore rules'
+
+  # A managed-region change of the kind this file has historically received.
+  sed -i 's|^/\.env\.\*\.local$|/.env.*.local\n/.newagent/auth.json|' \
+    "$source/template/.gitignore.jinja"
+  git -C "$source" add template/.gitignore.jinja
+  git -C "$source" commit --quiet -m 'template v2'
+  git -C "$source" tag v2.0.0
+
+  copier update --trust --defaults --vcs-ref v2.0.0 "$project" >/dev/null
+
+  grep -Fq '/scratch/' "$ignore" || fail 'project ignore rule was lost by the update'
+  grep -Fq '*.bin' "$ignore" || fail 'project ignore rule was lost by the update'
+  grep -Fq '/.newagent/auth.json' "$ignore" || fail 'managed ignore rule did not propagate'
+  ! grep -q '<<<<<<<' "$ignore" || fail 'ignore-file update produced a merge conflict'
+)
+
 # rq-8b0a20e7
 test_ignore_rules_distinguish_machine_and_project_state() (
   local project="$1"
@@ -330,6 +378,7 @@ main() {
   test_missing_managed_reference_is_rejected "$project"
   test_layout_migration_preserves_existing_customizations
   test_layout_migration_rejects_conflicting_customizations
+  test_project_ignore_rules_survive_managed_update
   test_ignore_rules_distinguish_machine_and_project_state "$project"
   test_ownership_layout_has_no_symbolic_links "$project"
   test_direct_component_directories_are_absent "$project"

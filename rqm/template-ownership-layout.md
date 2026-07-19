@@ -64,6 +64,10 @@ external tool from discovering it.
   preserving user-owned files.
 - Generated ignore rules exclude machine-local state but do not hide shared project state,
   user-owned customization, or managed files.
+- A managed file that projects are expected to extend separates a managed region from a clearly
+  marked project-owned region, and orders the two so that `copier update` revises the managed
+  region without disturbing project content. Generated ignore rules follow this arrangement, with
+  the project-owned region last.
 - The rendered repository has one canonical ownership layout and no parallel canonical tree at
   direct `.riprap/skills`, `.riprap/hooks`, or `.riprap/podman` paths.
 
@@ -166,6 +170,15 @@ Feature: Make generated-file ownership visible from location
     When "copier update" applies the later revision
     Then the customized user-owned file is unchanged
     And the managed implementations contain the later revision
+
+  @rq-602c57d1
+  Scenario: Project ignore rules survive a managed ignore-rule update
+    Given a generated project has added rules to the project-owned region of its ignore file
+    And a later template revision adds a rule to the managed region
+    When "copier update" applies the later revision
+    Then the project's own rules are unchanged
+    And the managed rule is present
+    And the ignore file contains no merge conflict markers
 
   @rq-8b0a20e7
   Scenario: Ignore rules distinguish machine and project state
