@@ -1,5 +1,5 @@
 #!/bin/bash
-# .riprap/hooks/check-container.sh
+# .riprap/managed/hooks/check-container.sh
 
 # Check if running in a container
 is_containerized() {

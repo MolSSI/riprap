@@ -97,7 +97,7 @@ should look like a from-scratch description of the current intent.
 
 ## Example Requirements Files
 
-A complete example requirements file is available at `.riprap/skills/rr-plan/bse.md`. Read this file.
+A complete example requirements file is available at `.riprap/managed/skills/rr-plan/bse.md`. Read this file.
 
 ## Feature Scope
 
@@ -308,7 +308,7 @@ file must declare; see *Current-State Framing*.
 ## Traceability IDs
 
 Every requirements file uses stable opaque IDs (e.g. `rq-3a7f1c2e`) to tag headings, API items,
-and Gherkin scenarios. These IDs are managed by `.riprap/skills/rr-plan/rqm.sh`.
+and Gherkin scenarios. These IDs are managed by `.riprap/managed/skills/rr-plan/rqm.sh`.
 
 **Do not write placeholder IDs.** When drafting new requirements, leave all headings, API items,
 and Gherkin scenarios without any `rq-` annotation. Do not use `@rq-PENDING`,
@@ -318,8 +318,8 @@ automatically; placeholder text prevents it from doing so and must be cleaned up
 **After writing or modifying any requirements file**, run these two commands in order:
 
 ```
-.riprap/skills/rr-plan/rqm.sh stamp <path-to-file>
-.riprap/skills/rr-plan/rqm.sh index
+.riprap/managed/skills/rr-plan/rqm.sh stamp <path-to-file>
+.riprap/managed/skills/rr-plan/rqm.sh index
 ```
 
 `stamp` assigns fresh IDs to any entities that do not yet have one; it never changes existing IDs.
@@ -329,7 +329,7 @@ automatically; placeholder text prevents it from doing so and must be cleaned up
 ID and need more context about what it refers to, use:
 
 ```
-.riprap/skills/rr-plan/rqm.sh show rq-XXXXXXXX
+.riprap/managed/skills/rr-plan/rqm.sh show rq-XXXXXXXX
 ```
 
 This prints the type, file, title, declaration line, and source references for that ID. Use this
@@ -339,5 +339,5 @@ implements before proposing changes.
 
 ## Project-Specific Extensions
 
-Read `.riprap/skills/rr-plan/local.md` and follow any instructions it contains. Where those
+Read `.riprap/user/skills/rr-plan/local.md` and follow any instructions it contains. Where those
 instructions conflict with the instructions above, `local.md` takes precedence.

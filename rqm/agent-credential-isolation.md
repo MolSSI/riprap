@@ -8,12 +8,12 @@ so they run on every supported host.
 
 ## Project Identity <!-- rq-f3cf5b0e -->
 
-- `.riprap/project-id` contains a randomly generated UUID used only to identify the generated
+- `.riprap/state/project-id` contains a randomly generated UUID used only to identify the generated
   project's local Riprap resources.
 - The launch scripts create the file atomically on first use when it does not exist.
 - An existing identifier must be a canonical lowercase UUID. Launching fails with an actionable
   error rather than replacing a malformed identifier or following a symbolic link.
-- The identifier is non-secret, user-owned metadata intended to be committed so that directory
+- The identifier is non-secret shared project state intended to be committed so that directory
   moves and additional clones retain the same project identity.
 - Copier updates preserve the identifier.
 
@@ -47,7 +47,7 @@ so they run on every supported host.
   They reject nothing else, so no legitimate project content is hidden.
 - Legitimate versioned integration files such as `.codex/hooks.json`, `.claude/settings.json`, and
   agent skill adapters remain trackable.
-- A template-owned secret scanner examines staged Git content without printing matched secret
+- A managed secret scanner examines staged Git content without printing matched secret
   values. It rejects known credential paths, private-key material, and high-confidence supported
   token formats.
 - The scanner uses fake, unmistakably nonfunctional credentials in its tests.
@@ -61,9 +61,10 @@ so they run on every supported host.
 
 ## Cross-Platform Script Execution <!-- rq-9332ad0f -->
 
-- A template-owned `.gitattributes`, delivered and kept current through `copier update`, sets the
-  line endings of version-controlled Riprap files so that hooks and launch scripts run on Linux,
-  macOS, WSL, and Windows regardless of a contributor's `core.autocrlf` setting.
+- A managed `.gitattributes` required-location exception, delivered and kept current through
+  `copier update`, sets the line endings of version-controlled Riprap files so that hooks and launch
+  scripts run on Linux, macOS, WSL, and Windows regardless of a contributor's `core.autocrlf`
+  setting.
 - Shell scripts and Git hooks, including the extensionless `pre-commit` hook and `check-secrets.sh`,
   are checked out with LF endings so they execute under the bundled shell of Git for Windows.
 - PowerShell scripts are checked out with LF endings.
@@ -83,7 +84,7 @@ so they run on every supported host.
 ## Feature Interface <!-- rq-22e021a0 -->
 
 - `rr.sh` and `rr.bat`
-  - Ensure `.riprap/project-id` and the project-specific Claude and Codex volumes exist before
+  - Ensure `.riprap/state/project-id` and the project-specific Claude and Codex volumes exist before
     launching the development container.
   - Launch without exposing host agent configuration paths.
 - `rr.sh --reset-agent-state <claude|codex|all>` and the equivalent Windows command
@@ -92,9 +93,9 @@ so they run on every supported host.
 - `rr.sh --install-git-hooks` and the equivalent Windows command
   - Configure the generated repository to use Riprap' version-controlled hooks when no
     conflicting `core.hooksPath` is configured.
-- `.riprap/hooks/check-secrets.sh --staged`
+- `.riprap/managed/hooks/check-secrets.sh --staged`
   - Inspect staged paths and blobs and exit nonzero when a supported secret is detected.
-- `.riprap/hooks/check-secrets.sh --repository`
+- `.riprap/managed/hooks/check-secrets.sh --repository`
   - Inspect repository content in CI and exit nonzero when a supported secret is detected.
 
 ## Gherkin Scenarios <!-- rq-898cb6e0 -->
@@ -104,10 +105,10 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-9d9dea75
   Scenario: First launch creates a stable project identity and credential volumes
-    Given a generated project has no ".riprap/project-id"
+    Given a generated project has no ".riprap/state/project-id"
     And Podman has no credential volumes for the project
     When the project launcher starts the development environment
-    Then it atomically creates a canonical lowercase UUID in ".riprap/project-id"
+    Then it atomically creates a canonical lowercase UUID in ".riprap/state/project-id"
     And it creates distinct Claude and Codex named volumes containing that UUID
     And the container receives no bind mount from the host's Claude or Codex configuration paths
 
@@ -136,7 +137,7 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-6135fc70
   Scenario: A malformed project identity blocks launch safely
-    Given ".riprap/project-id" is malformed or is a symbolic link
+    Given ".riprap/state/project-id" is malformed or is a symbolic link
     When the project launcher starts the development environment
     Then launch fails before Podman runs
     And the existing path is not replaced or modified
@@ -153,8 +154,8 @@ Feature: Isolate agent credentials from generated projects
   Scenario: Version-controlled hooks and shell scripts are marked for LF checkout
     Given a project rendered from the Riprap template
     When the effective Git "eol" attribute is evaluated for the version-controlled scripts
-    Then ".riprap/hooks/pre-commit" has an "eol" attribute of "lf"
-    And ".riprap/hooks/check-secrets.sh" has an "eol" attribute of "lf"
+    Then ".riprap/managed/hooks/pre-commit" has an "eol" attribute of "lf"
+    And ".riprap/managed/hooks/check-secrets.sh" has an "eol" attribute of "lf"
     And "rr.sh" has an "eol" attribute of "lf"
 
   @rq-dbd3a295
@@ -211,9 +212,9 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-6b0d184f
   Scenario: The Windows credential helper creates the same project identity
-    Given a generated project has no ".riprap/project-id"
+    Given a generated project has no ".riprap/state/project-id"
     When the Windows credential helper ensures project state
-    Then it creates a canonical lowercase UUID in ".riprap/project-id"
+    Then it creates a canonical lowercase UUID in ".riprap/state/project-id"
     And it creates the Claude and Codex volume names the shell helper creates for that UUID
 
   @rq-5e481eb3
@@ -231,7 +232,7 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-77328390
   Scenario: A malformed project identity blocks the Windows launcher
-    Given ".riprap/project-id" is malformed
+    Given ".riprap/state/project-id" is malformed
     When the Windows launcher starts the development environment
     Then launching fails
     And no development container starts

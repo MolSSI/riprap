@@ -1,0 +1,12 @@
+# Managed files whose conventional or tool-mandated paths are outside .riprap/managed.
+# Paths ending in /** authorize every file beneath that directory.
+.agents/skills/**
+.claude/settings.json
+.claude/skills/**
+.codex/hooks.json
+.gitattributes
+.github/workflows/codeql.yaml
+.gitignore
+CLAUDE.md
+rr.bat
+rr.sh

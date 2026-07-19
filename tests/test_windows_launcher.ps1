@@ -133,15 +133,16 @@ function Invoke-Launcher([string]$Project) {
 
 function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
     $captureId = [Guid]::NewGuid().ToString("N")
-    $stdoutPath = Join-Path $Project ".riprap/agent-build-$captureId.stdout"
-    $stderrPath = Join-Path $Project ".riprap/agent-build-$captureId.stderr"
+    New-Item -ItemType Directory -Force -Path (Join-Path $Project ".riprap/state") | Out-Null
+    $stdoutPath = Join-Path $Project ".riprap/state/agent-build-$captureId.stdout"
+    $stderrPath = Join-Path $Project ".riprap/state/agent-build-$captureId.stderr"
     Push-Location $Project
     try {
         # Windows PowerShell 5.1 converts piped native stderr into formatted error records,
         # which can wrap and truncate diagnostics. Process-level redirection preserves the
         # exact streams emitted by the child.
         $processArguments = @(
-            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".riprap/agent-build.ps1") + $Arguments
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".riprap/managed/launch/agent-build.ps1") + $Arguments
         $process = Start-Process -FilePath "powershell.exe" -ArgumentList $processArguments `
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
@@ -158,7 +159,7 @@ function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
 function Get-PodmanLog { Get-Content -LiteralPath $env:PODMAN_LOG -Raw -ErrorAction SilentlyContinue }
 
 function Get-BuildKeyValue([string]$Project, [string]$Name) {
-    $path = Join-Path $Project ".riprap/podman/agent-build.env"
+    $path = Join-Path $Project ".riprap/state/podman/agent-build.env"
     if (-not (Test-Path -LiteralPath $path)) { return $null }
     foreach ($line in Get-Content -LiteralPath $path) {
         if ($line -match "^$Name=(.*)$") { return $Matches[1] }
@@ -184,7 +185,7 @@ Write-Host "Windows launcher validation"
 # rq-17a864bb
 Test-Case "the Windows launcher validates the pin before building" {
     $t = New-TestProject
-    Set-Content -LiteralPath (Join-Path $t.Project ".riprap/agent-pin.env") -Value "CLAUDE_VERSION=latest"
+    Set-Content -LiteralPath (Join-Path $t.Project ".riprap/user/agent-pin.env") -Value "CLAUDE_VERSION=latest"
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -eq 0) { Fail "a non-exact pin was accepted" }
     if ($result.Output -notmatch "CLAUDE_VERSION") { Fail "the offending assignment is not identified" }
@@ -199,7 +200,7 @@ Test-Case "the Windows launcher stops on a tooling build failure" {
     if ($result.ExitCode -eq 0) { Fail "a tooling build failure did not stop the launch" }
     if ($result.Output -notmatch "tooling image build failed") { Fail "the tooling failure was not identified" }
     if ($result.Output -match "agent refresh failed") { Fail "a tooling failure was described as a refresh failure" }
-    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/podman/agent-build.candidate.env")) {
+    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.candidate.env")) {
         Fail "the tooling failure left candidate state behind"
     }
 }
@@ -207,7 +208,7 @@ Test-Case "the Windows launcher stops on a tooling build failure" {
 # rq-b68a63b5
 Test-Case "the Windows launcher falls back to a compatible agent image" {
     $t = New-TestProject
-    $key = Join-Path $t.Project ".riprap/podman/agent-build.env"
+    $key = Join-Path $t.Project ".riprap/state/podman/agent-build.env"
     Set-Content -LiteralPath $key -Value @(
         "CLAUDE_VERSION=latest", "CODEX_VERSION=latest", "REFRESH=1970-W01",
         "INSTALLED_CLAUDE_VERSION=1.0.0", "INSTALLED_CODEX_VERSION=1.0.0")
@@ -220,7 +221,7 @@ Test-Case "the Windows launcher falls back to a compatible agent image" {
     if ($result.Output -notmatch "agent refresh failed") { Fail "the failed refresh was not reported" }
     if ((Get-PodmanLog) -notmatch "run --rm") { Fail "no development container was started" }
     if ((Get-FileHash -LiteralPath $key).Hash -ne $before.Hash) { Fail "a failed refresh changed the successful build key" }
-    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/podman/agent-build.candidate.env")) {
+    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.candidate.env")) {
         Fail "a failed refresh left candidate state behind"
     }
 }
@@ -249,7 +250,7 @@ Test-Case "the Windows launcher refuses an agent version it cannot parse" {
         if ($result.ExitCode -eq 0) { Fail "an unparseable agent version was accepted" }
         if ((Get-PodmanLog) -match "AgentLabels") { Fail "the agent image was labeled with an unparseable version" }
         if ((Get-PodmanLog) -match "9\.9\.9") { Fail "an ambient CLAUDE_VERSION reached the image labels" }
-        if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/podman/agent-build.env")) {
+        if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.env")) {
             Fail "an unparseable version was promoted to the successful build key"
         }
     } finally { Remove-Item Env:CLAUDE_VERSION -ErrorAction SilentlyContinue }
@@ -288,7 +289,7 @@ Test-Case "Windows and shell launchers agree at ISO year boundaries" {
     try {
         foreach ($date in $dates.Keys) {
             $expected = $dates[$date]
-            $shell = (& $bash.Source ".riprap/agent-build.sh" week $date 2>&1 | Out-String).Trim()
+            $shell = (& $bash.Source ".riprap/managed/launch/agent-build.sh" week $date 2>&1 | Out-String).Trim()
             $windows = (Invoke-AgentBuild $t.Project @("week", $date)).Output.Trim()
             if ($shell -ne $expected) { Fail "the shell stamp for $date is '$shell', not '$expected'" }
             if ($windows -ne $expected) { Fail "the Windows stamp for $date is '$windows', not '$expected'" }
@@ -302,7 +303,7 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
     $bash = Get-Command bash -ErrorAction SilentlyContinue
     if (-not $bash) { Fail "bash is required to compare the two implementations" }
     $t = New-TestProject
-    $pin = Join-Path $t.Project ".riprap/agent-pin.env"
+    $pin = Join-Path $t.Project ".riprap/user/agent-pin.env"
 
     $pins = @(
         @("",                                       "an empty pin"),
@@ -320,7 +321,7 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
         $savedPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = "Continue"
-            $shellOutput = & $bash.Source ".riprap/agent-build.sh" prepare 2>&1
+            $shellOutput = & $bash.Source ".riprap/managed/launch/agent-build.sh" prepare 2>&1
             $shell = ($shellOutput | ForEach-Object { $_.ToString() }) -join "`n"
         } finally {
             $ErrorActionPreference = $savedPreference
@@ -344,7 +345,7 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
 Test-Case "a Windows checkout carries the line endings its interpreters need" {
     $tracked = & git -C $Root ls-files -- template
     if ($LASTEXITCODE -ne 0) { Fail "could not enumerate version-controlled scripts" }
-    $lfPaths = @($tracked | Where-Object { $_ -match '\.(sh|ps1)$' }) + @("template/.riprap/hooks/pre-commit")
+    $lfPaths = @($tracked | Where-Object { $_ -match '\.(sh|ps1)$' }) + @("template/.riprap/managed/hooks/pre-commit")
     $crlfPaths = @($tracked | Where-Object { $_ -match '\.(bat|cmd)$' })
 
     foreach ($relative in $lfPaths | Sort-Object -Unique) {
@@ -370,7 +371,7 @@ Test-Case "the Windows credential helper creates the same project identity" {
     $t = New-TestProject
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
-    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/project-id") -Raw).Trim()
+    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
     if ($id -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$') {
         Fail "the project identity '$id' is not a canonical lowercase UUID"
     }
@@ -385,7 +386,7 @@ Test-Case "the Windows credential helper creates the same project identity" {
 Test-Case "the Windows credential helper reuses an existing project identity" {
     $t = New-TestProject
     Invoke-Launcher $t.Project | Out-Null
-    $idPath = Join-Path $t.Project ".riprap/project-id"
+    $idPath = Join-Path $t.Project ".riprap/state/project-id"
     $first = (Get-Content -LiteralPath $idPath -Raw).Trim()
     foreach ($agent in @("claude", "codex")) {
         New-Item -ItemType File -Force -Path (Join-Path $env:MOCK_VOLUMES "riprap-$first-$agent/marker") | Out-Null
@@ -406,7 +407,7 @@ Test-Case "the Windows credential helper reuses an existing project identity" {
 Test-Case "the Windows reset requires explicit confirmation" {
     $t = New-TestProject
     Invoke-Launcher $t.Project | Out-Null
-    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/project-id") -Raw).Trim()
+    $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
     Push-Location $t.Project
     try { cmd.exe /c "rr.bat --reset-agent-state all <NUL 2>&1" | Out-Null } finally { Pop-Location }
     foreach ($agent in @("claude", "codex")) {
@@ -419,14 +420,14 @@ Test-Case "the Windows reset requires explicit confirmation" {
 # rq-77328390
 Test-Case "a malformed project identity blocks the Windows launcher" {
     $t = New-TestProject
-    Set-Content -LiteralPath (Join-Path $t.Project ".riprap/project-id") -Value "not-a-uuid"
+    Set-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Value "not-a-uuid"
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -eq 0) { Fail "a malformed project identity did not stop the launch" }
     if ((Get-PodmanLog) -match "run --rm -it") { Fail "a development container started with a malformed identity" }
 }
 
 function Set-RunOptions($Project, [string[]]$Lines) {
-    Set-Content -LiteralPath (Join-Path $Project ".riprap/podman/run-options") -Value $Lines
+    Set-Content -LiteralPath (Join-Path $Project ".riprap/user/podman/run-options") -Value $Lines
 }
 
 function Get-RunLine {

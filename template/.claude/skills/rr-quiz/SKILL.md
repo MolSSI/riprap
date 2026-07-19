@@ -4,4 +4,4 @@ description: Give the user a short multiple-choice quiz that tests their underst
 allowed-tools: Read, Grep, Glob
 ---
 
-Read `.riprap/skills/rr-quiz/SKILL.md` completely and follow it as the authoritative workflow.
+Read `.riprap/managed/skills/rr-quiz/SKILL.md` completely and follow it as the authoritative workflow.

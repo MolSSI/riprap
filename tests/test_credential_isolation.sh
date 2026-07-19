@@ -15,7 +15,7 @@ render_project() {
     # A dependency-free fallback exercises static runtime files in minimal dev images.
     mkdir -p "$1"; cp -a "$ROOT/template/." "$1/"
     mv "$1/.gitignore.jinja" "$1/.gitignore"
-    mv "$1/.riprap/podman/image_name.jinja" "$1/.riprap/podman/image_name"
+    mv "$1/.riprap/managed/podman/image_name.jinja" "$1/.riprap/managed/podman/image_name"
     mv "$1/.claude/settings.json.jinja" "$1/.claude/settings.json"
   fi
 }
@@ -23,6 +23,7 @@ render_project() {
 setup_project() {
   TEST_TMP="$(mktemp -d)"; PROJECT="$TEST_TMP/project"; MOCK_BIN="$TEST_TMP/bin"
   mkdir -p "$MOCK_BIN" "$TEST_TMP/volumes"; render_project "$PROJECT"
+  mkdir -p "$PROJECT/.riprap/state/podman"
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
 echo "$*" >> "$PODMAN_LOG"
@@ -44,10 +45,10 @@ MOCK
   : > "$PODMAN_LOG"
 }
 
-# rq-9d9dea75
+# rq-9d9dea75 rq-37192a21
 test_first_launch_isolated_volumes() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
-  id=$(cat .riprap/project-id)
+  id=$(cat .riprap/state/project-id)
   [[ "$id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || fail 'invalid UUID'
   test -d "$MOCK_VOLUMES/riprap-$id-claude"; test -d "$MOCK_VOLUMES/riprap-$id-codex"
   ! grep -Eq " -v ${HOME}/\.(claude|codex|claude\.json)" "$PODMAN_LOG" || fail 'host agent configuration was mounted'
@@ -55,8 +56,8 @@ test_first_launch_isolated_volumes() (
 
 # rq-113c8ccd
 test_later_launch_reuses_state() (
-  setup_project; cd "$PROJECT"; .riprap/credential-state.sh ensure >/dev/null
-  id=$(cat .riprap/project-id); touch "$MOCK_VOLUMES/riprap-$id-claude/marker" "$MOCK_VOLUMES/riprap-$id-codex/marker"
+  setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
+  id=$(cat .riprap/state/project-id); touch "$MOCK_VOLUMES/riprap-$id-claude/marker" "$MOCK_VOLUMES/riprap-$id-codex/marker"
   bash rr.sh </dev/null
   test -f "$MOCK_VOLUMES/riprap-$id-claude/marker"; test -f "$MOCK_VOLUMES/riprap-$id-codex/marker"
 )
@@ -64,7 +65,7 @@ test_later_launch_reuses_state() (
 # rq-fb3e7cc2
 test_claude_config_stored_in_volume() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
-  id=$(cat .riprap/project-id)
+  id=$(cat .riprap/state/project-id)
   # The Claude configuration directory must resolve to the same container path where the
   # persistent Claude volume is mounted, so the top-level configuration file is stored in
   # the volume rather than the disposable container.
@@ -74,16 +75,16 @@ test_claude_config_stored_in_volume() (
 
 # rq-6135fc70
 test_bad_identity_blocks_podman() (
-  setup_project; cd "$PROJECT"; printf 'bad\n' > .riprap/project-id
-  before=$(cksum .riprap/project-id); ! bash rr.sh </dev/null 2>/dev/null || fail 'malformed ID accepted'
-  test "$before" = "$(cksum .riprap/project-id)"; test ! -s "$PODMAN_LOG"
-  rm .riprap/project-id; ln -s nowhere .riprap/project-id
-  ! bash rr.sh </dev/null 2>/dev/null || fail 'symlink ID accepted'; test -L .riprap/project-id; test ! -s "$PODMAN_LOG"
+  setup_project; cd "$PROJECT"; mkdir -p .riprap/state; printf 'bad\n' > .riprap/state/project-id
+  before=$(cksum .riprap/state/project-id); ! bash rr.sh </dev/null 2>/dev/null || fail 'malformed ID accepted'
+  test "$before" = "$(cksum .riprap/state/project-id)"; test ! -s "$PODMAN_LOG"
+  rm .riprap/state/project-id; ln -s nowhere .riprap/state/project-id
+  ! bash rr.sh </dev/null 2>/dev/null || fail 'symlink ID accepted'; test -L .riprap/state/project-id; test ! -s "$PODMAN_LOG"
 )
 
 # rq-f957f555
 test_reset_is_project_and_agent_scoped() (
-  setup_project; cd "$PROJECT"; .riprap/credential-state.sh ensure >/dev/null; first=$(cat .riprap/project-id)
+  setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null; first=$(cat .riprap/state/project-id)
   second=11111111-1111-4111-8111-111111111111
   mkdir "$MOCK_VOLUMES/riprap-$second-claude" "$MOCK_VOLUMES/riprap-$second-codex"
   bash rr.sh --reset-agent-state codex --yes >/dev/null
@@ -107,14 +108,14 @@ test_staged_secrets_rejected_without_disclosure() (
   # Assemble the fake token from a separate sigil and body so this test file never contains a
   # literal secret; otherwise the pre-commit scanner would reject the file when it is committed.
   fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="sk-$fake"; printf '%s\n' "$token" > accidental.txt; git add -f accidental.txt
-  ! output=$(.riprap/hooks/check-secrets.sh --staged 2>&1) || fail 'fake token accepted'
+  ! output=$(.riprap/managed/hooks/check-secrets.sh --staged 2>&1) || fail 'fake token accepted'
   grep -Fq 'accidental.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
 # rq-0bb9767e
 test_legitimate_integration_passes() (
   setup_project; cd "$PROJECT"; git init -q; git add .codex/hooks.json .claude/settings.json .agents/skills/rr-plan/SKILL.md
-  .riprap/hooks/check-secrets.sh --staged
+  .riprap/managed/hooks/check-secrets.sh --staged
 )
 
 # rq-50bb2037
@@ -131,11 +132,11 @@ test_repository_scan_needs_no_hook() (
   # committed test file holds no literal secret for the pre-commit scanner to reject.
   fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="ghp_$fake"; printf '%s\n' "$token" > tracked.txt
   git add -f tracked.txt; git commit -qm fake; test -z "$(git config --get core.hooksPath || true)"
-  ! output=$(.riprap/hooks/check-secrets.sh --repository 2>&1) || fail 'repository token accepted'
+  ! output=$(.riprap/managed/hooks/check-secrets.sh --repository 2>&1) || fail 'repository token accepted'
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
-build_key() { sed -n "s/^$1=//p" .riprap/podman/agent-build.env | head -n 1; }
+build_key() { sed -n "s/^$1=//p" .riprap/state/podman/agent-build.env | head -n 1; }
 
 # rq-7c6a2afa
 test_unpinned_launch_records_week_and_latest() (
@@ -151,9 +152,9 @@ test_unpinned_launch_records_week_and_latest() (
 # rq-145d819f
 test_second_launch_in_same_week_is_unchanged() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
-  before=$(cksum .riprap/podman/agent-build.env)
+  before=$(cksum .riprap/state/podman/agent-build.env)
   bash rr.sh </dev/null
-  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'build key changed within one week'
+  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'build key changed within one week'
 )
 
 # A new week must change the key. The stamp is compared against a key left over from an
@@ -162,7 +163,7 @@ test_second_launch_in_same_week_is_unchanged() (
 test_new_week_changes_the_build_key() (
   setup_project; cd "$PROJECT"
   printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\n' \
-    > .riprap/podman/agent-build.env
+    > .riprap/state/podman/agent-build.env
   bash rr.sh </dev/null
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'a new week did not update the build key'
 )
@@ -170,15 +171,15 @@ test_new_week_changes_the_build_key() (
 # rq-c82c7b32
 test_pin_installs_exact_release_and_suspends_refresh() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/agent-pin.env
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/user/agent-pin.env
   bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = 0.144.6 || fail 'Codex pin not recorded'
   test "$(build_key REFRESH)" = pinned || fail 'a fully pinned key still records a week'
   # A later week must not disturb a fully pinned key.
-  before=$(cksum .riprap/podman/agent-build.env)
+  before=$(cksum .riprap/state/podman/agent-build.env)
   bash rr.sh </dev/null
-  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'pinned key changed'
+  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'pinned key changed'
 )
 
 # An agent left out of the pin must keep tracking its current release, which requires the
@@ -186,7 +187,7 @@ test_pin_installs_exact_release_and_suspends_refresh() (
 # rq-c82c7b32
 test_partial_pin_keeps_the_unpinned_agent_current() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\n' > .riprap/agent-pin.env
+  printf 'CLAUDE_VERSION=2.1.205\n' > .riprap/user/agent-pin.env
   bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = latest || fail 'unpinned Codex was pinned'
@@ -197,9 +198,9 @@ test_partial_pin_keeps_the_unpinned_agent_current() (
 # rq-b06efb1e
 test_removing_the_pin_restores_the_schedule() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/agent-pin.env
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/user/agent-pin.env
   bash rr.sh </dev/null
-  rm .riprap/agent-pin.env
+  rm .riprap/user/agent-pin.env
   bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude did not return to the schedule'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'the week was not restored'
@@ -208,7 +209,7 @@ test_removing_the_pin_restores_the_schedule() (
 # rq-6c8f6c05
 test_malformed_pin_stops_the_launch() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=latest\n' > .riprap/agent-pin.env
+  printf 'CLAUDE_VERSION=latest\n' > .riprap/user/agent-pin.env
   ! output=$(bash rr.sh </dev/null 2>&1) || fail 'a non-exact pin was accepted'
   grep -Fq 'CLAUDE_VERSION' <<<"$output" || fail 'the offending assignment is not identified'
   # Ensuring the credential volumes already logged podman calls, so look for a build.
@@ -216,7 +217,7 @@ test_malformed_pin_stops_the_launch() (
 )
 
 assert_invalid_pin() (
-  setup_project; cd "$PROJECT"; printf '%b' "$1" > .riprap/agent-pin.env
+  setup_project; cd "$PROJECT"; printf '%b' "$1" > .riprap/user/agent-pin.env
   ! output=$(bash rr.sh </dev/null 2>&1) || fail "$2 was accepted"
   grep -Fiq "$3" <<<"$output" || fail "$2 did not identify $3"
   ! grep -q '^build ' "$PODMAN_LOG" || fail "an image was built for $2"
@@ -244,8 +245,8 @@ test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n
 # rq-dc4bf1b1
 test_failed_refresh_falls_back_to_existing_image() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .riprap/podman/agent-build.env
-  before=$(cksum .riprap/podman/agent-build.env)
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .riprap/state/podman/agent-build.env
+  before=$(cksum .riprap/state/podman/agent-build.env)
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
 echo "$*" >> "$PODMAN_LOG"
@@ -260,8 +261,8 @@ MOCK
   output=$(bash rr.sh </dev/null 2>&1) || fail 'launch aborted despite an existing base image'
   grep -Fq 'refresh failed' <<<"$output" || fail 'the failed refresh was not reported'
   grep -q 'run --rm' "$PODMAN_LOG" || fail 'no development container was started'
-  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'failed refresh changed successful state'
-  test ! -e .riprap/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
+  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'failed refresh changed successful state'
+  test ! -e .riprap/state/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
 )
 
 # rq-152d1311
@@ -298,7 +299,7 @@ MOCK
   ! output=$(bash rr.sh </dev/null 2>&1) || fail 'tooling build failure used fallback'
   grep -Fq 'tooling image build failed' <<<"$output" || fail 'tooling failure was not identified'
   ! grep -Fq 'agent refresh failed' <<<"$output" || fail 'tooling failure was mislabeled as refresh failure'
-  test ! -e .riprap/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
+  test ! -e .riprap/state/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
 )
 
 # The shell stamp is checked against ISO-8601 directly. Agreement between this
@@ -310,7 +311,7 @@ test_iso_week_matches_iso8601() (
   for pair in 2019-12-30=2020-W01 2020-12-31=2020-W53 2021-01-01=2020-W53 \
               2021-01-04=2021-W01 2022-01-01=2021-W52 2024-12-30=2025-W01 \
               2026-12-31=2026-W53 2017-01-01=2016-W52 2023-06-15=2023-W24; do
-    actual=$(.riprap/agent-build.sh week "${pair%%=*}")
+    actual=$(.riprap/managed/launch/agent-build.sh week "${pair%%=*}")
     test "$actual" = "${pair#*=}" || fail "week ${pair%%=*} is '$actual', not '${pair#*=}'"
   done
 )
@@ -326,8 +327,8 @@ done
 printf '2042-W07\n'
 MOCK
   chmod +x "$MOCK_BIN/date"
-  .riprap/agent-build.sh prepare
-  refresh=$(sed -n 's/^REFRESH=//p' .riprap/podman/agent-build.candidate.env)
+  .riprap/managed/launch/agent-build.sh prepare
+  refresh=$(sed -n 's/^REFRESH=//p' .riprap/state/podman/agent-build.candidate.env)
   test "$refresh" = 2042-W07 || fail 'the current refresh stamp did not use the portable date path'
 )
 
@@ -336,7 +337,7 @@ MOCK
 # rq-c2cdf6d8
 test_unknown_pin_name_outranks_a_bad_value() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSOIN=not-a-version\n' > .riprap/agent-pin.env
+  printf 'CLAUDE_VERSOIN=not-a-version\n' > .riprap/user/agent-pin.env
   ! output=$(bash rr.sh </dev/null 2>&1) || fail 'an unknown pin name was accepted'
   grep -Fq 'unknown assignment' <<<"$output" || fail 'the unknown name was not identified'
   ! grep -Fq 'exact release version' <<<"$output" || fail 'the value format outranked the unknown name'
@@ -379,16 +380,16 @@ MOCK
   chmod +x "$MOCK_BIN/podman"
   ! bash rr.sh </dev/null >/dev/null 2>&1 || fail 'an unparseable agent version was accepted'
   ! grep -q 'AgentLabels' "$PODMAN_LOG" || fail 'the agent image was labeled with an unparseable version'
-  test ! -e .riprap/podman/agent-build.env || fail 'an unparseable version was promoted'
+  test ! -e .riprap/state/podman/agent-build.env || fail 'an unparseable version was promoted'
 )
 
 # rq-ac53295e
 test_build_key_is_not_committed() (
   setup_project; cd "$PROJECT"; git init -q; bash rr.sh </dev/null
-  test -f .riprap/podman/agent-build.env || fail 'the launcher did not write a build key'
-  git check-ignore -q .riprap/podman/agent-build.env || fail 'the build key is not git-ignored'
-  printf 'candidate\n' > .riprap/podman/agent-build.candidate.env
-  git check-ignore -q .riprap/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
+  test -f .riprap/state/podman/agent-build.env || fail 'the launcher did not write a build key'
+  git check-ignore -q .riprap/state/podman/agent-build.env || fail 'the build key is not git-ignored'
+  printf 'candidate\n' > .riprap/state/podman/agent-build.candidate.env
+  git check-ignore -q .riprap/state/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
 )
 
 # The last interactive launch the mock recorded. The mock also logs the non-interactive
@@ -399,17 +400,17 @@ run_line() { grep '^run --rm -it ' "$PODMAN_LOG" | tail -n 1; }
 # a project enables appears between "-w /work" and the image name.
 assert_run_tail() {
   local expected="$1" image
-  image=$(cat .riprap/podman/image_name)
+  image=$(cat .riprap/managed/podman/image_name)
   [[ "$(run_line)" == *"-w /work ${expected}${image} bash" ]] || \
     fail "the run does not carry '${expected}' as its project options: $(run_line)"
 }
 
-write_run_options() { printf '%b' "$1" > .riprap/podman/run-options; }
+write_run_options() { printf '%b' "$1" > .riprap/user/podman/run-options; }
 
 # rq-83545aca
 test_seeded_project_enables_no_run_options() (
   setup_project; cd "$PROJECT"
-  test -f .riprap/podman/run-options || fail 'no run options file was seeded'
+  test -f .riprap/user/podman/run-options || fail 'no run options file was seeded'
   bash rr.sh </dev/null
   assert_run_tail ''
 )
@@ -428,10 +429,10 @@ test_enabled_run_option_reaches_the_runtime() (
 test_delivered_gpu_example_can_be_enabled() (
   setup_project; cd "$PROJECT"
   sed 's/^# \(--device=nvidia\.com\/gpu=all\)$/\1/; s/^# \(--security-opt=label=disable\)$/\1/' \
-    .riprap/podman/run-options > run-options.new && mv run-options.new .riprap/podman/run-options
-  grep -q '^--device=nvidia\.com/gpu=all$' .riprap/podman/run-options || \
+    .riprap/user/podman/run-options > run-options.new && mv run-options.new .riprap/user/podman/run-options
+  grep -q '^--device=nvidia\.com/gpu=all$' .riprap/user/podman/run-options || \
     fail 'the seeded file carries no commented GPU device example'
-  grep -q '^--security-opt=label=disable$' .riprap/podman/run-options || \
+  grep -q '^--security-opt=label=disable$' .riprap/user/podman/run-options || \
     fail 'the seeded file carries no commented SELinux labelling example'
   bash rr.sh </dev/null
   assert_run_tail '--device=nvidia.com/gpu=all --security-opt=label=disable '
@@ -442,7 +443,7 @@ test_run_options_do_not_displace_template_configuration() (
   setup_project; cd "$PROJECT"
   write_run_options '--shm-size=8g\n'
   bash rr.sh </dev/null
-  id=$(cat .riprap/project-id); line=$(run_line)
+  id=$(cat .riprap/state/project-id); line=$(run_line)
   grep -Eq -- "-v [^ ]+:/work( |$)" <<<"$line" || fail 'the workspace mount was displaced'
   grep -Fq -- "-v riprap-$id-claude:/root/.claude" <<<"$line" || fail 'the Claude volume was displaced'
   grep -Fq -- "-v riprap-$id-codex:/root/.codex" <<<"$line" || fail 'the Codex volume was displaced'
@@ -461,7 +462,7 @@ test_comments_and_blank_lines_enable_nothing() (
 # rq-b6ce2749
 test_absent_run_options_file_enables_nothing() (
   setup_project; cd "$PROJECT"
-  rm .riprap/podman/run-options
+  rm .riprap/user/podman/run-options
   bash rr.sh </dev/null || fail 'a deleted run options file stopped the launch'
   assert_run_tail ''
 )
@@ -509,7 +510,7 @@ attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
 # rq-d89e4c89
 test_scripts_marked_lf() (
   setup_project; cd "$PROJECT"; git init -q
-  for path in .riprap/hooks/pre-commit .riprap/hooks/check-secrets.sh rr.sh; do
+  for path in .riprap/managed/hooks/pre-commit .riprap/managed/hooks/check-secrets.sh rr.sh; do
     eol=$(attr_eol "$path"); test "$eol" = lf || fail "$path is not marked eol=lf (got '$eol')"
   done
 )
@@ -556,8 +557,8 @@ test_template_traceability_scans_hidden_directories() (
 test_generated_traceability_is_independent() (
   setup_project; cd "$PROJECT"; test ! -f rqm/registry.json
   printf '# Local feature\n\n## Scenario\n' > rqm/local.md
-  .riprap/skills/rr-plan/rqm.sh stamp rqm/local.md >/dev/null
-  .riprap/skills/rr-plan/rqm.sh index >/dev/null
+  .riprap/managed/skills/rr-plan/rqm.sh stamp rqm/local.md >/dev/null
+  .riprap/managed/skills/rr-plan/rqm.sh index >/dev/null
   test -f rqm/registry.json
   ! cmp -s rqm/registry.json "$ROOT/rqm/registry.json" || fail 'Riprap registry was copied'
 )

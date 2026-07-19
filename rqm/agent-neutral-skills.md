@@ -1,20 +1,20 @@
 # Feature: Agent-Neutral Riprap Skills <!-- rq-8d83394b -->
 
 Riprap stores each canonical skill implementation and its project-owned customization in an
-agent-neutral directory. Agent-specific skill directories contain only the adapters required for
-skill discovery and for translating agent-specific conventions.
+agent-neutral ownership directory. Agent-specific skill directories contain only the adapters
+required for skill discovery and for translating agent-specific conventions.
 
 ## Template Layout <!-- rq-8f041d7b -->
 
 - Canonical skill implementations and their supporting files live under
-  `.riprap/skills/<skill-name>/`.
+  `.riprap/managed/skills/<skill-name>/`.
 - Each canonical skill reads project-specific extensions from
-  `.riprap/skills/<skill-name>/local.md`.
+  `.riprap/user/skills/<skill-name>/local.md`.
 - Claude discovers thin adapters under `.claude/skills/<skill-name>/SKILL.md`.
 - Codex discovers thin adapters under `.agents/skills/<skill-name>/SKILL.md`.
 - Both adapters delegate to the same canonical implementation and translate only conventions that
   differ between their agents.
-- Canonical implementations and supporting files are template-owned.
+- Canonical implementations and supporting files are managed.
 - Copier creates each `local.md` once and preserves it during later template updates.
 - Generated projects contain no canonical skill implementations or `local.md` files under
   `.claude/skills` or `.agents/skills`.
@@ -39,14 +39,14 @@ Feature: Agent-neutral Riprap skills
   Scenario: A generated project uses the agent-neutral skill layout
     Given the Riprap template is rendered with Copier
     When the generated project is inspected
-    Then every supported skill has one canonical implementation under ".riprap/skills"
+    Then every supported skill has one canonical implementation under ".riprap/managed/skills"
     And Claude and Codex each have a discovery adapter for every supported skill
     And canonical supporting resources are not duplicated in either agent-specific directory
 
   @rq-df3907ad
   Scenario: Skill customization survives a Copier update
     Given a project was generated from an earlier Riprap template revision
-    And a user has modified ".riprap/skills/rr-plan/local.md"
+    And a user has modified ".riprap/user/skills/rr-plan/local.md"
     And a later template revision changes the canonical rr-plan implementation
     When "copier update" applies the later revision to the project
     Then the user's local customization is unchanged

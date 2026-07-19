@@ -32,7 +32,7 @@ test_generated_project_uses_agent_neutral_layout() (
   render_project "$ROOT" "$project"
 
   for skill in rr-architecture rr-implement rr-plan rr-quiz; do
-    test -f "$project/.riprap/skills/$skill/SKILL.md" || \
+    test -f "$project/.riprap/managed/skills/$skill/SKILL.md" || \
       fail "generated project lacks canonical $skill implementation"
     for adapter in .claude .agents; do
       test -f "$project/$adapter/skills/$skill/SKILL.md" || \
@@ -46,7 +46,7 @@ test_generated_project_uses_agent_neutral_layout() (
     fail "agent-specific directory contains duplicated canonical resource: $unexpected"
 )
 
-# rq-df3907ad
+# rq-df3907ad rq-e558bda9
 test_skill_customization_survives_copier_update() (
   local temp source project local_file canonical_file
   temp="$(mktemp -d)"
@@ -64,8 +64,8 @@ test_skill_customization_survives_copier_update() (
   git -C "$source" tag v1.0.0
 
   render_project "$source" "$project"
-  local_file="$project/.riprap/skills/rr-plan/local.md"
-  canonical_file="$project/.riprap/skills/rr-plan/SKILL.md"
+  local_file="$project/.riprap/user/skills/rr-plan/local.md"
+  canonical_file="$project/.riprap/managed/skills/rr-plan/SKILL.md"
   printf '\nuser-local-marker\n' >> "$local_file"
   git -C "$project" init --quiet
   git -C "$project" config user.name 'Riprap Tests'
@@ -74,8 +74,8 @@ test_skill_customization_survives_copier_update() (
   git -C "$project" commit --quiet -m 'generated project with local customization'
 
   printf '\ntemplate-v2-marker\n' >> \
-    "$source/template/.riprap/skills/rr-plan/SKILL.md.jinja"
-  git -C "$source" add template/.riprap/skills/rr-plan/SKILL.md.jinja
+    "$source/template/.riprap/managed/skills/rr-plan/SKILL.md.jinja"
+  git -C "$source" add template/.riprap/managed/skills/rr-plan/SKILL.md.jinja
   git -C "$source" commit --quiet -m 'template v2'
   git -C "$source" tag v2.0.0
 

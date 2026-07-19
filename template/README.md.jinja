@@ -19,7 +19,7 @@ Run `bash rr.sh` on Linux/Mac, or `rr.bat` on Windows.
 This builds the container and drops you into an interactive shell in `/work`.
 Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
 Agent authentication is stored in separate Podman named volumes scoped by the random UUID in
-`.riprap/project-id`; the launchers never mount your host `.claude` or `.codex` directories.
+`.riprap/state/project-id`; the launchers never mount your host `.claude` or `.codex` directories.
 The UUID is non-secret project metadata and should be committed. To clear authentication, run
 `bash rr.sh --reset-agent-state claude`, `codex`, or `all` (use `rr.bat` on Windows).
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
@@ -40,7 +40,7 @@ carries on with the image you already have, so a refresh can never block your wo
 ##### Pinning a release
 
 If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
-for an upstream fix. Create `.riprap/agent-pin.env`:
+for an upstream fix. Create `.riprap/user/agent-pin.env`:
 
 ```
 CLAUDE_VERSION=2.1.205
@@ -201,11 +201,25 @@ question about the implementation to help ensure you understand the code.
 
 ### Customizing skills
 
-The authoritative, agent-neutral skill implementations live under `.riprap/skills/`. Claude
+The authoritative, agent-neutral skill implementations live under `.riprap/managed/skills/`. Claude
 discovers adapters under `.claude/skills/`, while Codex discovers adapters under `.agents/skills/`.
-Each canonical skill directory contains a project-owned `local.md` file. Use that file to extend or
-override the skill with project-specific conventions; Copier preserves it during template updates.
-Avoid editing `SKILL.md` directly because canonical implementations and adapters are template-owned.
+Project-owned extensions live under `.riprap/user/skills/<skill-name>/local.md`. Use those files to
+extend or override skills with project-specific conventions; Copier preserves them during template
+updates. Avoid editing `SKILL.md` directly because canonical implementations and adapters are
+managed by Riprap.
+
+### File ownership
+
+Riprap-managed implementations live under `.riprap/managed/` and should not be edited. Supported
+project customization lives under `.riprap/user/`, and generated project or machine state lives
+under `.riprap/state/`. A small number of managed adapters remain at conventional or tool-mandated
+paths, including `rr.sh`, `rr.bat`, and the agent discovery directories. Conventional project files
+outside `.riprap`, such as source files, manifests, `README.md`, and the root `Containerfile`, belong
+to the project.
+
+Run template updates with `copier update --trust`. Riprap uses a pre-update migration to move
+preserved customization and state from older layouts into `.riprap/user/` and `.riprap/state/`;
+review the template source before granting trust when updating from an untrusted source.
 
 ## Key Rules
 
@@ -225,7 +239,7 @@ Even inside a container, you should:
 Install the version-controlled pre-commit scanner with `bash rr.sh --install-git-hooks` (or
 `rr.bat --install-git-hooks`). It refuses to replace an existing custom `core.hooksPath`; follow
 the reported composition instructions in that case. Run
-`.riprap/hooks/check-secrets.sh --repository` in CI to scan committed content. Ignore rules and
+`.riprap/managed/hooks/check-secrets.sh --repository` in CI to scan committed content. Ignore rules and
 local hooks are bypassable safeguards, so repositories hosted on GitHub should also enable secret
 scanning and push protection in their security settings.
 

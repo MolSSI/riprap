@@ -4,7 +4,7 @@ param(
     [string]$Confirmation
 )
 $ErrorActionPreference = "Stop"
-$idPath = ".riprap/project-id"
+$idPath = ".riprap/state/project-id"
 $uuidPattern = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
 
 function Fail([string]$Message) { throw "Riprap: $Message" }
@@ -16,6 +16,7 @@ function Read-ProjectId {
     return $Matches[1]
 }
 function Ensure-State {
+    New-Item -ItemType Directory -Force -Path ".riprap/state" | Out-Null
     if (-not (Test-Path $idPath)) {
         $temporary = "$idPath.tmp.$PID"
         $value = [guid]::NewGuid().ToString("D").ToLowerInvariant()
@@ -49,8 +50,8 @@ function Reset-State {
 function Install-Hooks {
     git rev-parse --show-toplevel *> $null; if ($LASTEXITCODE -ne 0) { Fail "run this command inside a Git repository" }
     $current = git config --local --get core.hooksPath
-    if ($current -and $current -ne ".riprap/hooks") { Fail "core.hooksPath is already '$current'; leave it unchanged and compose that hook with .riprap/hooks/check-secrets.sh --staged" }
-    git config --local core.hooksPath .riprap/hooks
+    if ($current -and $current -ne ".riprap/managed/hooks") { Fail "core.hooksPath is already '$current'; leave it unchanged and compose that hook with .riprap/managed/hooks/check-secrets.sh --staged" }
+    git config --local core.hooksPath .riprap/managed/hooks
     Write-Host "Riprap Git hooks installed."
 }
 

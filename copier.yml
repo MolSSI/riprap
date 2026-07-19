@@ -1,11 +1,16 @@
 _min_copier_version: "9"
 _subdirectory: template
+_migrations:
+  - command:
+      - "{{ _copier_python }}"
+      - "{{ _copier_conf.src_path }}/template/.riprap/managed/migrate-layout.py"
+    when: "{{ _stage == 'before' }}"
 _skip_if_exists:
   - /README.md
   - /Containerfile
   - /CLAUDE.md
   - /AGENTS.md
-  - /.riprap/skills/*/local.md
+  - /.riprap/user/skills/*/local.md
   - /LICENSE
   # Package/crate skeletons: seeded once, owned by the user thereafter
   - /pyproject.toml
@@ -27,10 +32,10 @@ _skip_if_exists:
   # owned by the user thereafter
   - /rqm/ARCHITECTURE.md
   # Stable local-resource identity, created on first launch and owned by the project.
-  - /.riprap/project-id
+  - /.riprap/state/project-id
   # Container run options: seeded fully commented, then owned by the user, whose
   # enabled options must survive an update.
-  - /.riprap/podman/run-options
+  - /.riprap/user/podman/run-options
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 

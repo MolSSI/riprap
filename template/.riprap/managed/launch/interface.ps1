@@ -4,10 +4,10 @@ param(
 )
 
 if (-not $Image) {
-    $Image = (Get-Content .riprap/podman/image_name -Raw).Trim()
+    $Image = (Get-Content .riprap/managed/podman/image_name -Raw).Trim()
 }
 
-$runOptionsFile = ".riprap/podman/run-options"
+$runOptionsFile = ".riprap/user/podman/run-options"
 
 function Fail([string]$Message) {
     # An uncaught exception is reformatted and line-wrapped by Windows PowerShell, making

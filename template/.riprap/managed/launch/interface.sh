@@ -1,6 +1,6 @@
 #!/bin/sh
 
-image="${1:-$(cat .riprap/podman/image_name)}"
+image="${1:-$(cat .riprap/managed/podman/image_name)}"
 project_id="${2:?project UUID is required}"
 
 mount_pwd="$(pwd)"
@@ -16,7 +16,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
     esac
 fi
 
-run_options_file=".riprap/podman/run-options"
+run_options_file=".riprap/user/podman/run-options"
 
 fail() {
     printf 'Riprap: %s\n' "$1" >&2

@@ -57,7 +57,7 @@ further tools without replacing either template-owned layer.
 
 ## Agent Refresh Schedule <!-- rq-f3736651 -->
 
-- `.riprap/podman/agent-build.env` is the successful agent build key. It records the release
+- `.riprap/state/podman/agent-build.env` is the successful agent build key. It records the release
   selection used by the installed agent image, as the assignments `CLAUDE_VERSION` and
   `CODEX_VERSION`, together with a `REFRESH` value that changes on the refresh schedule.
 - Before an agent refresh, the launcher derives a candidate build key without replacing the
@@ -87,7 +87,7 @@ further tools without replacing either template-owned layer.
 
 ## Optional Release Pin <!-- rq-5e710604 -->
 
-- `.riprap/agent-pin.env` is an optional, user-created file that pins one or both agents to an
+- `.riprap/user/agent-pin.env` is an optional, user-created file that pins one or both agents to an
   exact release, using the same `CLAUDE_VERSION` and `CODEX_VERSION` assignments. It does not exist
   in a generated project until a user creates it, so the unpinned schedule above is the default.
 - A pinned agent is installed at exactly the pinned release. An unpinned agent continues to track
@@ -129,11 +129,11 @@ further tools without replacing either template-owned layer.
 
 ## Container Run Options <!-- rq-70d01853 -->
 
-- `.riprap/podman/run-options` supplies container runtime options for the interactive development
-  container beyond those the template always applies. It is a user-owned seed file: the template
-  creates it once and preserves it thereafter, so options a project enables survive template
-  updates. It is ordinary project content, so a team may commit it to share one environment or
-  leave it untracked to configure a single machine.
+- `.riprap/user/podman/run-options` supplies container runtime options for the interactive
+  development container beyond those the template always applies. It is a user-owned seed file:
+  the template creates it once and preserves it thereafter, so options a project enables survive
+  template updates. It is ordinary project content, so a team may commit it to share one
+  environment or leave it untracked to configure a single machine.
 - As delivered, every line of the file is commentary, so a generated project starts with no
   additional runtime options until a user enables some. The commentary documents the format and
   carries a commented example granting the container access to the host's GPUs, so a project that
@@ -435,7 +435,7 @@ Feature: Riprap development container
   Scenario: The build key is not committed
     Given a generated project whose launcher has written the build key
     When Git ignore rules are evaluated
-    Then ".riprap/podman/agent-build.env" is ignored
+    Then ".riprap/state/podman/agent-build.env" is ignored
 
   @rq-fae13c6f
   Scenario: Launching disables the agents' in-container automatic updaters

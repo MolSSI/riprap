@@ -53,13 +53,34 @@ its scope.
 Copier is the sole template rendering and update engine. Conditional Copier templates express
 supported language and tooling variants. Riprap distinguishes among:
 
-- Template-owned files, which may receive improvements through `copier update`.
-- User-owned seed files, which Copier creates once and preserves thereafter.
-- Agent-neutral user extension files, which provide stable customization points while their
-  surrounding workflows remain template-owned.
+- Managed files, which Riprap owns and may improve through `copier update`.
+- User-owned files, including seed files that Copier creates once and preserves thereafter and
+  explicit extension points maintained by the project.
+- Generated local state, which Riprap maintains for one project or machine and which is not a user
+  customization surface.
 
 New template features must assign ownership deliberately. Update behavior is part of their public
-contract, not an incidental consequence of file placement.
+contract, not an incidental consequence of file placement. File location is the primary ownership
+signal in a generated repository: Riprap implementations live under `.riprap/managed`, supported
+project customization lives under `.riprap/user`, and generated local state lives under
+`.riprap/state`. A user can therefore determine whether a file is intended for editing from its
+location without first understanding Copier's update rules.
+
+Files remain outside these ownership directories only when project conventions or an external
+tool require a particular path. Conventional project content such as source files, manifests,
+`README.md`, and `LICENSE` remains at its standard location and is user-owned. A managed entry point
+or agent adapter at a required external location is limited to the smallest practical redirection
+or configuration that delegates to its canonical implementation under `.riprap/managed`. When a
+tool cannot redirect to a canonical implementation, the managed exception remains visibly marked
+and contains only the configuration that the tool requires. Portable scripts and native adapter
+mechanisms are preferred to filesystem symlinks, whose behavior is inconsistent across supported
+hosts and distribution mechanisms.
+
+The ownership convention is mechanically enforced. Every rendered file has one ownership class;
+managed files outside `.riprap/managed` are an explicit, reviewable set of conventional or
+tool-mandated exceptions; user-owned seeds are preserved by template updates; and local state is
+excluded from version control where sharing it would be inappropriate. The convention applies to
+new files and migrations alike so exceptions do not accumulate silently.
 
 The Riprap repository is itself a rendered instance of its own template, as recorded in
 `.copier-answers.yml`: the top-level project files are generated from `template/` and adopt template
@@ -69,13 +90,13 @@ under `template/` is the single point of edit; the rendered top-level copy is pr
 `copier update` and is never modified by hand, because a later update would overwrite manual
 top-level edits.
 
-User-owned seed files and agent-neutral extension files are a partial exception, and the exception
-covers maintenance rather than creation. Copier creates such a file once and preserves it
-thereafter, so its top-level copy is edited in place from then on. Its first appearance at the top
-level is still Copier's work: a seed file newly added to `template/` reaches the top level by
-rendering, never by being written there directly. Seeding a file by hand would leave the top level
-agreeing with the template by coincidence rather than by construction, and would retire the seeding
-path untested at the moment it was introduced.
+User-owned seed and extension files are a partial exception, and the exception covers maintenance
+rather than creation. Copier creates such a file once and preserves it thereafter, so its rendered
+copy is edited in place from then on. Its first appearance is still Copier's work: a seed file newly
+added to `template/` reaches the rendered repository through Copier, never by being written there
+directly. Seeding a file by hand would leave the rendered repository agreeing with the template by
+coincidence rather than by construction, and would retire the seeding path untested at the moment
+it was introduced.
 
 Beyond the rendered instance, the repository also carries development and evaluation artifacts that
 the template never distributes: Riprap' own requirements under `rqm/`, its tests, and
@@ -87,11 +108,13 @@ its top level, and are never rendered into a generated project.
 
 ### Agent Integration
 
-Canonical Riprap workflows are independent of any one AI agent and live under `.riprap`.
-Agent-specific directories contain thin adapters for discovery, tool vocabulary, invocation syntax,
-and other interface conventions. Claude and Codex are supported agents, but the architecture allows
-additional and not-yet-existing agents to be integrated without duplicating canonical workflows or
-relocating user customizations.
+Canonical Riprap workflows are independent of any one AI agent and live under
+`.riprap/managed`. Agent-specific directories contain thin managed adapters for discovery, tool
+vocabulary, invocation syntax, and other interface conventions. Project-specific workflow
+extensions live under `.riprap/user`, even when an adapter exposes them through an agent-mandated
+location. Claude and Codex are supported agents, but the architecture allows additional and
+not-yet-existing agents to be integrated without duplicating canonical workflows or relocating
+user customizations.
 
 Riprap relies on supported agents' public extension mechanisms rather than embedding or
 reimplementing their runtimes. Capabilities that cannot be represented uniformly remain isolated in

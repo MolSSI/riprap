@@ -99,6 +99,14 @@
     "title": "Later launches reuse project credential state",
     "type": "scenario"
   },
+  "rq-12165531": {
+    "decl": "## Required-Location Exceptions",
+    "file": "template-ownership-layout",
+    "level": 2,
+    "refs": [],
+    "title": "Required-Location Exceptions",
+    "type": "section"
+  },
   "rq-13d744b1": {
     "decl": "Scenario: The Windows launcher stops on a tooling build failure",
     "file": "development-container",
@@ -227,6 +235,14 @@
     "title": "Installed agent releases match authoritative image labels",
     "type": "scenario"
   },
+  "rq-2debabe1": {
+    "decl": "## Feature Interface",
+    "file": "template-ownership-layout",
+    "level": 2,
+    "refs": [],
+    "title": "Feature Interface",
+    "type": "section"
+  },
   "rq-2f86b6aa": {
     "decl": "Scenario: A template update preserves enabled run options",
     "file": "development-container",
@@ -269,6 +285,22 @@
       }
     ],
     "title": "A run option containing whitespace stops the launch",
+    "type": "scenario"
+  },
+  "rq-37192a21": {
+    "decl": "Scenario: A required external entry point delegates to managed implementation",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A required external entry point delegates to managed implementation",
     "type": "scenario"
   },
   "rq-4097cd5c": {
@@ -354,6 +386,22 @@
     ],
     "title": "Validation examines hidden directories in the template tree",
     "type": "scenario"
+  },
+  "rq-5b73c38c": {
+    "decl": "## Ownership Classes",
+    "file": "template-ownership-layout",
+    "level": 2,
+    "refs": [],
+    "title": "Ownership Classes",
+    "type": "section"
+  },
+  "rq-5d572c3c": {
+    "decl": "## Gherkin Scenarios",
+    "file": "template-ownership-layout",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
   },
   "rq-5e481eb3": {
     "decl": "Scenario: The Windows credential helper reuses an existing project identity",
@@ -530,6 +578,18 @@
     "title": "An unpinned launch records the current week and tracks current releases",
     "type": "scenario"
   },
+  "rq-7c9116c2": {
+    "decl": "Scenario: Conventional project content remains user-owned at conventional paths",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Conventional project content remains user-owned at conventional paths",
+    "type": "scenario"
+  },
   "rq-83545aca": {
     "decl": "Scenario: A generated project enables no additional run options",
     "file": "development-container",
@@ -574,6 +634,18 @@
     "title": "Gherkin Scenarios",
     "type": "section"
   },
+  "rq-8b0a20e7": {
+    "decl": "Scenario: Ignore rules distinguish machine and project state",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Ignore rules distinguish machine and project state",
+    "type": "scenario"
+  },
   "rq-8c955028": {
     "decl": "Scenario: The Windows reset requires explicit confirmation",
     "file": "agent-credential-isolation",
@@ -600,6 +672,18 @@
     "refs": [],
     "title": "Template Layout",
     "type": "section"
+  },
+  "rq-9045b67e": {
+    "decl": "Scenario: Direct Riprap component directories contain no canonical files",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Direct Riprap component directories contain no canonical files",
+    "type": "scenario"
   },
   "rq-9332ad0f": {
     "decl": "## Cross-Platform Script Execution",
@@ -725,6 +809,18 @@
     "title": "Credential Volumes",
     "type": "section"
   },
+  "rq-b9f824f4": {
+    "decl": "Scenario: A generated project separates the three ownership classes",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A generated project separates the three ownership classes",
+    "type": "scenario"
+  },
   "rq-ba5ee81b": {
     "decl": "Scenario: CI rejects credential material without local hook installation",
     "file": "agent-credential-isolation",
@@ -763,6 +859,18 @@
       }
     ],
     "title": "An unrecognized pin name outranks a non-exact pin value",
+    "type": "scenario"
+  },
+  "rq-c618df8b": {
+    "decl": "Scenario: An unapproved managed exception fails ownership validation",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "An unapproved managed exception fails ownership validation",
     "type": "scenario"
   },
   "rq-c75bb5d9": {
@@ -849,6 +957,18 @@
     "title": "Agent programs are installed outside the credential volume paths",
     "type": "scenario"
   },
+  "rq-d0c2c83d": {
+    "decl": "Scenario: The ownership layout uses no symbolic-link indirection",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The ownership layout uses no symbolic-link indirection",
+    "type": "scenario"
+  },
   "rq-d6488ee9": {
     "decl": "Scenario: A GPU base image carries the whole tooling layer",
     "file": "development-container",
@@ -914,6 +1034,22 @@
       }
     ],
     "title": "Skill customization survives a Copier update",
+    "type": "scenario"
+  },
+  "rq-e558bda9": {
+    "decl": "Scenario: User customization survives a template update",
+    "file": "template-ownership-layout",
+    "refs": [
+      {
+        "file": "tests/check_template_ownership.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_agent_neutral_skills.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "User customization survives a template update",
     "type": "scenario"
   },
   "rq-eb18200a": {
@@ -1020,6 +1156,14 @@
     "title": "Known credential files are ignored without hiding integration configuration",
     "type": "scenario"
   },
+  "rq-f9576090": {
+    "decl": "## Update and Validation Contract",
+    "file": "template-ownership-layout",
+    "level": 2,
+    "refs": [],
+    "title": "Update and Validation Contract",
+    "type": "section"
+  },
   "rq-f957f555": {
     "decl": "Scenario: Reset removes only selected project credential state",
     "file": "agent-credential-isolation",
@@ -1063,6 +1207,13 @@
     "refs": [],
     "title": "Base Tooling",
     "type": "section"
+  },
+  "rq-fe44119c": {
+    "decl": "# Feature: Template Ownership Layout",
+    "file": "template-ownership-layout",
+    "refs": [],
+    "title": "Feature: Template Ownership Layout",
+    "type": "file"
   },
   "rq-fedf48c5": {
     "decl": "Scenario: A launcher ignores an ambient variable named like a build-key assignment",

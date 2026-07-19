@@ -32,21 +32,22 @@ assert_copier_in_container() (
   project="$temp/project"
 
   render_project "$language" "$project"
-  podman build --tag "$image" "$project/.riprap/podman"
+  podman build --tag "$image" "$project/.riprap/managed/podman"
   version="$(podman run --rm "$image" copier --version)"
   major="$(printf '%s\n' "$version" | grep -Eo '[0-9]+' | head -n 1)"
   test "$major" = 9 || fail "expected Copier major 9 in $language image, got: $version"
 )
 
 build_key() {
-  sed -n "s/^$2=//p" "$1/.riprap/podman/agent-build.candidate.env" | tr -d '\r' | head -n 1
+  sed -n "s/^$2=//p" "$1/.riprap/state/podman/agent-build.candidate.env" | tr -d '\r' | head -n 1
 }
 
 # The launcher normally writes the build key; container tests build the image directly,
 # so they write the key themselves to control which releases the image installs.
 write_build_key() {
+  mkdir -p "$1/.riprap/state/podman"
   printf 'CLAUDE_VERSION=%s\nCODEX_VERSION=%s\nREFRESH=%s\n' "$2" "$3" "$4" \
-    > "$1/.riprap/podman/agent-build.candidate.env"
+    > "$1/.riprap/state/podman/agent-build.candidate.env"
 }
 
 # Builds one image from a rendered project and runs every named assertion against it,
@@ -62,11 +63,11 @@ with_built_image() (
   # Exact releases rather than "latest", so the recorded value can be compared against
   # what the built image reports.
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  podman build --tag riprap-tooling:latest "$project/.riprap/podman"
-  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag riprap-agent:candidate "$project/.riprap/podman"
-  podman build -f "$project/.riprap/podman/AgentLabels.Containerfile" \
+  podman build --tag riprap-tooling:latest "$project/.riprap/managed/podman"
+  podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" --tag riprap-agent:candidate "$project/.riprap/managed/podman"
+  podman build -f "$project/.riprap/managed/podman/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
-    --build-arg TOOLING_IMAGE_ID=test-tooling --tag "$image" "$project/.riprap/podman"
+    --build-arg TOOLING_IMAGE_ID=test-tooling --tag "$image" "$project/.riprap/managed/podman"
   for assertion in "$@"; do "$assertion" "$project" "$image"; done
 )
 
@@ -126,8 +127,8 @@ test_agents_are_isolated_from_tooling_image() (
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project rust "$project"
-  tooling="$project/.riprap/podman/Containerfile"
-  agent="$project/.riprap/podman/Agent.Containerfile"
+  tooling="$project/.riprap/managed/podman/Containerfile"
+  agent="$project/.riprap/managed/podman/Agent.Containerfile"
   project_container="$project/Containerfile"
   ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh' "$tooling" || fail 'tooling image installs agents'
   grep -Fq 'FROM localhost/riprap-tooling:latest' "$agent" || fail 'agent image is not based on tooling'
@@ -144,18 +145,18 @@ test_build_key_drives_the_layer_cache() (
   project="$temp/project"
   render_project rust "$project"
 
-  podman build --tag riprap-tooling:latest "$project/.riprap/podman" >/dev/null
+  podman build --tag riprap-tooling:latest "$project/.riprap/managed/podman" >/dev/null
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" >/dev/null
+  podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/managed/podman" >/dev/null
   first="$(podman run --rm "$image" claude --version)"
 
-  second="$(podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" 2>&1)"
+  second="$(podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/managed/podman" 2>&1)"
   grep -Fq 'Using cache' <<<"$second" || fail 'an unchanged build key did not reuse cached layers'
 
   # 2.1.204 is an earlier published release; any release other than the first one
   # demonstrates that the key's contents alone drive the rebuild.
   write_build_key "$project" 2.1.204 0.144.6 pinned
-  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" >/dev/null
+  podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/managed/podman" >/dev/null
   second="$(podman run --rm "$image" claude --version)"
   test "$first" != "$second" || fail 'changing the build key did not rebuild the agent layer'
   grep -Fq '2.1.204' <<<"$second" || fail "image reports '$second' after recording 2.1.204"
@@ -202,7 +203,7 @@ test_default_base_image_is_ubuntu_lts() (
   local temp project from year
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT; project="$temp/project"
   render_project rust "$project"
-  from="$(sed -n '1s/^FROM //p' "$project/.riprap/podman/Containerfile")"
+  from="$(sed -n '1s/^FROM //p' "$project/.riprap/managed/podman/Containerfile")"
   # Ubuntu LTS releases carry an even year and an .04 month.
   grep -Eq '^ubuntu:[0-9][0-9]\.04$' <<<"$from" || fail "the default base image is '$from', not an Ubuntu LTS release"
   year="${from#ubuntu:}"; year="${year%%.*}"
@@ -216,7 +217,7 @@ test_gpu_base_image_carries_the_tooling_layer() (
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
-  podman build --tag "$image" "$project/.riprap/podman"
+  podman build --tag "$image" "$project/.riprap/managed/podman"
   version="$(podman run --rm "$image" copier --version)"
   test "$(grep -Eo '[0-9]+' <<<"$version" | head -n 1)" = 9 || \
     fail "expected Copier major 9 in the CUDA image, got: $version"
@@ -231,13 +232,13 @@ test_layering_is_unaffected_by_the_base_image() (
   local temp project
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT; project="$temp/project"
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
-  grep -Fqx "FROM $CUDA_BASE_IMAGE" "$project/.riprap/podman/Containerfile" || \
+  grep -Fqx "FROM $CUDA_BASE_IMAGE" "$project/.riprap/managed/podman/Containerfile" || \
     fail 'the tooling image does not build on the chosen base image'
-  grep -Fqx 'FROM localhost/riprap-tooling:latest' "$project/.riprap/podman/Agent.Containerfile" || \
+  grep -Fqx 'FROM localhost/riprap-tooling:latest' "$project/.riprap/managed/podman/Agent.Containerfile" || \
     fail 'the agent image is not based on the tooling image'
   grep -Fqx 'FROM localhost/riprap-agent:latest' "$project/Containerfile" || \
     fail 'the project-owned image is not based on the agent image'
-  ! grep -Eq 'claude|codex' "$project/.riprap/podman/Containerfile" || \
+  ! grep -Eq 'claude|codex' "$project/.riprap/managed/podman/Containerfile" || \
     fail 'the tooling image installs an agent'
 )
 
@@ -258,14 +259,14 @@ test_update_preserves_enabled_run_options() (
     --data project_description='test' --data language=rust --data include_rust_skeleton=false \
     --data author_name=Test --data author_email=test@example.com \
     --data open_source_license='Not Open Source' "$source" "$project" >/dev/null
-  options="$project/.riprap/podman/run-options"
+  options="$project/.riprap/user/podman/run-options"
   printf -- '--device=nvidia.com/gpu=all\n' >> "$options"
   git -C "$project" init --quiet
   git -C "$project" config user.name 'Riprap Tests'; git -C "$project" config user.email 'riprap@example.com'
   git -C "$project" add .; git -C "$project" commit --quiet -m 'project with GPU access enabled'
 
-  printf '\n# a later template revision\n' >> "$source/template/.riprap/podman/run-options"
-  git -C "$source" add template/.riprap/podman/run-options
+  printf '\n# a later template revision\n' >> "$source/template/.riprap/user/podman/run-options"
+  git -C "$source" add template/.riprap/user/podman/run-options
   git -C "$source" commit --quiet -m 'template v2'; git -C "$source" tag v2.0.0
 
   copier update --trust --defaults --vcs-ref v2.0.0 "$project" >/dev/null

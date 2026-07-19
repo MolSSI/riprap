@@ -30,8 +30,11 @@ jobs:
       - name: Test template rendering and updates
         run: bash tests/test_agent_neutral_skills.sh
 
+      - name: Test template ownership layout
+        run: bash tests/check_template_ownership.sh
+
       - name: Test requirements tooling
-        run: bash template/.riprap/skills/rr-plan/tests/test_rqm.sh
+        run: bash template/.riprap/managed/skills/rr-plan/tests/test_rqm.sh
 
       - name: Validate template traceability boundary
         run: bash tests/check_template_traceability.sh

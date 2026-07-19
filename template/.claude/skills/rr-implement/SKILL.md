@@ -5,5 +5,5 @@ description: >-
   implement new functionality, or to implement functionality described in a requirements file.
 ---
 
-Read `.riprap/skills/rr-implement/SKILL.md` completely and follow it as the authoritative
+Read `.riprap/managed/skills/rr-implement/SKILL.md` completely and follow it as the authoritative
 workflow.
