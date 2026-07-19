@@ -1,1 +1,1 @@
-FROM localhost/riprap-base:latest
+FROM localhost/riprap-agent:latest

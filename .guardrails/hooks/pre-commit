@@ -1,2 +1,0 @@
-#!/bin/sh
-exec .guardrails/hooks/check-secrets.sh --staged

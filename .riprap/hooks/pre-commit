@@ -1,0 +1,2 @@
+#!/bin/sh
+exec .riprap/hooks/check-secrets.sh --staged
