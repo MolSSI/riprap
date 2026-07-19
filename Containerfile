@@ -1,1 +1,1 @@
-FROM localhost/guardrails-base:latest
+FROM localhost/riprap-base:latest

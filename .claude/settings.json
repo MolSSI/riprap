@@ -8,8 +8,8 @@
       "Bash(cargo test:*)",
 
 
-      "Skill(gr-architecture)",
-      "Skill(gr-plan)"
+      "Skill(rr-architecture)",
+      "Skill(rr-plan)"
     ]
   },
   "hooks": {
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".guardrails/hooks/check-container.sh"
+            "command": ".riprap/hooks/check-container.sh"
           }
         ]
       }

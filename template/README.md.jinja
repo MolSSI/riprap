@@ -15,13 +15,13 @@ You will also need access to either Claude Code or Codex.
 All development **must** take place within a Podman container.
 The template includes hooks that prevent Claude Code and Codex from answering prompts unless you are running in a containerized environment.
 
-Run `bash gr.sh` on Linux/Mac, or `gr.bat` on Windows.
+Run `bash rr.sh` on Linux/Mac, or `rr.bat` on Windows.
 This builds the container and drops you into an interactive shell in `/work`.
 Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
 Agent authentication is stored in separate Podman named volumes scoped by the random UUID in
-`.guardrails/project-id`; the launchers never mount your host `.claude` or `.codex` directories.
+`.riprap/project-id`; the launchers never mount your host `.claude` or `.codex` directories.
 The UUID is non-secret project metadata and should be committed. To clear authentication, run
-`bash gr.sh --reset-agent-state claude`, `codex`, or `all` (use `gr.bat` on Windows).
+`bash rr.sh --reset-agent-state claude`, `codex`, or `all` (use `rr.bat` on Windows).
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
 
@@ -40,7 +40,7 @@ carries on with the image you already have, so a refresh can never block your wo
 ##### Pinning a release
 
 If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
-for an upstream fix. Create `.guardrails/agent-pin.env`:
+for an upstream fix. Create `.riprap/agent-pin.env`:
 
 ```
 CLAUDE_VERSION=2.1.205
@@ -144,13 +144,13 @@ Start by capturing the project's high-level goals and architecture. Run the buil
 Claude Code, use:
 
 ```
-/gr-architecture <one-line description of what you are building>
+/rr-architecture <one-line description of what you are building>
 ```
 
 In Codex, use:
 
 ```
-$gr-architecture <one-line description of what you are building>
+$rr-architecture <one-line description of what you are building>
 ```
 
 The agent will ask questions to pin down the decisions with broad architectural leverage — intended scale and audience, execution targets, extensibility (for example, whether a plugin system is needed), key libraries, and the whole-project testing strategy — and record them in `rqm/ARCHITECTURE.md`.
@@ -169,13 +169,13 @@ Help me plan <feature description>. Place the requirements document in rqm/<feat
 Or invoke the skill explicitly in Claude Code:
 
 ```
-/gr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
+/rr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
 ```
 
 In Codex, use:
 
 ```
-$gr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
+$rr-plan Help me plan <feature description>. Place the requirements document in rqm/<feature>.md.
 ```
 
 The agent will ask clarifying questions and write a complete requirements file including Gherkin scenarios.
@@ -196,12 +196,12 @@ I have updated rqm/<feature>.md. Update the implementation to match.
 
 ### 5. Verify understanding with quizzes
 
-Run `/gr-quiz` in Claude Code or `$gr-quiz` in Codex. The agent will ask you a multiple-choice
+Run `/rr-quiz` in Claude Code or `$rr-quiz` in Codex. The agent will ask you a multiple-choice
 question about the implementation to help ensure you understand the code.
 
 ### Customizing skills
 
-The authoritative, agent-neutral skill implementations live under `.guardrails/skills/`. Claude
+The authoritative, agent-neutral skill implementations live under `.riprap/skills/`. Claude
 discovers adapters under `.claude/skills/`, while Codex discovers adapters under `.agents/skills/`.
 Each canonical skill directory contains a project-owned `local.md` file. Use that file to extend or
 override the skill with project-specific conventions; Copier preserves it during template updates.
@@ -222,10 +222,10 @@ Even inside a container, you should:
 
 ### Keep credentials out of Git
 
-Install the version-controlled pre-commit scanner with `bash gr.sh --install-git-hooks` (or
-`gr.bat --install-git-hooks`). It refuses to replace an existing custom `core.hooksPath`; follow
+Install the version-controlled pre-commit scanner with `bash rr.sh --install-git-hooks` (or
+`rr.bat --install-git-hooks`). It refuses to replace an existing custom `core.hooksPath`; follow
 the reported composition instructions in that case. Run
-`.guardrails/hooks/check-secrets.sh --repository` in CI to scan committed content. Ignore rules and
+`.riprap/hooks/check-secrets.sh --repository` in CI to scan committed content. Ignore rules and
 local hooks are bypassable safeguards, so repositories hosted on GitHub should also enable secret
 scanning and push protection in their security settings.
 

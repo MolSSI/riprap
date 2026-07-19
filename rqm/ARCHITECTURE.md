@@ -2,21 +2,21 @@
 
 ## Purpose
 
-Guardrails provides production-quality project scaffolding for requirements-first, AI-assisted
+Riprap provides production-quality project scaffolding for requirements-first, AI-assisted
 software development. It is intended for broad community adoption rather than as a personal or
 educational example. Generated repositories combine durable project guidance, reusable agent
 workflows, requirements traceability, isolated development environments, and conventional language
 tooling so that humans can direct and review AI-assisted work without surrendering control of the
 development process.
 
-Guardrails is a versioned Copier template. Long-lived generated repositories must be able to use
-`copier update` to adopt current Guardrails behavior while preserving explicitly user-owned files
+Riprap is a versioned Copier template. Long-lived generated repositories must be able to use
+`copier update` to adopt current Riprap behavior while preserving explicitly user-owned files
 and customizations. Template evolution therefore treats update compatibility, clear file ownership,
 and conflict avoidance as primary design constraints.
 
 ## Scope and Key Features
 
-Guardrails provides:
+Riprap provides:
 
 - A Copier-based generator and update path for new and existing repositories.
 - Requirements-first workflows for establishing project architecture, planning testable features,
@@ -28,21 +28,21 @@ Guardrails provides:
 - Project-owned skill extensions that survive template updates without requiring users to modify
   template-owned skill implementations.
 - Rootless, isolated development environments containing supported AI agents, language toolchains,
-  and Guardrails maintenance tools.
+  and Riprap maintenance tools.
 - Launch workflows for Linux, macOS, and Windows hosts.
 - Generated project variants for Rust and Python, including optional language-specific skeletons,
   tests, continuous integration, documentation, and packaging configuration.
-- Explicit ownership boundaries between files that receive Guardrails updates and files seeded once
+- Explicit ownership boundaries between files that receive Riprap updates and files seeded once
   for users to maintain.
 
 ### Non-Goals
 
-Guardrails does not implement an AI coding agent, replace the supported agents' native interfaces,
+Riprap does not implement an AI coding agent, replace the supported agents' native interfaces,
 or provide general-purpose AI orchestration. It is not a general project generator unrelated to
 AI-assisted development and does not attempt to support every language, build system, or deployment
 platform in each release.
 
-Guardrails does not treat privileged Docker containers as equivalent to its rootless isolation
+Riprap does not treat privileged Docker containers as equivalent to its rootless isolation
 boundary. General-purpose container orchestration and production application deployment are outside
 its scope.
 
@@ -51,7 +51,7 @@ its scope.
 ### Template and Ownership Model
 
 Copier is the sole template rendering and update engine. Conditional Copier templates express
-supported language and tooling variants. Guardrails distinguishes among:
+supported language and tooling variants. Riprap distinguishes among:
 
 - Template-owned files, which may receive improvements through `copier update`.
 - User-owned seed files, which Copier creates once and preserves thereafter.
@@ -61,7 +61,7 @@ supported language and tooling variants. Guardrails distinguishes among:
 New template features must assign ownership deliberately. Update behavior is part of their public
 contract, not an incidental consequence of file placement.
 
-The Guardrails repository is itself a rendered instance of its own template, as recorded in
+The Riprap repository is itself a rendered instance of its own template, as recorded in
 `.copier-answers.yml`: the top-level project files are generated from `template/` and adopt template
 improvements through `copier update`. A template-owned file therefore exists twice in the
 repository — as the source under `template/` and as the rendered copy at the top level. The source
@@ -71,22 +71,22 @@ top-level edits. User-owned seed files and agent-neutral extension files are the
 creates them once and then preserves them, so they are maintained in place at the top level.
 
 Beyond the rendered instance, the repository also carries development and evaluation artifacts that
-the template never distributes: Guardrails' own requirements under `rqm/`, its tests, and
+the template never distributes: Riprap' own requirements under `rqm/`, its tests, and
 point-in-time analyses under `review/`. The `review/` directory holds occasional AI-generated
 assessments of the project itself — for example, comparisons against similar tools or security
 reviews — each recorded at `review/<category>/<date>/README.md` with its goal, date, corresponding
-commit, and generating tool. These artifacts are owned by the Guardrails repository, live only at
+commit, and generating tool. These artifacts are owned by the Riprap repository, live only at
 its top level, and are never rendered into a generated project.
 
 ### Agent Integration
 
-Canonical Guardrails workflows are independent of any one AI agent and live under `.guardrails`.
+Canonical Riprap workflows are independent of any one AI agent and live under `.riprap`.
 Agent-specific directories contain thin adapters for discovery, tool vocabulary, invocation syntax,
 and other interface conventions. Claude and Codex are supported agents, but the architecture allows
 additional and not-yet-existing agents to be integrated without duplicating canonical workflows or
 relocating user customizations.
 
-Guardrails relies on supported agents' public extension mechanisms rather than embedding or
+Riprap relies on supported agents' public extension mechanisms rather than embedding or
 reimplementing their runtimes. Capabilities that cannot be represented uniformly remain isolated in
 the corresponding adapter.
 
@@ -102,7 +102,7 @@ tooling environment inside the container. Each host's launcher is a separate imp
 the same observable behavior, so a capability offered on one platform is offered on all of them.
 
 The container image is layered by how often each layer changes and by who owns it. A template-owned
-tooling image supplies the common Guardrails and language toolchain. A template-owned agent image
+tooling image supplies the common Riprap and language toolchain. A template-owned agent image
 builds on it and supplies the supported AI agents, refreshed on a bounded schedule that requires no
 routine user action. A user-owned image layer supplies project-specific additions. Isolating the
 agent layer keeps a failed agent download from being mistaken for a broken toolchain, and makes the
@@ -112,11 +112,11 @@ happened to be built.
 ### Language Support
 
 Rust and Python are supported generated-project languages. Language-specific files are selected by
-Copier while common Guardrails workflows remain language-neutral. Additional languages may be added
+Copier while common Riprap workflows remain language-neutral. Additional languages may be added
 through isolated template branches and conventional language tooling without restructuring the
 agent, requirements, ownership, or container layers.
 
-The Guardrails repository itself favors standard shell and template mechanisms for orchestration
+The Riprap repository itself favors standard shell and template mechanisms for orchestration
 and avoids introducing application frameworks or dependencies for behavior that existing platform
 tools can express clearly.
 
@@ -127,12 +127,12 @@ lives in focused requirements documents under `rqm/`; implementation follows tho
 Stable opaque identifiers provide traceability for requirements that correspond to executable code
 or tests.
 
-Guardrails' own traceability identifiers belong to the top-level repository: its requirements under
+Riprap' own traceability identifiers belong to the top-level repository: its requirements under
 `rqm/` and the implementation or tests that satisfy them outside `template/`. Concrete
-`rq-XXXXXXXX` identifiers from the Guardrails repository do not appear anywhere under `template/`.
+`rq-XXXXXXXX` identifiers from the Riprap repository do not appear anywhere under `template/`.
 Template content is distributed into generated repositories, whose requirements and traceability
 registries are independently owned by those projects. Keeping the namespaces separate prevents a
-generated project from mistaking Guardrails implementation annotations for its own requirements.
+generated project from mistaking Riprap implementation annotations for its own requirements.
 
 Requirements and Gherkin scenarios must describe behavior that can be validated meaningfully in the
 project's automated environment. The requirements process does not manufacture executable-looking
@@ -140,13 +140,13 @@ scenarios for subjective agent behavior or other claims that the test environmen
 
 ## Extensibility
 
-Guardrails uses composition through templates, canonical workflows, adapters, and user-owned
+Riprap uses composition through templates, canonical workflows, adapters, and user-owned
 extension files rather than an in-process plugin framework.
 
 The principal extension points are:
 
 - Agent adapters, which connect a new agent's discovery and interaction conventions to canonical
-  Guardrails skills.
+  Riprap skills.
 - Language variants, which contribute conditional skeleton, build, test, documentation, and CI
   templates.
 - Rootless container backends, which may provide host launch and environment-building integrations
@@ -180,7 +180,7 @@ Container runtime behavior — image contents, volume semantics, and process iso
 real rootless runtime and is tested only on runners that provide one. The two layers are tested
 separately: an orchestration test never builds an image, and a runtime test never runs a launcher.
 
-Focused tests cover deterministic tooling shipped by Guardrails, including requirements-management
+Focused tests cover deterministic tooling shipped by Riprap, including requirements-management
 scripts, hooks, launch helpers, and other purely mechanical behavior. Failure paths and preservation
 of user-owned data receive explicit coverage where they can be reproduced in CI.
 

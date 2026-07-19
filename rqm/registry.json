@@ -483,10 +483,10 @@
     "type": "scenario"
   },
   "rq-8d83394b": {
-    "decl": "# Feature: Agent-Neutral Guardrails Skills",
+    "decl": "# Feature: Agent-Neutral Riprap Skills",
     "file": "agent-neutral-skills",
     "refs": [],
-    "title": "Feature: Agent-Neutral Guardrails Skills",
+    "title": "Feature: Agent-Neutral Riprap Skills",
     "type": "file"
   },
   "rq-8f041d7b": {
@@ -722,10 +722,10 @@
     "type": "scenario"
   },
   "rq-da673d77": {
-    "decl": "# Feature: Guardrails Development Container",
+    "decl": "# Feature: Riprap Development Container",
     "file": "development-container",
     "refs": [],
-    "title": "Feature: Guardrails Development Container",
+    "title": "Feature: Riprap Development Container",
     "type": "file"
   },
   "rq-dbd3a295": {
@@ -789,7 +789,7 @@
     "type": "section"
   },
   "rq-f63c0743": {
-    "decl": "Scenario: Guardrails traceability validation rejects a Guardrails ID in the template tree",
+    "decl": "Scenario: Riprap traceability validation rejects a Riprap ID in the template tree",
     "file": "template-traceability-boundary",
     "refs": [
       {
@@ -801,7 +801,7 @@
         "kind": "code"
       }
     ],
-    "title": "Guardrails traceability validation rejects a Guardrails ID in the template tree",
+    "title": "Riprap traceability validation rejects a Riprap ID in the template tree",
     "type": "scenario"
   },
   "rq-f69aa150": {

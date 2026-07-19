@@ -1,6 +1,6 @@
 # Feature: Agent Credential Isolation <!-- rq-60eee682 -->
 
-Guardrails keeps Claude and Codex authentication state in project-specific Podman named volumes.
+Riprap keeps Claude and Codex authentication state in project-specific Podman named volumes.
 Generated projects never mount a user's host Claude or Codex configuration into the development
 container. Layered repository safeguards prevent credentials copied into the workspace from being
 committed or pushed accidentally. The version-controlled Git hooks and launch scripts are normalized
@@ -8,8 +8,8 @@ so they run on every supported host.
 
 ## Project Identity <!-- rq-f3cf5b0e -->
 
-- `.guardrails/project-id` contains a randomly generated UUID used only to identify the generated
-  project's local Guardrails resources.
+- `.riprap/project-id` contains a randomly generated UUID used only to identify the generated
+  project's local Riprap resources.
 - The launch scripts create the file atomically on first use when it does not exist.
 - An existing identifier must be a canonical lowercase UUID. Launching fails with an actionable
   error rather than replacing a malformed identifier or following a symbolic link.
@@ -62,7 +62,7 @@ so they run on every supported host.
 ## Cross-Platform Script Execution <!-- rq-9332ad0f -->
 
 - A template-owned `.gitattributes`, delivered and kept current through `copier update`, sets the
-  line endings of version-controlled Guardrails files so that hooks and launch scripts run on Linux,
+  line endings of version-controlled Riprap files so that hooks and launch scripts run on Linux,
   macOS, WSL, and Windows regardless of a contributor's `core.autocrlf` setting.
 - Shell scripts and Git hooks, including the extensionless `pre-commit` hook and `check-secrets.sh`,
   are checked out with LF endings so they execute under the bundled shell of Git for Windows.
@@ -82,19 +82,19 @@ so they run on every supported host.
 
 ## Feature Interface <!-- rq-22e021a0 -->
 
-- `gr.sh` and `gr.bat`
-  - Ensure `.guardrails/project-id` and the project-specific Claude and Codex volumes exist before
+- `rr.sh` and `rr.bat`
+  - Ensure `.riprap/project-id` and the project-specific Claude and Codex volumes exist before
     launching the development container.
   - Launch without exposing host agent configuration paths.
-- `gr.sh --reset-agent-state <claude|codex|all>` and the equivalent Windows command
+- `rr.sh --reset-agent-state <claude|codex|all>` and the equivalent Windows command
   - Display the exact project-scoped volumes that will be removed.
   - Require interactive confirmation unless an explicit non-interactive confirmation flag is used.
-- `gr.sh --install-git-hooks` and the equivalent Windows command
-  - Configure the generated repository to use Guardrails' version-controlled hooks when no
+- `rr.sh --install-git-hooks` and the equivalent Windows command
+  - Configure the generated repository to use Riprap' version-controlled hooks when no
     conflicting `core.hooksPath` is configured.
-- `.guardrails/hooks/check-secrets.sh --staged`
+- `.riprap/hooks/check-secrets.sh --staged`
   - Inspect staged paths and blobs and exit nonzero when a supported secret is detected.
-- `.guardrails/hooks/check-secrets.sh --repository`
+- `.riprap/hooks/check-secrets.sh --repository`
   - Inspect repository content in CI and exit nonzero when a supported secret is detected.
 
 ## Gherkin Scenarios <!-- rq-898cb6e0 -->
@@ -104,10 +104,10 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-9d9dea75
   Scenario: First launch creates a stable project identity and credential volumes
-    Given a generated project has no ".guardrails/project-id"
+    Given a generated project has no ".riprap/project-id"
     And Podman has no credential volumes for the project
     When the project launcher starts the development environment
-    Then it atomically creates a canonical lowercase UUID in ".guardrails/project-id"
+    Then it atomically creates a canonical lowercase UUID in ".riprap/project-id"
     And it creates distinct Claude and Codex named volumes containing that UUID
     And the container receives no bind mount from the host's Claude or Codex configuration paths
 
@@ -129,14 +129,14 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-4e428654
   Scenario: Template-owned images carry no agent configuration
-    Given a project rendered from the Guardrails template
+    Given a project rendered from the Riprap template
     When the template-owned tooling and agent images are built
     Then neither image contains a Claude configuration file at the default configuration path
     And neither image contains a Claude configuration directory
 
   @rq-6135fc70
   Scenario: A malformed project identity blocks launch safely
-    Given ".guardrails/project-id" is malformed or is a symbolic link
+    Given ".riprap/project-id" is malformed or is a symbolic link
     When the project launcher starts the development environment
     Then launch fails before Podman runs
     And the existing path is not replaced or modified
@@ -151,17 +151,17 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-d89e4c89
   Scenario: Version-controlled hooks and shell scripts are marked for LF checkout
-    Given a project rendered from the Guardrails template
+    Given a project rendered from the Riprap template
     When the effective Git "eol" attribute is evaluated for the version-controlled scripts
-    Then ".guardrails/hooks/pre-commit" has an "eol" attribute of "lf"
-    And ".guardrails/hooks/check-secrets.sh" has an "eol" attribute of "lf"
-    And "gr.sh" has an "eol" attribute of "lf"
+    Then ".riprap/hooks/pre-commit" has an "eol" attribute of "lf"
+    And ".riprap/hooks/check-secrets.sh" has an "eol" attribute of "lf"
+    And "rr.sh" has an "eol" attribute of "lf"
 
   @rq-dbd3a295
   Scenario: Windows batch scripts are marked for CRLF checkout
-    Given a project rendered from the Guardrails template
-    When the effective Git "eol" attribute is evaluated for "gr.bat"
-    Then "gr.bat" has an "eol" attribute of "crlf"
+    Given a project rendered from the Riprap template
+    When the effective Git "eol" attribute is evaluated for "rr.bat"
+    Then "rr.bat" has an "eol" attribute of "crlf"
 
   @rq-f8bf5e72
   Scenario: Known credential files are ignored without hiding integration configuration
@@ -183,14 +183,14 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-0bb9767e
   Scenario: Legitimate agent integration files pass secret scanning
-    Given a generated Git repository has staged ordinary Guardrails agent settings and adapters
+    Given a generated Git repository has staged ordinary Riprap agent settings and adapters
     When the staged-content secret scanner runs
     Then it exits successfully
 
   @rq-50bb2037
   Scenario: Hook installation preserves an existing hook configuration
     Given a generated Git repository already has a custom "core.hooksPath"
-    When Guardrails hook installation is requested
+    When Riprap hook installation is requested
     Then installation exits nonzero with composition instructions
     And the existing "core.hooksPath" is unchanged
 
@@ -211,9 +211,9 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-6b0d184f
   Scenario: The Windows credential helper creates the same project identity
-    Given a generated project has no ".guardrails/project-id"
+    Given a generated project has no ".riprap/project-id"
     When the Windows credential helper ensures project state
-    Then it creates a canonical lowercase UUID in ".guardrails/project-id"
+    Then it creates a canonical lowercase UUID in ".riprap/project-id"
     And it creates the Claude and Codex volume names the shell helper creates for that UUID
 
   @rq-5e481eb3
@@ -231,7 +231,7 @@ Feature: Isolate agent credentials from generated projects
 
   @rq-77328390
   Scenario: A malformed project identity blocks the Windows launcher
-    Given ".guardrails/project-id" is malformed
+    Given ".riprap/project-id" is malformed
     When the Windows launcher starts the development environment
     Then launching fails
     And no development container starts

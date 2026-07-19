@@ -1,8 +1,8 @@
-# Feature: Guardrails Development Container <!-- rq-da673d77 -->
+# Feature: Riprap Development Container <!-- rq-da673d77 -->
 
 The development environment composes a stable template-owned tooling image, a refreshable
 template-owned agent image, and a project-owned image. The tooling image provides the common
-command-line tools needed to develop a generated project and to apply or validate Guardrails
+command-line tools needed to develop a generated project and to apply or validate Riprap
 template updates. The agent image adds the supported AI agents at current releases, refreshed on a
 bounded schedule that requires no routine action from the user. The project-owned image may add
 further tools without replacing either template-owned layer.
@@ -46,7 +46,7 @@ further tools without replacing either template-owned layer.
 
 ## Agent Refresh Schedule <!-- rq-f3736651 -->
 
-- `.guardrails/podman/agent-build.env` is the successful agent build key. It records the release
+- `.riprap/podman/agent-build.env` is the successful agent build key. It records the release
   selection used by the installed agent image, as the assignments `CLAUDE_VERSION` and
   `CODEX_VERSION`, together with a `REFRESH` value that changes on the refresh schedule.
 - Before an agent refresh, the launcher derives a candidate build key without replacing the
@@ -76,7 +76,7 @@ further tools without replacing either template-owned layer.
 
 ## Optional Release Pin <!-- rq-5e710604 -->
 
-- `.guardrails/agent-pin.env` is an optional, user-created file that pins one or both agents to an
+- `.riprap/agent-pin.env` is an optional, user-created file that pins one or both agents to an
   exact release, using the same `CLAUDE_VERSION` and `CODEX_VERSION` assignments. It does not exist
   in a generated project until a user creates it, so the unpinned schedule above is the default.
 - A pinned agent is installed at exactly the pinned release. An unpinned agent continues to track
@@ -118,7 +118,7 @@ further tools without replacing either template-owned layer.
 
 ## Feature Interface <!-- rq-4afcfc2c -->
 
-- `gr.sh` and `gr.bat`
+- `rr.sh` and `rr.bat`
   - Validate the complete optional pin and derive a candidate from it and the current ISO week
     before building any image.
   - Stop before building when a pin is malformed, identifying the offending content.
@@ -150,11 +150,11 @@ further tools without replacing either template-owned layer.
 ## Gherkin Scenarios <!-- rq-88b04d5f -->
 
 ```gherkin
-Feature: Guardrails development container
+Feature: Riprap development container
 
   @rq-a32974ac
   Scenario: Copier is available in a generated Rust development container
-    Given a Rust project is rendered from the Guardrails template with Copier
+    Given a Rust project is rendered from the Riprap template with Copier
     When the generated template-owned base container image is built
     Then the image build succeeds
     And running "copier --version" in the built image succeeds
@@ -162,7 +162,7 @@ Feature: Guardrails development container
 
   @rq-876d30dd
   Scenario: Copier is available in a generated Python development container
-    Given a Python project is rendered from the Guardrails template with Copier
+    Given a Python project is rendered from the Riprap template with Copier
     When the generated template-owned base container image is built
     Then the image build succeeds
     And running "copier --version" in the built image succeeds
@@ -179,7 +179,7 @@ Feature: Guardrails development container
 
   @rq-b25f8408
   Scenario: Agent installation is isolated from the tooling image
-    Given a generated project rendered from the Guardrails template
+    Given a generated project rendered from the Riprap template
     When its template-owned images are built
     Then the tooling image contains the base packages, Copier, and language toolchain
     And the tooling image contains no agent installation
@@ -188,7 +188,7 @@ Feature: Guardrails development container
 
   @rq-d09c17d0
   Scenario: Agent programs are installed outside the credential volume paths
-    Given a generated project rendered from the Guardrails template
+    Given a generated project rendered from the Riprap template
     When the template-owned agent image is built
     Then each agent executable resolves to a program path that no credential volume mounts over
     And the image contains no agent program files beneath a credential volume mount point
@@ -387,7 +387,7 @@ Feature: Guardrails development container
   Scenario: The build key is not committed
     Given a generated project whose launcher has written the build key
     When Git ignore rules are evaluated
-    Then ".guardrails/podman/agent-build.env" is ignored
+    Then ".riprap/podman/agent-build.env" is ignored
 
   @rq-fae13c6f
   Scenario: Launching disables the agents' in-container automatic updaters

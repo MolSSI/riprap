@@ -30,7 +30,7 @@ jobs:
 
       - name: Reject committed credentials
         if: runner.os == 'Linux'
-        run: .guardrails/hooks/check-secrets.sh --repository
+        run: .riprap/hooks/check-secrets.sh --repository
 
       - name: Additional info about the build
         shell: bash

@@ -6,7 +6,7 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 render_project() {
   if command -v copier >/dev/null 2>&1; then
-    copier copy --trust --defaults --data project_name='Credential Test' \
+    copier copy --trust --defaults --vcs-ref HEAD --data project_name='Credential Test' \
       --data project_slug='credential-test' --data project_description='test' \
       --data language=rust --data include_rust_skeleton=false \
       --data author_name=Test --data author_email=test@example.com \
@@ -15,7 +15,7 @@ render_project() {
     # A dependency-free fallback exercises static runtime files in minimal dev images.
     mkdir -p "$1"; cp -a "$ROOT/template/." "$1/"
     mv "$1/.gitignore.jinja" "$1/.gitignore"
-    mv "$1/.guardrails/podman/image_name.jinja" "$1/.guardrails/podman/image_name"
+    mv "$1/.riprap/podman/image_name.jinja" "$1/.riprap/podman/image_name"
     mv "$1/.claude/settings.json.jinja" "$1/.claude/settings.json"
   fi
 }
@@ -46,49 +46,49 @@ MOCK
 
 # rq-9d9dea75
 test_first_launch_isolated_volumes() (
-  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
-  id=$(cat .guardrails/project-id)
+  setup_project; cd "$PROJECT"; bash rr.sh </dev/null
+  id=$(cat .riprap/project-id)
   [[ "$id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || fail 'invalid UUID'
-  test -d "$MOCK_VOLUMES/guardrails-$id-claude"; test -d "$MOCK_VOLUMES/guardrails-$id-codex"
+  test -d "$MOCK_VOLUMES/riprap-$id-claude"; test -d "$MOCK_VOLUMES/riprap-$id-codex"
   ! grep -Eq " -v ${HOME}/\.(claude|codex|claude\.json)" "$PODMAN_LOG" || fail 'host agent configuration was mounted'
 )
 
 # rq-113c8ccd
 test_later_launch_reuses_state() (
-  setup_project; cd "$PROJECT"; .guardrails/credential-state.sh ensure >/dev/null
-  id=$(cat .guardrails/project-id); touch "$MOCK_VOLUMES/guardrails-$id-claude/marker" "$MOCK_VOLUMES/guardrails-$id-codex/marker"
-  bash gr.sh </dev/null
-  test -f "$MOCK_VOLUMES/guardrails-$id-claude/marker"; test -f "$MOCK_VOLUMES/guardrails-$id-codex/marker"
+  setup_project; cd "$PROJECT"; .riprap/credential-state.sh ensure >/dev/null
+  id=$(cat .riprap/project-id); touch "$MOCK_VOLUMES/riprap-$id-claude/marker" "$MOCK_VOLUMES/riprap-$id-codex/marker"
+  bash rr.sh </dev/null
+  test -f "$MOCK_VOLUMES/riprap-$id-claude/marker"; test -f "$MOCK_VOLUMES/riprap-$id-codex/marker"
 )
 
 # rq-fb3e7cc2
 test_claude_config_stored_in_volume() (
-  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
-  id=$(cat .guardrails/project-id)
+  setup_project; cd "$PROJECT"; bash rr.sh </dev/null
+  id=$(cat .riprap/project-id)
   # The Claude configuration directory must resolve to the same container path where the
   # persistent Claude volume is mounted, so the top-level configuration file is stored in
   # the volume rather than the disposable container.
-  grep -Eq -- "-v guardrails-$id-claude:/root/\.claude( |$)" "$PODMAN_LOG" || fail 'Claude volume not mounted at /root/.claude'
+  grep -Eq -- "-v riprap-$id-claude:/root/\.claude( |$)" "$PODMAN_LOG" || fail 'Claude volume not mounted at /root/.claude'
   grep -Eq -- "-e CLAUDE_CONFIG_DIR=/root/\.claude( |$)" "$PODMAN_LOG" || fail 'CLAUDE_CONFIG_DIR not pointed at the Claude volume'
 )
 
 # rq-6135fc70
 test_bad_identity_blocks_podman() (
-  setup_project; cd "$PROJECT"; printf 'bad\n' > .guardrails/project-id
-  before=$(cksum .guardrails/project-id); ! bash gr.sh </dev/null 2>/dev/null || fail 'malformed ID accepted'
-  test "$before" = "$(cksum .guardrails/project-id)"; test ! -s "$PODMAN_LOG"
-  rm .guardrails/project-id; ln -s nowhere .guardrails/project-id
-  ! bash gr.sh </dev/null 2>/dev/null || fail 'symlink ID accepted'; test -L .guardrails/project-id; test ! -s "$PODMAN_LOG"
+  setup_project; cd "$PROJECT"; printf 'bad\n' > .riprap/project-id
+  before=$(cksum .riprap/project-id); ! bash rr.sh </dev/null 2>/dev/null || fail 'malformed ID accepted'
+  test "$before" = "$(cksum .riprap/project-id)"; test ! -s "$PODMAN_LOG"
+  rm .riprap/project-id; ln -s nowhere .riprap/project-id
+  ! bash rr.sh </dev/null 2>/dev/null || fail 'symlink ID accepted'; test -L .riprap/project-id; test ! -s "$PODMAN_LOG"
 )
 
 # rq-f957f555
 test_reset_is_project_and_agent_scoped() (
-  setup_project; cd "$PROJECT"; .guardrails/credential-state.sh ensure >/dev/null; first=$(cat .guardrails/project-id)
+  setup_project; cd "$PROJECT"; .riprap/credential-state.sh ensure >/dev/null; first=$(cat .riprap/project-id)
   second=11111111-1111-4111-8111-111111111111
-  mkdir "$MOCK_VOLUMES/guardrails-$second-claude" "$MOCK_VOLUMES/guardrails-$second-codex"
-  bash gr.sh --reset-agent-state codex --yes >/dev/null
-  test ! -d "$MOCK_VOLUMES/guardrails-$first-codex"; test -d "$MOCK_VOLUMES/guardrails-$first-claude"
-  test -d "$MOCK_VOLUMES/guardrails-$second-claude"; test -d "$MOCK_VOLUMES/guardrails-$second-codex"
+  mkdir "$MOCK_VOLUMES/riprap-$second-claude" "$MOCK_VOLUMES/riprap-$second-codex"
+  bash rr.sh --reset-agent-state codex --yes >/dev/null
+  test ! -d "$MOCK_VOLUMES/riprap-$first-codex"; test -d "$MOCK_VOLUMES/riprap-$first-claude"
+  test -d "$MOCK_VOLUMES/riprap-$second-claude"; test -d "$MOCK_VOLUMES/riprap-$second-codex"
 )
 
 # rq-f8bf5e72
@@ -98,7 +98,7 @@ test_ignore_scope() (
   for path in .codex/auth.json .claude/.credentials.json .claude.json .env .env.local .env.prod.local; do
     git check-ignore -q "$path" || fail "$path is not ignored"
   done
-  ! git check-ignore -q .codex/hooks.json; ! git check-ignore -q .claude/settings.json; ! git check-ignore -q .agents/skills/gr-plan/SKILL.md
+  ! git check-ignore -q .codex/hooks.json; ! git check-ignore -q .claude/settings.json; ! git check-ignore -q .agents/skills/rr-plan/SKILL.md
 )
 
 # rq-aeab49a7
@@ -107,20 +107,20 @@ test_staged_secrets_rejected_without_disclosure() (
   # Assemble the fake token from a separate sigil and body so this test file never contains a
   # literal secret; otherwise the pre-commit scanner would reject the file when it is committed.
   fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="sk-$fake"; printf '%s\n' "$token" > accidental.txt; git add -f accidental.txt
-  ! output=$(.guardrails/hooks/check-secrets.sh --staged 2>&1) || fail 'fake token accepted'
+  ! output=$(.riprap/hooks/check-secrets.sh --staged 2>&1) || fail 'fake token accepted'
   grep -Fq 'accidental.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
 # rq-0bb9767e
 test_legitimate_integration_passes() (
-  setup_project; cd "$PROJECT"; git init -q; git add .codex/hooks.json .claude/settings.json .agents/skills/gr-plan/SKILL.md
-  .guardrails/hooks/check-secrets.sh --staged
+  setup_project; cd "$PROJECT"; git init -q; git add .codex/hooks.json .claude/settings.json .agents/skills/rr-plan/SKILL.md
+  .riprap/hooks/check-secrets.sh --staged
 )
 
 # rq-50bb2037
 test_hook_install_preserves_custom_path() (
   setup_project; cd "$PROJECT"; git init -q; git config core.hooksPath custom-hooks
-  ! output=$(bash gr.sh --install-git-hooks 2>&1) || fail 'custom hooks replaced'
+  ! output=$(bash rr.sh --install-git-hooks 2>&1) || fail 'custom hooks replaced'
   test "$(git config core.hooksPath)" = custom-hooks; grep -Fq 'compose' <<<"$output"
 )
 
@@ -131,15 +131,15 @@ test_repository_scan_needs_no_hook() (
   # committed test file holds no literal secret for the pre-commit scanner to reject.
   fake=THISISANUNMISTAKABLYFAKETOKEN123456; token="ghp_$fake"; printf '%s\n' "$token" > tracked.txt
   git add -f tracked.txt; git commit -qm fake; test -z "$(git config --get core.hooksPath || true)"
-  ! output=$(.guardrails/hooks/check-secrets.sh --repository 2>&1) || fail 'repository token accepted'
+  ! output=$(.riprap/hooks/check-secrets.sh --repository 2>&1) || fail 'repository token accepted'
   grep -Fq 'tracked.txt (supported access token)' <<<"$output"; ! grep -Fq "$token" <<<"$output"
 )
 
-build_key() { sed -n "s/^$1=//p" .guardrails/podman/agent-build.env | head -n 1; }
+build_key() { sed -n "s/^$1=//p" .riprap/podman/agent-build.env | head -n 1; }
 
 # rq-7c6a2afa
 test_unpinned_launch_records_week_and_latest() (
-  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
+  setup_project; cd "$PROJECT"; bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude does not track the current release'
   test "$(build_key CODEX_VERSION)" = latest || fail 'Codex does not track the current release'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
@@ -150,10 +150,10 @@ test_unpinned_launch_records_week_and_latest() (
 # leave it byte-identical; that is what keeps the agent layers cached.
 # rq-145d819f
 test_second_launch_in_same_week_is_unchanged() (
-  setup_project; cd "$PROJECT"; bash gr.sh </dev/null
-  before=$(cksum .guardrails/podman/agent-build.env)
-  bash gr.sh </dev/null
-  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'build key changed within one week'
+  setup_project; cd "$PROJECT"; bash rr.sh </dev/null
+  before=$(cksum .riprap/podman/agent-build.env)
+  bash rr.sh </dev/null
+  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'build key changed within one week'
 )
 
 # A new week must change the key. The stamp is compared against a key left over from an
@@ -162,23 +162,23 @@ test_second_launch_in_same_week_is_unchanged() (
 test_new_week_changes_the_build_key() (
   setup_project; cd "$PROJECT"
   printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\n' \
-    > .guardrails/podman/agent-build.env
-  bash gr.sh </dev/null
+    > .riprap/podman/agent-build.env
+  bash rr.sh </dev/null
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'a new week did not update the build key'
 )
 
 # rq-c82c7b32
 test_pin_installs_exact_release_and_suspends_refresh() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .guardrails/agent-pin.env
-  bash gr.sh </dev/null
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/agent-pin.env
+  bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = 0.144.6 || fail 'Codex pin not recorded'
   test "$(build_key REFRESH)" = pinned || fail 'a fully pinned key still records a week'
   # A later week must not disturb a fully pinned key.
-  before=$(cksum .guardrails/podman/agent-build.env)
-  bash gr.sh </dev/null
-  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'pinned key changed'
+  before=$(cksum .riprap/podman/agent-build.env)
+  bash rr.sh </dev/null
+  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'pinned key changed'
 )
 
 # An agent left out of the pin must keep tracking its current release, which requires the
@@ -186,8 +186,8 @@ test_pin_installs_exact_release_and_suspends_refresh() (
 # rq-c82c7b32
 test_partial_pin_keeps_the_unpinned_agent_current() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\n' > .guardrails/agent-pin.env
-  bash gr.sh </dev/null
+  printf 'CLAUDE_VERSION=2.1.205\n' > .riprap/agent-pin.env
+  bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = latest || fail 'unpinned Codex was pinned'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
@@ -197,10 +197,10 @@ test_partial_pin_keeps_the_unpinned_agent_current() (
 # rq-b06efb1e
 test_removing_the_pin_restores_the_schedule() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .guardrails/agent-pin.env
-  bash gr.sh </dev/null
-  rm .guardrails/agent-pin.env
-  bash gr.sh </dev/null
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/agent-pin.env
+  bash rr.sh </dev/null
+  rm .riprap/agent-pin.env
+  bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude did not return to the schedule'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'the week was not restored'
 )
@@ -208,16 +208,16 @@ test_removing_the_pin_restores_the_schedule() (
 # rq-6c8f6c05
 test_malformed_pin_stops_the_launch() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=latest\n' > .guardrails/agent-pin.env
-  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'a non-exact pin was accepted'
+  printf 'CLAUDE_VERSION=latest\n' > .riprap/agent-pin.env
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail 'a non-exact pin was accepted'
   grep -Fq 'CLAUDE_VERSION' <<<"$output" || fail 'the offending assignment is not identified'
   # Ensuring the credential volumes already logged podman calls, so look for a build.
   ! grep -q '^build ' "$PODMAN_LOG" || fail 'an image was built despite a malformed pin'
 )
 
 assert_invalid_pin() (
-  setup_project; cd "$PROJECT"; printf '%b' "$1" > .guardrails/agent-pin.env
-  ! output=$(bash gr.sh </dev/null 2>&1) || fail "$2 was accepted"
+  setup_project; cd "$PROJECT"; printf '%b' "$1" > .riprap/agent-pin.env
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail "$2 was accepted"
   grep -Fiq "$3" <<<"$output" || fail "$2 did not identify $3"
   ! grep -q '^build ' "$PODMAN_LOG" || fail "an image was built for $2"
 )
@@ -244,8 +244,8 @@ test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n
 # rq-dc4bf1b1
 test_failed_refresh_falls_back_to_existing_image() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .guardrails/podman/agent-build.env
-  before=$(cksum .guardrails/podman/agent-build.env)
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .riprap/podman/agent-build.env
+  before=$(cksum .riprap/podman/agent-build.env)
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
 echo "$*" >> "$PODMAN_LOG"
@@ -257,11 +257,11 @@ if [ "$1 $2" = 'image exists' ]; then exit 0; fi
 exit 0
 MOCK
   chmod +x "$MOCK_BIN/podman"
-  output=$(bash gr.sh </dev/null 2>&1) || fail 'launch aborted despite an existing base image'
+  output=$(bash rr.sh </dev/null 2>&1) || fail 'launch aborted despite an existing base image'
   grep -Fq 'refresh failed' <<<"$output" || fail 'the failed refresh was not reported'
   grep -q 'run --rm' "$PODMAN_LOG" || fail 'no development container was started'
-  test "$before" = "$(cksum .guardrails/podman/agent-build.env)" || fail 'failed refresh changed successful state'
-  test ! -e .guardrails/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
+  test "$before" = "$(cksum .riprap/podman/agent-build.env)" || fail 'failed refresh changed successful state'
+  test ! -e .riprap/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
 )
 
 # rq-152d1311
@@ -278,7 +278,7 @@ if [ "$1 $2" = 'image exists' ]; then exit 1; fi
 exit 0
 MOCK
   chmod +x "$MOCK_BIN/podman"
-  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'launch continued with no base image'
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail 'launch continued with no base image'
   grep -Fq 'no compatible agent image exists' <<<"$output" || fail 'the failure was not explained'
   ! grep -q 'run --rm' "$PODMAN_LOG" || fail 'a development container was started anyway'
 )
@@ -295,10 +295,10 @@ if [ "$1" = build ]; then exit 1; fi
 exit 0
 MOCK
   chmod +x "$MOCK_BIN/podman"
-  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'tooling build failure used fallback'
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail 'tooling build failure used fallback'
   grep -Fq 'tooling image build failed' <<<"$output" || fail 'tooling failure was not identified'
   ! grep -Fq 'agent refresh failed' <<<"$output" || fail 'tooling failure was mislabeled as refresh failure'
-  test ! -e .guardrails/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
+  test ! -e .riprap/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
 )
 
 # The shell stamp is checked against ISO-8601 directly. Agreement between this
@@ -310,7 +310,7 @@ test_iso_week_matches_iso8601() (
   for pair in 2019-12-30=2020-W01 2020-12-31=2020-W53 2021-01-01=2020-W53 \
               2021-01-04=2021-W01 2022-01-01=2021-W52 2024-12-30=2025-W01 \
               2026-12-31=2026-W53 2017-01-01=2016-W52 2023-06-15=2023-W24; do
-    actual=$(.guardrails/agent-build.sh week "${pair%%=*}")
+    actual=$(.riprap/agent-build.sh week "${pair%%=*}")
     test "$actual" = "${pair#*=}" || fail "week ${pair%%=*} is '$actual', not '${pair#*=}'"
   done
 )
@@ -326,8 +326,8 @@ done
 printf '2042-W07\n'
 MOCK
   chmod +x "$MOCK_BIN/date"
-  .guardrails/agent-build.sh prepare
-  refresh=$(sed -n 's/^REFRESH=//p' .guardrails/podman/agent-build.candidate.env)
+  .riprap/agent-build.sh prepare
+  refresh=$(sed -n 's/^REFRESH=//p' .riprap/podman/agent-build.candidate.env)
   test "$refresh" = 2042-W07 || fail 'the current refresh stamp did not use the portable date path'
 )
 
@@ -336,8 +336,8 @@ MOCK
 # rq-c2cdf6d8
 test_unknown_pin_name_outranks_a_bad_value() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSOIN=not-a-version\n' > .guardrails/agent-pin.env
-  ! output=$(bash gr.sh </dev/null 2>&1) || fail 'an unknown pin name was accepted'
+  printf 'CLAUDE_VERSOIN=not-a-version\n' > .riprap/agent-pin.env
+  ! output=$(bash rr.sh </dev/null 2>&1) || fail 'an unknown pin name was accepted'
   grep -Fq 'unknown assignment' <<<"$output" || fail 'the unknown name was not identified'
   ! grep -Fq 'exact release version' <<<"$output" || fail 'the value format outranked the unknown name'
 )
@@ -346,7 +346,7 @@ test_unknown_pin_name_outranks_a_bad_value() (
 # rq-fedf48c5
 test_ambient_version_variable_is_ignored() (
   setup_project; cd "$PROJECT"
-  CLAUDE_VERSION=9.9.9 CODEX_VERSION=8.8.8 bash gr.sh </dev/null
+  CLAUDE_VERSION=9.9.9 CODEX_VERSION=8.8.8 bash rr.sh </dev/null
   test "$(build_key INSTALLED_CLAUDE_VERSION)" = 2.1.205 || \
     fail "recorded Claude release is '$(build_key INSTALLED_CLAUDE_VERSION)', not the one the image reports"
   test "$(build_key INSTALLED_CODEX_VERSION)" = 0.144.6 || \
@@ -377,18 +377,18 @@ fi
 exit 0
 MOCK
   chmod +x "$MOCK_BIN/podman"
-  ! bash gr.sh </dev/null >/dev/null 2>&1 || fail 'an unparseable agent version was accepted'
+  ! bash rr.sh </dev/null >/dev/null 2>&1 || fail 'an unparseable agent version was accepted'
   ! grep -q 'AgentLabels' "$PODMAN_LOG" || fail 'the agent image was labeled with an unparseable version'
-  test ! -e .guardrails/podman/agent-build.env || fail 'an unparseable version was promoted'
+  test ! -e .riprap/podman/agent-build.env || fail 'an unparseable version was promoted'
 )
 
 # rq-ac53295e
 test_build_key_is_not_committed() (
-  setup_project; cd "$PROJECT"; git init -q; bash gr.sh </dev/null
-  test -f .guardrails/podman/agent-build.env || fail 'the launcher did not write a build key'
-  git check-ignore -q .guardrails/podman/agent-build.env || fail 'the build key is not git-ignored'
-  printf 'candidate\n' > .guardrails/podman/agent-build.candidate.env
-  git check-ignore -q .guardrails/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
+  setup_project; cd "$PROJECT"; git init -q; bash rr.sh </dev/null
+  test -f .riprap/podman/agent-build.env || fail 'the launcher did not write a build key'
+  git check-ignore -q .riprap/podman/agent-build.env || fail 'the build key is not git-ignored'
+  printf 'candidate\n' > .riprap/podman/agent-build.candidate.env
+  git check-ignore -q .riprap/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
 )
 
 attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
@@ -396,7 +396,7 @@ attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
 # rq-d89e4c89
 test_scripts_marked_lf() (
   setup_project; cd "$PROJECT"; git init -q
-  for path in .guardrails/hooks/pre-commit .guardrails/hooks/check-secrets.sh gr.sh; do
+  for path in .riprap/hooks/pre-commit .riprap/hooks/check-secrets.sh rr.sh; do
     eol=$(attr_eol "$path"); test "$eol" = lf || fail "$path is not marked eol=lf (got '$eol')"
   done
 )
@@ -404,19 +404,19 @@ test_scripts_marked_lf() (
 # rq-dbd3a295
 test_batch_marked_crlf() (
   setup_project; cd "$PROJECT"; git init -q
-  eol=$(attr_eol gr.bat); test "$eol" = crlf || fail "gr.bat is not marked eol=crlf (got '$eol')"
+  eol=$(attr_eol rr.bat); test "$eol" = crlf || fail "rr.bat is not marked eol=crlf (got '$eol')"
 )
 
-# Only identifiers the registry records are Guardrails identifiers. Illustrative identifiers in
+# Only identifiers the registry records are Riprap identifiers. Illustrative identifiers in
 # template documentation and in the requirements tooling's fixtures are legitimate content.
 # rq-f63c0743 rq-cb2cdd8e
 test_template_traceability_validation() (
   TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
-  mkdir -p "$TEST_TMP/template/.guardrails" "$TEST_TMP/rqm"
-  printf '{"rq-deadbeef": {"title": "A recorded Guardrails requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
+  mkdir -p "$TEST_TMP/template/.riprap" "$TEST_TMP/rqm"
+  printf '{"rq-deadbeef": {"title": "A recorded Riprap requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
   # A placeholder and a well-formed identifier the registry does not record.
   printf 'rq-XXXXXXXX\n' > "$TEST_TMP/template/documentation.md"
-  printf 'assert_stamped "<!-- rq-3a7f1c2e -->"\n' > "$TEST_TMP/template/.guardrails/fixture.sh"
+  printf 'assert_stamped "<!-- rq-3a7f1c2e -->"\n' > "$TEST_TMP/template/.riprap/fixture.sh"
   bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" || \
     fail 'illustrative identifiers were rejected'
 
@@ -431,9 +431,9 @@ test_template_traceability_validation() (
 # rq-59ada47d
 test_template_traceability_scans_hidden_directories() (
   TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
-  mkdir -p "$TEST_TMP/template/.guardrails/podman" "$TEST_TMP/rqm"
-  printf '{"rq-deadbeef": {"title": "A recorded Guardrails requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
-  printf '# rq-deadbeef\n' > "$TEST_TMP/template/.guardrails/podman/Containerfile.jinja"
+  mkdir -p "$TEST_TMP/template/.riprap/podman" "$TEST_TMP/rqm"
+  printf '{"rq-deadbeef": {"title": "A recorded Riprap requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
+  printf '# rq-deadbeef\n' > "$TEST_TMP/template/.riprap/podman/Containerfile.jinja"
   ! output=$(bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" 2>&1) || \
     fail 'a registry-recorded ID inside a hidden template directory was accepted'
   grep -Fq 'Containerfile.jinja' <<<"$output" || fail 'offending hidden path not identified'
@@ -443,10 +443,10 @@ test_template_traceability_scans_hidden_directories() (
 test_generated_traceability_is_independent() (
   setup_project; cd "$PROJECT"; test ! -f rqm/registry.json
   printf '# Local feature\n\n## Scenario\n' > rqm/local.md
-  .guardrails/skills/gr-plan/rqm.sh stamp rqm/local.md >/dev/null
-  .guardrails/skills/gr-plan/rqm.sh index >/dev/null
+  .riprap/skills/rr-plan/rqm.sh stamp rqm/local.md >/dev/null
+  .riprap/skills/rr-plan/rqm.sh index >/dev/null
   test -f rqm/registry.json
-  ! cmp -s rqm/registry.json "$ROOT/rqm/registry.json" || fail 'Guardrails registry was copied'
+  ! cmp -s rqm/registry.json "$ROOT/rqm/registry.json" || fail 'Riprap registry was copied'
 )
 
 test_first_launch_isolated_volumes; test_later_launch_reuses_state; test_claude_config_stored_in_volume

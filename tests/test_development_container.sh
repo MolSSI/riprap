@@ -11,14 +11,14 @@ fail() {
 render_project() {
   local language="$1" destination="$2"
   local skeleton_key="include_${language}_skeleton"
-  copier copy --trust --defaults \
-    --data project_name="Guardrails ${language} Test" \
-    --data project_slug="guardrails-${language}-test" \
-    --data project_description='Exercises the Guardrails development container' \
+  copier copy --trust --defaults --vcs-ref HEAD \
+    --data project_name="Riprap ${language} Test" \
+    --data project_slug="riprap-${language}-test" \
+    --data project_description='Exercises the Riprap development container' \
     --data language="$language" \
     --data "$skeleton_key=false" \
-    --data author_name='Guardrails Tests' \
-    --data author_email='guardrails@example.com' \
+    --data author_name='Riprap Tests' \
+    --data author_email='riprap@example.com' \
     --data open_source_license='Not Open Source' \
     "$ROOT" "$destination"
 }
@@ -27,26 +27,26 @@ assert_copier_in_container() (
   local language="$1"
   local temp project image version major
   temp="$(mktemp -d)"
-  image="guardrails-copier-test-$language"
+  image="riprap-copier-test-$language"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
 
   render_project "$language" "$project"
-  podman build --tag "$image" "$project/.guardrails/podman"
+  podman build --tag "$image" "$project/.riprap/podman"
   version="$(podman run --rm "$image" copier --version)"
   major="$(printf '%s\n' "$version" | grep -Eo '[0-9]+' | head -n 1)"
   test "$major" = 9 || fail "expected Copier major 9 in $language image, got: $version"
 )
 
 build_key() {
-  sed -n "s/^$2=//p" "$1/.guardrails/podman/agent-build.candidate.env" | tr -d '\r' | head -n 1
+  sed -n "s/^$2=//p" "$1/.riprap/podman/agent-build.candidate.env" | tr -d '\r' | head -n 1
 }
 
 # The launcher normally writes the build key; container tests build the image directly,
 # so they write the key themselves to control which releases the image installs.
 write_build_key() {
   printf 'CLAUDE_VERSION=%s\nCODEX_VERSION=%s\nREFRESH=%s\n' "$2" "$3" "$4" \
-    > "$1/.guardrails/podman/agent-build.candidate.env"
+    > "$1/.riprap/podman/agent-build.candidate.env"
 }
 
 # Builds one image from a rendered project and runs every named assertion against it,
@@ -55,18 +55,18 @@ with_built_image() (
   local language="$1"; shift
   local temp project image assertion
   temp="$(mktemp -d)"
-  image="guardrails-agent-test-$language-$$"
+  image="riprap-agent-test-$language-$$"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project "$language" "$project"
   # Exact releases rather than "latest", so the recorded value can be compared against
   # what the built image reports.
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  podman build --tag guardrails-tooling:latest "$project/.guardrails/podman"
-  podman build -f "$project/.guardrails/podman/Agent.Containerfile" --tag guardrails-agent:candidate "$project/.guardrails/podman"
-  podman build -f "$project/.guardrails/podman/AgentLabels.Containerfile" \
+  podman build --tag riprap-tooling:latest "$project/.riprap/podman"
+  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag riprap-agent:candidate "$project/.riprap/podman"
+  podman build -f "$project/.riprap/podman/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
-    --build-arg TOOLING_IMAGE_ID=test-tooling --tag "$image" "$project/.guardrails/podman"
+    --build-arg TOOLING_IMAGE_ID=test-tooling --tag "$image" "$project/.riprap/podman"
   for assertion in "$@"; do "$assertion" "$project" "$image"; done
 )
 
@@ -85,9 +85,9 @@ assert_versions_match_recording() {
   reported="$(podman run --rm "$image" codex --version)"
   grep -Fq "$codex_recorded" <<<"$reported" || \
     fail "image reports Codex '$reported', but $codex_recorded is recorded"
-  test "$(podman image inspect --format '{{ index .Labels "io.guardrails.claude-version" }}' "$image")" = "$claude_recorded" || \
+  test "$(podman image inspect --format '{{ index .Labels "io.riprap.claude-version" }}' "$image")" = "$claude_recorded" || \
     fail 'Claude image label does not match the installed release'
-  test "$(podman image inspect --format '{{ index .Labels "io.guardrails.codex-version" }}' "$image")" = "$codex_recorded" || \
+  test "$(podman image inspect --format '{{ index .Labels "io.riprap.codex-version" }}' "$image")" = "$codex_recorded" || \
     fail 'Codex image label does not match the installed release'
 }
 
@@ -126,12 +126,12 @@ test_agents_are_isolated_from_tooling_image() (
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project rust "$project"
-  tooling="$project/.guardrails/podman/Containerfile"
-  agent="$project/.guardrails/podman/Agent.Containerfile"
+  tooling="$project/.riprap/podman/Containerfile"
+  agent="$project/.riprap/podman/Agent.Containerfile"
   project_container="$project/Containerfile"
   ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh' "$tooling" || fail 'tooling image installs agents'
-  grep -Fq 'FROM localhost/guardrails-tooling:latest' "$agent" || fail 'agent image is not based on tooling'
-  grep -Fq 'FROM localhost/guardrails-agent:latest' "$project_container" || fail 'project image is not based on agents'
+  grep -Fq 'FROM localhost/riprap-tooling:latest' "$agent" || fail 'agent image is not based on tooling'
+  grep -Fq 'FROM localhost/riprap-agent:latest' "$project_container" || fail 'project image is not based on agents'
 )
 
 # A build key change must rebuild the agent layers with no build argument, and an
@@ -139,23 +139,23 @@ test_agents_are_isolated_from_tooling_image() (
 # rq-62939bfc rq-145d819f
 test_build_key_drives_the_layer_cache() (
   local temp project image first second
-  temp="$(mktemp -d)"; image="guardrails-cache-test-$$"
+  temp="$(mktemp -d)"; image="riprap-cache-test-$$"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project rust "$project"
 
-  podman build --tag guardrails-tooling:latest "$project/.guardrails/podman" >/dev/null
+  podman build --tag riprap-tooling:latest "$project/.riprap/podman" >/dev/null
   write_build_key "$project" 2.1.205 0.144.6 pinned
-  podman build -f "$project/.guardrails/podman/Agent.Containerfile" --tag "$image" "$project/.guardrails/podman" >/dev/null
+  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" >/dev/null
   first="$(podman run --rm "$image" claude --version)"
 
-  second="$(podman build -f "$project/.guardrails/podman/Agent.Containerfile" --tag "$image" "$project/.guardrails/podman" 2>&1)"
+  second="$(podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" 2>&1)"
   grep -Fq 'Using cache' <<<"$second" || fail 'an unchanged build key did not reuse cached layers'
 
   # 2.1.204 is an earlier published release; any release other than the first one
   # demonstrates that the key's contents alone drive the rebuild.
   write_build_key "$project" 2.1.204 0.144.6 pinned
-  podman build -f "$project/.guardrails/podman/Agent.Containerfile" --tag "$image" "$project/.guardrails/podman" >/dev/null
+  podman build -f "$project/.riprap/podman/Agent.Containerfile" --tag "$image" "$project/.riprap/podman" >/dev/null
   second="$(podman run --rm "$image" claude --version)"
   test "$first" != "$second" || fail 'changing the build key did not rebuild the agent layer'
   grep -Fq '2.1.204' <<<"$second" || fail "image reports '$second' after recording 2.1.204"

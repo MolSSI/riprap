@@ -1,4 +1,4 @@
-name: Test Guardrails
+name: Test Riprap
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
         run: bash tests/test_agent_neutral_skills.sh
 
       - name: Test requirements tooling
-        run: bash template/.guardrails/skills/gr-plan/tests/test_rqm.sh
+        run: bash template/.riprap/skills/rr-plan/tests/test_rqm.sh
 
       - name: Validate template traceability boundary
         run: bash tests/check_template_traceability.sh
