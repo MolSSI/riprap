@@ -18,6 +18,9 @@ IMAGE=$(cat .riprap/managed/podman/image_name)
 # Validate the complete pin and write transient candidate state before Podman runs.
 .riprap/managed/launch/agent-build.sh prepare
 trap '.riprap/managed/launch/agent-build.sh discard' EXIT HUP INT TERM
+candidate_file=.riprap/state/podman/agent-build.candidate.env
+candidate_claude_version=$(sed -n 's/^CLAUDE_VERSION=//p' "$candidate_file" | tr -d '\r' | head -n 1)
+candidate_codex_version=$(sed -n 's/^CODEX_VERSION=//p' "$candidate_file" | tr -d '\r' | head -n 1)
 
 # Tooling failures are never treated as refresh failures.
 if ! podman build -t riprap-tooling:latest .riprap/managed/podman; then
@@ -32,6 +35,8 @@ is_exact_version() { printf '%s\n' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; }
 
 refresh_ok=false
 if podman build -f .riprap/managed/podman/Agent.Containerfile \
+    --build-arg "CLAUDE_VERSION=$candidate_claude_version" \
+    --build-arg "CODEX_VERSION=$candidate_codex_version" \
     -t riprap-agent:candidate .riprap/managed/podman; then
     claude_version=$(podman run --rm riprap-agent:candidate claude --version | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
     codex_version=$(podman run --rm riprap-agent:candidate codex --version | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)

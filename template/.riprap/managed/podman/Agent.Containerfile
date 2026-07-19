@@ -1,17 +1,18 @@
 FROM localhost/riprap-tooling:latest
 
-COPY agent-build.candidate.env /etc/riprap/agent-build.env
+ARG CLAUDE_VERSION
+ARG CODEX_VERSION
 
 RUN set -eu; \
-    version="$(sed -n 's/^CLAUDE_VERSION=//p' /etc/riprap/agent-build.env | tr -d '\r' | head -n 1)"; \
-    curl -fsSL https://claude.ai/install.sh | bash -s -- "$version"; \
+    test -n "$CLAUDE_VERSION"; \
+    curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"; \
     rm -rf /root/.claude.json /root/.claude
 
 RUN set -eu; \
-    version="$(sed -n 's/^CODEX_VERSION=//p' /etc/riprap/agent-build.env | tr -d '\r' | head -n 1)"; \
+    test -n "$CODEX_VERSION"; \
     CODEX_HOME=/opt/codex; \
     export CODEX_HOME; \
-    curl -fsSL https://chatgpt.com/codex/install.sh | sh -s -- --release "$version"
+    curl -fsSL https://chatgpt.com/codex/install.sh | sh -s -- --release "$CODEX_VERSION"
 
 ENV CODEX_HOME=/root/.codex
 ENV DISABLE_AUTOUPDATER=1

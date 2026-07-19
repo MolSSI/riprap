@@ -27,6 +27,14 @@ set /p IMAGE=<.riprap\managed\podman\image_name
 REM Validate the complete pin and write transient candidate state before Podman runs.
 powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\agent-build.ps1 prepare
 if errorlevel 1 exit /b %ERRORLEVEL%
+set "CANDIDATE_CLAUDE_VERSION="
+set "CANDIDATE_CODEX_VERSION="
+for /f "usebackq tokens=1,* delims==" %%i in (".riprap\state\podman\agent-build.candidate.env") do (
+    if "%%i"=="CLAUDE_VERSION" set "CANDIDATE_CLAUDE_VERSION=%%j"
+    if "%%i"=="CODEX_VERSION" set "CANDIDATE_CODEX_VERSION=%%j"
+)
+if not defined CANDIDATE_CLAUDE_VERSION exit /b 1
+if not defined CANDIDATE_CODEX_VERSION exit /b 1
 
 REM Tooling failures are never treated as refresh failures.
 call podman build -t riprap-tooling:latest .riprap\managed\podman
@@ -37,7 +45,7 @@ if errorlevel 1 (
 )
 for /f "usebackq delims=" %%i in (`podman image inspect --format "{{.Id}}" riprap-tooling:latest`) do set TOOLING_ID=%%i
 
-call podman build -f .riprap\managed\podman\Agent.Containerfile -t riprap-agent:candidate .riprap\managed\podman
+call podman build -f .riprap\managed\podman\Agent.Containerfile --build-arg CLAUDE_VERSION=!CANDIDATE_CLAUDE_VERSION! --build-arg CODEX_VERSION=!CANDIDATE_CODEX_VERSION! -t riprap-agent:candidate .riprap\managed\podman
 if errorlevel 1 goto agent_refresh_failed
 set "CLAUDE_VERSION="
 set "CODEX_VERSION="
