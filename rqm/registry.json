@@ -292,7 +292,7 @@
     "file": "agent-permission-defaults",
     "refs": [
       {
-        "file": "tests/test_agent_permissions.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -396,7 +396,7 @@
     "file": "agent-permission-defaults",
     "refs": [
       {
-        "file": "tests/test_agent_permissions.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],
@@ -1069,6 +1069,23 @@
     "title": "Direct Riprap component directories contain no canonical files",
     "type": "scenario"
   },
+  "rq-91dd9910": {
+    "decl": "## Verifying Container Enforcement",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Verifying Container Enforcement",
+    "type": "section"
+  },
   "rq-9332ad0f": {
     "decl": "## Cross-Platform Script Execution",
     "file": "agent-credential-isolation",
@@ -1211,6 +1228,18 @@
       }
     ],
     "title": "Removing a pin returns the agents to the refresh schedule",
+    "type": "scenario"
+  },
+  "rq-b1c40a30": {
+    "decl": "Scenario: OpenCode refuses a request whenever the container check reports failure",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode refuses a request whenever the container check reports failure",
     "type": "scenario"
   },
   "rq-b25f8408": {
@@ -1585,7 +1614,7 @@
     "file": "agent-permission-defaults",
     "refs": [
       {
-        "file": "tests/test_agent_permissions.sh",
+        "file": "tests/test_development_container.sh",
         "kind": "code"
       }
     ],

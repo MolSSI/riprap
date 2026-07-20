@@ -134,17 +134,16 @@ for secret in ("**/.env", "**/.env.*", "**/.claude/.credentials.json",
 EOF
 )
 
-# rq-f2003da4 rq-20e684a9 rq-2a2787e3
-test_opencode_container_check_covers_supported_requests() (
+# Whether OpenCode honours the plugin is demonstrated by running OpenCode, which
+# test_development_container.sh does against the built agent image. What remains here is the
+# rendering of the plugin, and the one branch no Linux or macOS host can reach: a host that can
+# run the containerized agent image is not a host that takes the Windows path.
+# rq-91dd9910
+test_opencode_container_check_is_rendered() (
   local project="$1" plugin
   plugin="$project/.opencode/plugins/check-container.js"
   test -f "$plugin" || fail 'OpenCode container-check plugin was not rendered'
-  grep -Fq "'chat.message'" "$plugin" || fail 'OpenCode does not check before chat messages'
-  grep -Fq "Bun.spawnSync" "$plugin" || fail 'OpenCode does not execute the canonical container check'
-  grep -Fq ".riprap/managed/hooks/check-container.sh" "$plugin" || fail 'OpenCode bypasses the canonical container check'
-  grep -Fq "result.exitCode !== 0" "$plugin" || fail 'OpenCode does not fail closed when the check rejects a request'
   grep -Fq "process.platform === 'win32'" "$plugin" || fail 'host Windows OpenCode is not rejected'
-  .riprap/managed/hooks/check-container.sh >/dev/null || fail 'the canonical check rejected this container'
 )
 
 # rq-f928505b
@@ -215,7 +214,7 @@ main() {
     test_opencode_receives_equivalent_defaults "$project" "$language"
   done
 
-  (cd "$temp/rust" && test_opencode_container_check_covers_supported_requests "$temp/rust")
+  test_opencode_container_check_is_rendered "$temp/rust"
 
   test_project_own_permissions_are_not_version_controlled "$temp/rust"
   test_project_own_permissions_survive_a_template_update

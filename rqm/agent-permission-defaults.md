@@ -55,6 +55,23 @@ disturb it.
   process could already have sent workspace content to a model.
 - Failure is closed and actionable: the request produces no AI response and identifies the Riprap
   launcher that should be used.
+- The plugin decides from the canonical check's exit status alone and performs no container
+  detection of its own, so every supported agent shares one detection implementation.
+
+## Verifying Container Enforcement <!-- rq-91dd9910 -->
+
+- The boundary is demonstrated by submitting a request to OpenCode and observing what it does.
+  Inspecting the plugin's source cannot distinguish a plugin that OpenCode loads and honours from
+  one it never invokes, so source inspection demonstrates the boundary only where behaviour is
+  unreachable on the host under test.
+- Riprap offers no way to make the canonical container check report a chosen result independently
+  of the host it runs on. Such a control would itself be a bypass of the boundary. Demonstrating
+  the rejecting path therefore substitutes a check that reports failure, rather than changing how
+  the canonical check detects a container.
+- The interactive and non-interactive entry points reach a model through one request path, so
+  exercising the non-interactive entry point demonstrates the boundary for both.
+- Rejection of a host Windows process is asserted from the plugin's content, because a host that
+  can run the containerized agent image is not the host that exercises that branch.
 
 ## Feature Interface <!-- rq-f75ca93e -->
 
@@ -134,11 +151,21 @@ Feature: Ship least-privilege agent permission defaults
     And OpenCode produces no AI response
     And the command exits nonzero with a diagnostic identifying the Riprap launcher
 
+  @rq-b1c40a30
+  Scenario: OpenCode refuses a request whenever the container check reports failure
+    Given a generated project whose managed container check reports failure
+    And OpenCode is running inside Riprap's development container
+    When `opencode run` submits a prompt
+    Then OpenCode produces no AI response
+    And the command exits nonzero with a diagnostic identifying the Riprap launcher
+
   @rq-2a2787e3
   Scenario: OpenCode accepts requests inside the development container
     Given a generated project is opened by OpenCode inside Riprap's development container
+    And the managed container check reports success
     When an interactive or non-interactive prompt is submitted
     Then the container check succeeds
+    And no diagnostic identifying the Riprap launcher is produced
     And OpenCode may process the request normally
 
   @rq-f928505b
