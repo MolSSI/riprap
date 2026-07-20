@@ -41,6 +41,21 @@ disturb it.
 - The shipped configuration is managed. A project does not edit it to add a permission, and a
   template update revises it without disturbing the project's own additions.
 
+## Container Enforcement <!-- rq-2430a9f0 -->
+
+- Every supported agent refuses to begin an AI response when a generated project is opened outside
+  Riprap's development container.
+- Claude and Codex use their supported project hook mechanisms. OpenCode uses a managed,
+  dependency-free project plugin that performs the same container check before an interactive or
+  non-interactive request can produce an AI response.
+- The OpenCode check applies to the interactive terminal interface, `opencode run`, resumed
+  sessions, and every other OpenCode entry point that the generated-project documentation supports.
+- A prose instruction, executable wrapper that exists only in the container, or check that runs
+  only before agent tool calls does not satisfy this boundary because a host-installed OpenCode
+  process could already have sent workspace content to a model.
+- Failure is closed and actionable: the request produces no AI response and identifies the Riprap
+  launcher that should be used.
+
 ## Feature Interface <!-- rq-f75ca93e -->
 
 - `.claude/settings.json`
@@ -49,6 +64,15 @@ disturb it.
 - `.claude/settings.local.json`
   - The documented place for a project's own permissions. Not rendered by the template, excluded
     from version control, and merged with the shipped configuration by the agent.
+- `opencode.json`
+  - Carries managed OpenCode permission defaults, disables OpenCode's automatic updater, and leaves
+    provider and model selection to the user. Managed, and updated through `copier update`.
+- `.opencode/plugins/check-container.js`
+  - Runs the canonical managed container check before OpenCode can produce an AI response. Managed,
+    dependency-free, and updated through `copier update`.
+- OpenCode user configuration within its project-scoped state volume
+  - Is the documented place for provider, model, and personal permission choices. It is not rendered
+    by the template and is not replaced by `copier update`.
 
 ## Gherkin Scenarios <!-- rq-a71e12c8 -->
 
@@ -81,6 +105,41 @@ Feature: Ship least-privilege agent permission defaults
     When the shipped deny rules are inspected
     Then reading the project environment file is denied
     And reading each agent credential file is denied
+
+  @rq-53993832
+  Scenario: OpenCode receives equivalent permission defaults
+    Given a project is rendered from the Riprap template
+    When the managed OpenCode configuration is inspected
+    Then every command that a Riprap skill invokes is pre-approved
+    And the project's language build, test, and lint commands are pre-approved
+    And no general interpreter, package installer, or shell is pre-approved
+    And project environment and agent credential paths are denied
+    And OpenCode automatic updates are disabled
+
+  @rq-f2003da4
+  Scenario: OpenCode blocks interactive use outside the development container
+    Given a generated project is opened by a host-installed OpenCode terminal interface
+    And the Riprap container marker is absent
+    When the user submits a prompt
+    Then the container check rejects the request before workspace content is sent to a model
+    And OpenCode produces no AI response
+    And the diagnostic identifies the Riprap launcher
+
+  @rq-20e684a9
+  Scenario: OpenCode blocks non-interactive use outside the development container
+    Given a generated project is opened by host-installed OpenCode
+    And the Riprap container marker is absent
+    When `opencode run` submits a prompt
+    Then the container check rejects the request before workspace content is sent to a model
+    And OpenCode produces no AI response
+    And the command exits nonzero with a diagnostic identifying the Riprap launcher
+
+  @rq-2a2787e3
+  Scenario: OpenCode accepts requests inside the development container
+    Given a generated project is opened by OpenCode inside Riprap's development container
+    When an interactive or non-interactive prompt is submitted
+    Then the container check succeeds
+    And OpenCode may process the request normally
 
   @rq-f928505b
   Scenario: A project's own permissions are not version-controlled

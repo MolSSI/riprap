@@ -98,7 +98,7 @@ test_language_variants_grant_comparable_breadth() (
 # rq-19afb5fd
 test_credential_shaped_reads_are_denied() (
   local project="$1" path denied
-  for path in ./.env ./.claude/.credentials.json ./.codex/auth.json; do
+  for path in ./.env ./.claude/.credentials.json ./.codex/auth.json ./.opencode/data/opencode/auth.json; do
     denied=no
     while IFS= read -r rule; do
       if [[ "$rule" == "Read($path)" ]]; then
@@ -108,6 +108,43 @@ test_credential_shaped_reads_are_denied() (
     done < <(rules "$project" deny)
     test "$denied" = yes || fail "reading $path is not denied"
   done
+)
+
+# rq-53993832
+test_opencode_receives_equivalent_defaults() (
+  local project="$1" language="$2"
+  "$PY" - "$project" "$language" <<'EOF'
+import json, pathlib, sys
+
+project = pathlib.Path(sys.argv[1])
+language = sys.argv[2]
+config = json.loads((project / "opencode.json").read_text())
+assert config["autoupdate"] is False
+bash = config["permission"]["bash"]
+assert bash["*"] == "ask"
+assert bash[".riprap/managed/skills/rr-plan/rqm.sh *"] == "allow"
+expected = ["cargo test *"] if language == "rust" else ["pytest *", "pylint *", "bandit *"]
+assert all(bash[item] == "allow" for item in expected)
+for forbidden in ("python *", "python3 *", "bash *", "sh *", "npm *", "pip *", "cargo install *"):
+    assert forbidden not in bash
+read = config["permission"]["read"]
+for secret in ("**/.env", "**/.env.*", "**/.claude/.credentials.json",
+               "**/.codex/auth.json", "**/.opencode/data/opencode/auth.json"):
+    assert read[secret] == "deny"
+EOF
+)
+
+# rq-f2003da4 rq-20e684a9 rq-2a2787e3
+test_opencode_container_check_covers_supported_requests() (
+  local project="$1" plugin
+  plugin="$project/.opencode/plugins/check-container.js"
+  test -f "$plugin" || fail 'OpenCode container-check plugin was not rendered'
+  grep -Fq "'chat.message'" "$plugin" || fail 'OpenCode does not check before chat messages'
+  grep -Fq "Bun.spawnSync" "$plugin" || fail 'OpenCode does not execute the canonical container check'
+  grep -Fq ".riprap/managed/hooks/check-container.sh" "$plugin" || fail 'OpenCode bypasses the canonical container check'
+  grep -Fq "result.exitCode !== 0" "$plugin" || fail 'OpenCode does not fail closed when the check rejects a request'
+  grep -Fq "process.platform === 'win32'" "$plugin" || fail 'host Windows OpenCode is not rejected'
+  .riprap/managed/hooks/check-container.sh >/dev/null || fail 'the canonical check rejected this container'
 )
 
 # rq-f928505b
@@ -175,7 +212,10 @@ main() {
     test_shipped_defaults_grant_no_interpreter_installer_or_shell "$project"
     test_language_variants_grant_comparable_breadth "$project" "$language"
     test_credential_shaped_reads_are_denied "$project"
+    test_opencode_receives_equivalent_defaults "$project" "$language"
   done
+
+  (cd "$temp/rust" && test_opencode_container_check_covers_supported_requests "$temp/rust")
 
   test_project_own_permissions_are_not_version_controlled "$temp/rust"
   test_project_own_permissions_survive_a_template_update

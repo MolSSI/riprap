@@ -48,7 +48,7 @@ if (Test-Path -LiteralPath $runOptionsFile) {
 # default. Point CLAUDE_CONFIG_DIR at the mounted Claude volume so that both the
 # configuration file and the credentials persist across removal of this container.
 #
-# The volumes below hold credentials and session state only. Both agents' programs
+# The volumes below hold credentials and session state only. The agents' programs
 # live in the agent image at versions recorded in its labels and successful build key,
 # and the image disables their self-updaters, so a session runs the recorded versions.
 #
@@ -58,6 +58,7 @@ podman run --rm -it `
     -v "${PWD}:/work" `
     -v "riprap-${ProjectId}-claude:/root/.claude" `
     -v "riprap-${ProjectId}-codex:/root/.codex" `
+    -v "riprap-${ProjectId}-opencode:/root/.opencode" `
     -e CLAUDE_CONFIG_DIR=/root/.claude `
     -w /work `
     @runOptions `

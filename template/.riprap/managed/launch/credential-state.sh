@@ -56,7 +56,7 @@ volume_name() {
 ensure() {
     create_id
     validate_id
-    for agent in claude codex; do
+    for agent in claude codex opencode; do
         volume=$(volume_name "$agent")
         podman volume inspect "$volume" >/dev/null 2>&1 || podman volume create "$volume" >/dev/null
     done
@@ -66,9 +66,9 @@ ensure() {
 reset() {
     agent=${1:-}
     confirmation=${2:-}
-    case "$agent" in claude|codex|all) ;; *) die 'usage: rr.sh --reset-agent-state <claude|codex|all> [--yes]' ;; esac
+    case "$agent" in claude|codex|opencode|all) ;; *) die 'usage: rr.sh --reset-agent-state <claude|codex|opencode|all> [--yes]' ;; esac
     validate_id
-    if [ "$agent" = all ]; then agents='claude codex'; else agents=$agent; fi
+    if [ "$agent" = all ]; then agents='claude codex opencode'; else agents=$agent; fi
     printf 'Riprap will remove credential state volumes:\n'
     for selected in $agents; do printf '  %s\n' "$(volume_name "$selected")"; done
     if [ "$confirmation" != --yes ]; then

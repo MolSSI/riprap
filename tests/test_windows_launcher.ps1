@@ -83,12 +83,17 @@ echo %*| findstr /c:"claude --version" >nul
 if not errorlevel 1 goto emit_claude
 echo %*| findstr /c:"codex --version" >nul
 if not errorlevel 1 goto emit_codex
+echo %*| findstr /c:"opencode --version" >nul
+if not errorlevel 1 goto emit_opencode
 exit /b 0
 :emit_claude
 echo !MOCK_CLAUDE_VERSION!
 exit /b 0
 :emit_codex
 echo !MOCK_CODEX_VERSION!
+exit /b 0
+:emit_opencode
+echo !MOCK_OPENCODE_VERSION!
 exit /b 0
 '@
     # Written with CRLF: cmd.exe mis-parses goto targets in a batch file that uses LF.
@@ -112,6 +117,7 @@ function New-TestProject {
     $env:MOCK_FAIL_BUILD = ""
     $env:MOCK_CLAUDE_VERSION = "2.1.205 (Claude Code)"
     $env:MOCK_CODEX_VERSION = "codex-cli 0.144.6"
+    $env:MOCK_OPENCODE_VERSION = "1.15.11"
     New-Item -ItemType File -Force -Path $env:PODMAN_LOG | Out-Null
 
     return [pscustomobject]@{ Temp = $temp; Project = $project }
@@ -247,8 +253,8 @@ Test-Case "the Windows launcher falls back to a compatible agent image" {
     $key = Join-Path $t.Project ".riprap/state/podman/agent-build.env"
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $key) | Out-Null
     Set-Content -LiteralPath $key -Value @(
-        "CLAUDE_VERSION=latest", "CODEX_VERSION=latest", "REFRESH=1970-W01",
-        "INSTALLED_CLAUDE_VERSION=1.0.0", "INSTALLED_CODEX_VERSION=1.0.0")
+        "CLAUDE_VERSION=latest", "CODEX_VERSION=latest", "OPENCODE_VERSION=latest", "REFRESH=1970-W01",
+        "INSTALLED_CLAUDE_VERSION=1.0.0", "INSTALLED_CODEX_VERSION=1.0.0", "INSTALLED_OPENCODE_VERSION=1.0.0")
     $before = Get-FileHash -LiteralPath $key
     $env:MOCK_FAIL_BUILD = "Agent.Containerfile"
     $env:MOCK_IMAGE_EXISTS = "0"
@@ -298,6 +304,7 @@ Test-Case "the Windows launcher records the numeric core of suffixed agent versi
     $t = New-TestProject
     $env:MOCK_CLAUDE_VERSION = "2.1.205-beta (Claude Code)"
     $env:MOCK_CODEX_VERSION = "codex-cli 0.144.6-preview"
+    $env:MOCK_OPENCODE_VERSION = "1.15.11-preview"
     $result = Invoke-Launcher $t.Project
     if ($result.ExitCode -ne 0) { Fail "suffixed agent versions caused a refresh failure" }
     if ((Get-BuildKeyValue $t.Project "INSTALLED_CLAUDE_VERSION") -ne "2.1.205") {
@@ -305,6 +312,9 @@ Test-Case "the Windows launcher records the numeric core of suffixed agent versi
     }
     if ((Get-BuildKeyValue $t.Project "INSTALLED_CODEX_VERSION") -ne "0.144.6") {
         Fail "the Codex numeric release core was not recorded"
+    }
+    if ((Get-BuildKeyValue $t.Project "INSTALLED_OPENCODE_VERSION") -ne "1.15.11") {
+        Fail "the OpenCode numeric release core was not recorded"
     }
 }
 
@@ -376,14 +386,68 @@ Test-Case "both launchers report the same defect for the same invalid pin" {
     }
 }
 
+# A file is a script when its name carries a script extension, or when its first line is a "#!"
+# line naming a shell or PowerShell interpreter. Discovering scripts from content rather than from
+# a maintained list is what lets a script added to the template be covered as soon as it is
+# committed, including the tool-mandated names that cannot take an extension.
+# rq-9332ad0f
+function Get-VersionControlledScripts {
+    $tracked = & git -C $Root ls-files -- template
+    if ($LASTEXITCODE -ne 0) { Fail "could not enumerate version-controlled scripts" }
+    $shells = @("sh", "bash", "dash", "ksh", "zsh", "pwsh")
+    $scripts = @()
+    foreach ($relative in $tracked) {
+        if ($relative -match '\.(sh|ps1)$') {
+            $scripts += [pscustomobject]@{ Path = $relative; Eol = "lf" }; continue
+        }
+        if ($relative -match '\.(bat|cmd)$') {
+            $scripts += [pscustomobject]@{ Path = $relative; Eol = "crlf" }; continue
+        }
+        $full = Join-Path $Root $relative
+        if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { continue }
+        $first = ""
+        try {
+            $reader = [IO.StreamReader]::new($full)
+            try { $first = $reader.ReadLine() } finally { $reader.Dispose() }
+        } catch { continue }
+        if (-not $first -or -not $first.StartsWith("#!")) { continue }
+        $words = @($first.Substring(2).Trim() -split '\s+' | Where-Object { $_ })
+        if ($words.Count -eq 0) { continue }
+        $interpreter = Split-Path -Leaf $words[0]
+        if ($interpreter -eq "env" -and $words.Count -gt 1) { $interpreter = Split-Path -Leaf $words[1] }
+        if ($shells -contains $interpreter) {
+            $scripts += [pscustomobject]@{ Path = $relative; Eol = "lf" }
+        }
+    }
+    return $scripts
+}
+
+# The shell suite evaluates this on Linux and macOS; running it here is what makes the rule hold
+# on every supported host rather than only where wrong endings happen to break an interpreter.
+# rq-d89e4c89
+Test-Case "every discovered script resolves to the eol attribute its interpreter needs" {
+    $scripts = Get-VersionControlledScripts
+    foreach ($required in @("template/.riprap/managed/hooks/pre-commit",
+                            "template/.riprap/managed/podman/opencode")) {
+        if ($scripts.Path -notcontains $required) { Fail "$required was not discovered as a script" }
+    }
+    foreach ($script in $scripts) {
+        $reported = & git -C $Root check-attr eol -- $script.Path
+        if ($LASTEXITCODE -ne 0) { Fail "could not read the eol attribute of $($script.Path)" }
+        $eol = ($reported -replace '.*: eol: ', '')
+        if ($eol -ne $script.Eol) {
+            Fail "$($script.Path) is not marked eol=$($script.Eol) (got $eol)"
+        }
+    }
+}
+
 # Attributes describe the rules that should apply; these assertions read the bytes an
 # interpreter will actually receive, which only a Windows checkout can establish.
 # rq-003ece26
 Test-Case "a Windows checkout carries the line endings its interpreters need" {
-    $tracked = & git -C $Root ls-files -- template
-    if ($LASTEXITCODE -ne 0) { Fail "could not enumerate version-controlled scripts" }
-    $lfPaths = @($tracked | Where-Object { $_ -match '\.(sh|ps1)$' }) + @("template/.riprap/managed/hooks/pre-commit")
-    $crlfPaths = @($tracked | Where-Object { $_ -match '\.(bat|cmd)$' })
+    $scripts = Get-VersionControlledScripts
+    $lfPaths = @($scripts | Where-Object { $_.Eol -eq "lf" } | ForEach-Object { $_.Path })
+    $crlfPaths = @($scripts | Where-Object { $_.Eol -eq "crlf" } | ForEach-Object { $_.Path })
 
     foreach ($relative in $lfPaths | Sort-Object -Unique) {
         $full = Join-Path $Root $relative
@@ -412,7 +476,7 @@ Test-Case "the Windows credential helper creates the same project identity" {
     if ($id -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$') {
         Fail "the project identity '$id' is not a canonical lowercase UUID"
     }
-    foreach ($agent in @("claude", "codex")) {
+    foreach ($agent in @("claude", "codex", "opencode")) {
         if (-not (Test-Path -LiteralPath (Join-Path $env:MOCK_VOLUMES "riprap-$id-$agent"))) {
             Fail "the $agent volume was not created with the shared naming convention"
         }
@@ -425,14 +489,14 @@ Test-Case "the Windows credential helper reuses an existing project identity" {
     Invoke-Launcher $t.Project | Out-Null
     $idPath = Join-Path $t.Project ".riprap/state/project-id"
     $first = (Get-Content -LiteralPath $idPath -Raw).Trim()
-    foreach ($agent in @("claude", "codex")) {
+    foreach ($agent in @("claude", "codex", "opencode")) {
         New-Item -ItemType File -Force -Path (Join-Path $env:MOCK_VOLUMES "riprap-$first-$agent/marker") | Out-Null
     }
     Clear-Content -LiteralPath $env:PODMAN_LOG
     Invoke-Launcher $t.Project | Out-Null
     $second = (Get-Content -LiteralPath $idPath -Raw).Trim()
     if ($first -ne $second) { Fail "the project identity changed between launches" }
-    foreach ($agent in @("claude", "codex")) {
+    foreach ($agent in @("claude", "codex", "opencode")) {
         if (-not (Test-Path -LiteralPath (Join-Path $env:MOCK_VOLUMES "riprap-$first-$agent/marker"))) {
             Fail "the $agent volume was recreated rather than reused"
         }
@@ -447,7 +511,7 @@ Test-Case "the Windows reset requires explicit confirmation" {
     $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
     Push-Location $t.Project
     try { cmd.exe /c "rr.bat --reset-agent-state all <NUL 2>&1" | Out-Null } finally { Pop-Location }
-    foreach ($agent in @("claude", "codex")) {
+    foreach ($agent in @("claude", "codex", "opencode")) {
         if (-not (Test-Path -LiteralPath (Join-Path $env:MOCK_VOLUMES "riprap-$id-$agent"))) {
             Fail "the $agent volume was removed without explicit confirmation"
         }

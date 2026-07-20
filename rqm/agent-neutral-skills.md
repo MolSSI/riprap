@@ -12,12 +12,13 @@ required for skill discovery and for translating agent-specific conventions.
   `.riprap/user/skills/<skill-name>/local.md`.
 - Claude discovers thin adapters under `.claude/skills/<skill-name>/SKILL.md`.
 - Codex discovers thin adapters under `.agents/skills/<skill-name>/SKILL.md`.
-- Both adapters delegate to the same canonical implementation and translate only conventions that
-  differ between their agents.
+- OpenCode discovers thin adapters under `.opencode/skills/<skill-name>/SKILL.md`.
+- Every adapter delegates to the same canonical implementation and translates only conventions
+  that differ between its agent and the agent-neutral workflow.
 - Canonical implementations and supporting files are managed.
 - Copier creates each `local.md` once and preserves it during later template updates.
 - Generated projects contain no canonical skill implementations or `local.md` files under
-  `.claude/skills` or `.agents/skills`.
+  `.claude/skills`, `.agents/skills`, or `.opencode/skills`.
 
 ## Planning Clarification <!-- rq-43c9b2b8 -->
 
@@ -40,8 +41,8 @@ Feature: Agent-neutral Riprap skills
     Given the Riprap template is rendered with Copier
     When the generated project is inspected
     Then every supported skill has one canonical implementation under ".riprap/managed/skills"
-    And Claude and Codex each have a discovery adapter for every supported skill
-    And canonical supporting resources are not duplicated in either agent-specific directory
+    And Claude, Codex, and OpenCode each have a discovery adapter for every supported skill
+    And canonical supporting resources are not duplicated in any agent-specific directory
 
   @rq-df3907ad
   Scenario: Skill customization survives a Copier update

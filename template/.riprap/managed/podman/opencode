@@ -1,0 +1,8 @@
+#!/bin/sh
+# Riprap keeps OpenCode's durable XDG data, state, and user configuration in one
+# project-scoped volume without redirecting other programs' XDG state. The cache
+# holds only re-derivable downloads, so it stays in the disposable container.
+export XDG_DATA_HOME=/root/.opencode/data
+export XDG_STATE_HOME=/root/.opencode/state
+export OPENCODE_CONFIG_DIR=/root/.opencode/config
+exec /opt/opencode/bin/opencode "$@"
