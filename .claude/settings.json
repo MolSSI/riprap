@@ -16,7 +16,8 @@
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./.claude/.credentials.json)",
-      "Read(./.codex/auth.json)"
+      "Read(./.codex/auth.json)",
+      "Read(./.opencode/data/opencode/auth.json)"
     ]
   },
   "hooks": {

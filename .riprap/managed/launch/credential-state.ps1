@@ -26,7 +26,7 @@ function Ensure-State {
         } finally { Remove-Item $temporary -ErrorAction SilentlyContinue }
     }
     $id = Read-ProjectId
-    foreach ($name in @("claude", "codex")) {
+    foreach ($name in @("claude", "codex", "opencode")) {
         $volume = "riprap-$id-$name"
         podman volume inspect $volume *> $null
         if ($LASTEXITCODE -ne 0) { podman volume create $volume *> $null; if ($LASTEXITCODE -ne 0) { Fail "could not create $volume" } }
@@ -34,9 +34,9 @@ function Ensure-State {
     Write-Output $id
 }
 function Reset-State {
-    if ($Agent -notin @("claude", "codex", "all")) { Fail "expected claude, codex, or all" }
+    if ($Agent -notin @("claude", "codex", "opencode", "all")) { Fail "expected claude, codex, opencode, or all" }
     $id = Read-ProjectId
-    $agents = if ($Agent -eq "all") { @("claude", "codex") } else { @($Agent) }
+    $agents = if ($Agent -eq "all") { @("claude", "codex", "opencode") } else { @($Agent) }
     $volumes = $agents | ForEach-Object { "riprap-$id-$_" }
     Write-Host "Riprap will remove credential state volumes:"; $volumes | ForEach-Object { Write-Host "  $_" }
     if ($Confirmation -ne "--yes") {

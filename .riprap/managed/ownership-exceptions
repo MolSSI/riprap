@@ -8,6 +8,9 @@
 .claude/settings.json	marker-exempt
 .claude/skills/**
 .codex/hooks.json	marker-exempt
+.opencode/plugins/**
+.opencode/skills/**
+opencode.json	marker-exempt
 .gitattributes
 .gitignore
 rr.bat

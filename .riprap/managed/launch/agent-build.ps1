@@ -27,6 +27,7 @@ function Prepare-AgentBuild {
     New-Item -ItemType Directory -Force -Path ".riprap/state/podman" | Out-Null
     $claudeVersion = "latest"
     $codexVersion = "latest"
+    $opencodeVersion = "latest"
     $refresh = Get-IsoWeekStamp
 
     if (Test-Path -LiteralPath $pinFile) {
@@ -40,7 +41,7 @@ function Prepare-AgentBuild {
             $value = $Matches[2]
             # Checks run in a fixed precedence so that every launcher reports the same defect
             # for the same file: structure, then name, then repetition, then value.
-            if ($name -notin @("CLAUDE_VERSION", "CODEX_VERSION")) { Fail "$pinFile contains unknown assignment '$name'" }
+            if ($name -notin @("CLAUDE_VERSION", "CODEX_VERSION", "OPENCODE_VERSION")) { Fail "$pinFile contains unknown assignment '$name'" }
             if ($seen.ContainsKey($name)) { Fail "$pinFile contains duplicate $name assignments" }
             if (-not $value) { Fail "${pinFile}: $name has an empty value" }
             if ($value -notmatch $versionPattern) { Fail "${pinFile}: $name must be an exact release version such as 1.2.3, but is '$value'" }
@@ -48,12 +49,13 @@ function Prepare-AgentBuild {
         }
         if ($seen.CLAUDE_VERSION) { $claudeVersion = $seen.CLAUDE_VERSION }
         if ($seen.CODEX_VERSION) { $codexVersion = $seen.CODEX_VERSION }
-        if ($seen.Count -eq 2) { $refresh = "pinned" }
+        if ($seen.OPENCODE_VERSION) { $opencodeVersion = $seen.OPENCODE_VERSION }
+        if ($seen.Count -eq 3) { $refresh = "pinned" }
     }
 
     $temporary = "$candidateFile.tmp.$PID"
     try {
-        $contents = "CLAUDE_VERSION=$claudeVersion`nCODEX_VERSION=$codexVersion`nREFRESH=$refresh`n"
+        $contents = "CLAUDE_VERSION=$claudeVersion`nCODEX_VERSION=$codexVersion`nOPENCODE_VERSION=$opencodeVersion`nREFRESH=$refresh`n"
         [IO.File]::WriteAllText($temporary, $contents, [Text.UTF8Encoding]::new($false))
         Move-Item -LiteralPath $temporary -Destination $candidateFile -Force
     } finally { Remove-Item $temporary -ErrorAction SilentlyContinue }
@@ -63,9 +65,9 @@ switch ($args[0]) {
     { $_ -in @($null, "", "prepare") } { Prepare-AgentBuild; break }
     "promote" {
         if (-not (Test-Path -LiteralPath $candidateFile -PathType Leaf)) { Fail "no agent build candidate exists" }
-        if (-not $args[1] -or -not $args[2]) { Fail "promote requires exact Claude and Codex versions" }
+        if (-not $args[1] -or -not $args[2] -or -not $args[3]) { Fail "promote requires exact Claude, Codex, and OpenCode versions" }
         $contents = (Get-Content -LiteralPath $candidateFile | Where-Object { $_ -notmatch '^INSTALLED_' }) -join "`n"
-        $contents += "`nINSTALLED_CLAUDE_VERSION=$($args[1])`nINSTALLED_CODEX_VERSION=$($args[2])`n"
+        $contents += "`nINSTALLED_CLAUDE_VERSION=$($args[1])`nINSTALLED_CODEX_VERSION=$($args[2])`nINSTALLED_OPENCODE_VERSION=$($args[3])`n"
         [IO.File]::WriteAllText($keyFile, $contents, [Text.UTF8Encoding]::new($false))
         Remove-Item -LiteralPath $candidateFile -Force
         break

@@ -14,7 +14,7 @@ failed=0
 scan_blob() {
     local path="$1" blob="$2" category
     case "$path" in
-        .codex/auth.json|.claude/.credentials.json|.claude.json) category='known credential path' ;;
+        .codex/auth.json|.claude/.credentials.json|.claude.json|.opencode/data/opencode/auth.json) category='known credential path' ;;
         .env|.env.local|.env.*.local) category='local environment secrets' ;;
         *) category='' ;;
     esac
