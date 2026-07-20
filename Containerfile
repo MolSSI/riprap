@@ -1,1 +1,2 @@
-FROM localhost/riprap-agent:latest
+ARG RIPRAP_AGENT_IMAGE
+FROM ${RIPRAP_AGENT_IMAGE}
