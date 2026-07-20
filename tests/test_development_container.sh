@@ -160,20 +160,21 @@ assert_autoupdaters_disabled() {
     fail 'the container environment does not set DISABLE_AUTOUPDATER'
 }
 
-# Runs "opencode run" against a rendered project inside the agent image, prints what OpenCode
-# emitted, and reports its exit status in OPENCODE_EXIT. The project is copied inside the container
-# and the mount is read-only, so an assertion that rewrites the managed check cannot disturb the
-# copy a later assertion renders against. Git initialization gives the plugin an unambiguous
-# worktree to resolve.
+# Runs "opencode run" against a rendered project inside the agent image, reporting what OpenCode
+# emitted in OPENCODE_OUTPUT and its exit status in OPENCODE_EXIT. Both travel in globals rather
+# than on stdout because the exit status is the assertion: a caller that read the output through
+# command substitution would run this in a subshell and lose the status with it. The project is
+# copied inside the container and the mount is read-only, so an assertion that rewrites the managed
+# check cannot disturb the copy a later assertion renders against. Git initialization gives the
+# plugin an unambiguous worktree to resolve.
 opencode_run_in_project() {
-  local project="$1" image="$2" preparation="${3:-true}" output status=0
-  output="$(timeout 240 podman run --rm -v "$project:/project:ro" "$image" sh -c "
+  local project="$1" image="$2" preparation="${3:-true}"
+  OPENCODE_EXIT=0
+  OPENCODE_OUTPUT="$(timeout 240 podman run --rm -v "$project:/project:ro" "$image" sh -c "
     mkdir -p /work && cp -a /project/. /work/ && cd /work
     git init -q . >/dev/null 2>&1 || true
     $preparation
-    opencode run 'print the word hello' 2>&1")" || status=$?
-  OPENCODE_EXIT=$status
-  printf '%s' "$output"
+    opencode run 'print the word hello' 2>&1")" || OPENCODE_EXIT=$?
 }
 
 # Observing OpenCode is what demonstrates this boundary: the plugin's source cannot distinguish a
@@ -188,11 +189,11 @@ opencode_run_in_project() {
 # a boundary that holds from a plugin that never ran.
 # rq-b1c40a30 rq-91dd9910 rq-20e684a9 rq-f2003da4
 assert_opencode_refuses_when_the_check_reports_failure() {
-  local project="$1" image="$2" output
-  output="$(opencode_run_in_project "$project" "$image" \
-    'printf "#!/bin/sh\nexit 2\n" > .riprap/managed/hooks/check-container.sh')"
+  local project="$1" image="$2"
+  opencode_run_in_project "$project" "$image" \
+    'printf "#!/bin/sh\nexit 2\n" > .riprap/managed/hooks/check-container.sh'
   test "$OPENCODE_EXIT" -ne 0 || \
-    fail "OpenCode completed a request although the container check reported failure: $output"
+    fail "OpenCode completed a request although the container check reported failure: $OPENCODE_OUTPUT"
 }
 
 # The canonical check succeeds inside the agent image, so the boundary must stay out of the way and
@@ -201,10 +202,10 @@ assert_opencode_refuses_when_the_check_reports_failure() {
 # and the contrast that demonstrates the boundary would be gone.
 # rq-2a2787e3
 assert_opencode_admits_a_request_inside_the_container() {
-  local project="$1" image="$2" output
-  output="$(opencode_run_in_project "$project" "$image")"
+  local project="$1" image="$2"
+  opencode_run_in_project "$project" "$image"
   test "$OPENCODE_EXIT" -eq 0 || \
-    fail "OpenCode did not handle a request inside the development container: $output"
+    fail "OpenCode did not handle a request inside the development container: $OPENCODE_OUTPUT"
 }
 
 # The tooling and agent installations occupy separate image definitions.
