@@ -112,7 +112,7 @@ Canonical Riprap workflows are independent of any one AI agent and live under
 `.riprap/managed`. Agent-specific directories contain thin managed adapters for discovery, tool
 vocabulary, invocation syntax, and other interface conventions. Project-specific workflow
 extensions live under `.riprap/user`, even when an adapter exposes them through an agent-mandated
-location. Claude and Codex are supported agents, but the architecture allows additional and
+location. Claude, Codex, and OpenCode are supported agents, but the architecture allows additional and
 not-yet-existing agents to be integrated without duplicating canonical workflows or relocating
 user customizations.
 

@@ -34,13 +34,13 @@ test_generated_project_uses_agent_neutral_layout() (
   for skill in rr-architecture rr-implement rr-plan rr-quiz; do
     test -f "$project/.riprap/managed/skills/$skill/SKILL.md" || \
       fail "generated project lacks canonical $skill implementation"
-    for adapter in .claude .agents; do
+    for adapter in .claude .agents .opencode; do
       test -f "$project/$adapter/skills/$skill/SKILL.md" || \
         fail "generated project lacks $adapter adapter for $skill"
     done
   done
 
-  unexpected="$(find "$project/.claude/skills" "$project/.agents/skills" \
+  unexpected="$(find "$project/.claude/skills" "$project/.agents/skills" "$project/.opencode/skills" \
     -type f ! -name SKILL.md -print -quit)"
   test -z "$unexpected" || \
     fail "agent-specific directory contains duplicated canonical resource: $unexpected"

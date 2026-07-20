@@ -275,6 +275,30 @@
     "title": "Contributor Guidance",
     "type": "section"
   },
+  "rq-1eda0111": {
+    "decl": "Scenario: A script that no line-ending rule covers is rejected",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "A script that no line-ending rule covers is rejected",
+    "type": "scenario"
+  },
+  "rq-20e684a9": {
+    "decl": "Scenario: OpenCode blocks non-interactive use outside the development container",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode blocks non-interactive use outside the development container",
+    "type": "scenario"
+  },
   "rq-215e96be": {
     "decl": "Scenario: A reference to an undefined component directory fails validation",
     "file": "template-ownership-layout",
@@ -327,6 +351,14 @@
     "title": "A marker-exempt exception needs no managed marker",
     "type": "scenario"
   },
+  "rq-2430a9f0": {
+    "decl": "## Container Enforcement",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [],
+    "title": "Container Enforcement",
+    "type": "section"
+  },
   "rq-26d8643a": {
     "decl": "Scenario: Windows and shell launchers agree at ISO year boundaries",
     "file": "development-container",
@@ -357,6 +389,18 @@
       }
     ],
     "title": "Installed agent releases match authoritative image labels",
+    "type": "scenario"
+  },
+  "rq-2a2787e3": {
+    "decl": "Scenario: OpenCode accepts requests inside the development container",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode accepts requests inside the development container",
     "type": "scenario"
   },
   "rq-2debabe1": {
@@ -567,6 +611,18 @@
     "refs": [],
     "title": "Python Documentation",
     "type": "section"
+  },
+  "rq-53993832": {
+    "decl": "Scenario: OpenCode receives equivalent permission defaults",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode receives equivalent permission defaults",
+    "type": "scenario"
   },
   "rq-56ec2cc3": {
     "decl": "Scenario: Contributor guidance does not invent a test command",
@@ -1013,11 +1069,37 @@
     "title": "Direct Riprap component directories contain no canonical files",
     "type": "scenario"
   },
+  "rq-91dd9910": {
+    "decl": "## Verifying Container Enforcement",
+    "file": "agent-permission-defaults",
+    "level": 2,
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Verifying Container Enforcement",
+    "type": "section"
+  },
   "rq-9332ad0f": {
     "decl": "## Cross-Platform Script Execution",
     "file": "agent-credential-isolation",
     "level": 2,
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
+      }
+    ],
     "title": "Cross-Platform Script Execution",
     "type": "section"
   },
@@ -1096,6 +1178,22 @@
     "title": "Feature: Valid Generated Project Variants",
     "type": "file"
   },
+  "rq-aa0a9de2": {
+    "decl": "Scenario: OpenCode state persists without shadowing its executable",
+    "file": "agent-credential-isolation",
+    "refs": [
+      {
+        "file": "tests/test_credential_isolation.sh",
+        "kind": "code"
+      },
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode state persists without shadowing its executable",
+    "type": "scenario"
+  },
   "rq-ac53295e": {
     "decl": "Scenario: The build key is not committed",
     "file": "development-container",
@@ -1130,6 +1228,18 @@
       }
     ],
     "title": "Removing a pin returns the agents to the refresh schedule",
+    "type": "scenario"
+  },
+  "rq-b1c40a30": {
+    "decl": "Scenario: OpenCode refuses a request whenever the container check reports failure",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode refuses a request whenever the container check reports failure",
     "type": "scenario"
   },
   "rq-b25f8408": {
@@ -1403,6 +1513,10 @@
       {
         "file": "tests/test_credential_isolation.sh",
         "kind": "code"
+      },
+      {
+        "file": "tests/test_windows_launcher.ps1",
+        "kind": "code"
       }
     ],
     "title": "Version-controlled hooks and shell scripts are marked for LF checkout",
@@ -1494,6 +1608,18 @@
     "refs": [],
     "title": "Gherkin Scenarios",
     "type": "section"
+  },
+  "rq-f2003da4": {
+    "decl": "Scenario: OpenCode blocks interactive use outside the development container",
+    "file": "agent-permission-defaults",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "OpenCode blocks interactive use outside the development container",
+    "type": "scenario"
   },
   "rq-f2f0525e": {
     "decl": "Scenario: Agent and project layers are unaffected by the base image",

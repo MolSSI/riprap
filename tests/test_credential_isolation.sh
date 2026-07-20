@@ -35,7 +35,7 @@ if [ "$1 $2" = 'image inspect' ]; then
   exit
 fi
 if [ "$1 $2" = 'run --rm' ]; then
-  case "$*" in *' claude --version') echo '2.1.205 (Claude Code)' ;; *' codex --version') echo 'codex-cli 0.144.6' ;; esac
+  case "$*" in *' claude --version') echo '2.1.205 (Claude Code)' ;; *' codex --version') echo 'codex-cli 0.144.6' ;; *' opencode --version') echo '1.15.11' ;; esac
   exit
 fi
 exit 0
@@ -51,15 +51,30 @@ test_first_launch_isolated_volumes() (
   id=$(cat .riprap/state/project-id)
   [[ "$id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || fail 'invalid UUID'
   test -d "$MOCK_VOLUMES/riprap-$id-claude"; test -d "$MOCK_VOLUMES/riprap-$id-codex"
-  ! grep -Eq " -v ${HOME}/\.(claude|codex|claude\.json)" "$PODMAN_LOG" || fail 'host agent configuration was mounted'
+  test -d "$MOCK_VOLUMES/riprap-$id-opencode"
+  ! grep -Eq " -v ${HOME}/\.(claude|codex|opencode|claude\.json)" "$PODMAN_LOG" || fail 'host agent configuration was mounted'
 )
 
 # rq-113c8ccd
 test_later_launch_reuses_state() (
   setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
-  id=$(cat .riprap/state/project-id); touch "$MOCK_VOLUMES/riprap-$id-claude/marker" "$MOCK_VOLUMES/riprap-$id-codex/marker"
+  id=$(cat .riprap/state/project-id); touch "$MOCK_VOLUMES/riprap-$id-claude/marker" "$MOCK_VOLUMES/riprap-$id-codex/marker" "$MOCK_VOLUMES/riprap-$id-opencode/marker"
   bash rr.sh </dev/null
-  test -f "$MOCK_VOLUMES/riprap-$id-claude/marker"; test -f "$MOCK_VOLUMES/riprap-$id-codex/marker"
+  test -f "$MOCK_VOLUMES/riprap-$id-claude/marker"; test -f "$MOCK_VOLUMES/riprap-$id-codex/marker"; test -f "$MOCK_VOLUMES/riprap-$id-opencode/marker"
+)
+
+# rq-aa0a9de2
+test_opencode_state_volume_and_wrapper() (
+  setup_project; cd "$PROJECT"; bash rr.sh </dev/null
+  id=$(cat .riprap/state/project-id)
+  grep -Eq -- "-v riprap-$id-opencode:/root/\.opencode( |$)" "$PODMAN_LOG" || fail 'OpenCode state volume not mounted'
+  grep -Fq 'XDG_DATA_HOME=/root/.opencode/data' .riprap/managed/podman/opencode || fail 'OpenCode data is not redirected into its volume'
+  grep -Fq 'XDG_STATE_HOME=/root/.opencode/state' .riprap/managed/podman/opencode || fail 'OpenCode state is not redirected into its volume'
+  grep -Fq 'OPENCODE_CONFIG_DIR=/root/.opencode/config' .riprap/managed/podman/opencode || fail 'OpenCode config is not redirected into its volume'
+  # A launch into a fresh volume must not fail on a redirected path OpenCode does not create.
+  grep -Eq '^mkdir -p .*/root/\.opencode/config' .riprap/managed/podman/opencode || \
+    fail 'the wrapper does not prepare the redirected OpenCode directories'
+  grep -Fq 'exec /opt/opencode/bin/opencode' .riprap/managed/podman/opencode || fail 'OpenCode executable is not image-owned'
 )
 
 # rq-fb3e7cc2
@@ -86,20 +101,21 @@ test_bad_identity_blocks_podman() (
 test_reset_is_project_and_agent_scoped() (
   setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null; first=$(cat .riprap/state/project-id)
   second=11111111-1111-4111-8111-111111111111
-  mkdir "$MOCK_VOLUMES/riprap-$second-claude" "$MOCK_VOLUMES/riprap-$second-codex"
+  mkdir "$MOCK_VOLUMES/riprap-$second-claude" "$MOCK_VOLUMES/riprap-$second-codex" "$MOCK_VOLUMES/riprap-$second-opencode"
   bash rr.sh --reset-agent-state codex --yes >/dev/null
   test ! -d "$MOCK_VOLUMES/riprap-$first-codex"; test -d "$MOCK_VOLUMES/riprap-$first-claude"
-  test -d "$MOCK_VOLUMES/riprap-$second-claude"; test -d "$MOCK_VOLUMES/riprap-$second-codex"
+  test -d "$MOCK_VOLUMES/riprap-$first-opencode"
+  test -d "$MOCK_VOLUMES/riprap-$second-claude"; test -d "$MOCK_VOLUMES/riprap-$second-codex"; test -d "$MOCK_VOLUMES/riprap-$second-opencode"
 )
 
 # rq-f8bf5e72
 test_ignore_scope() (
   setup_project; cd "$PROJECT"; git init -q
-  mkdir -p .codex .claude; touch .codex/auth.json .claude/.credentials.json .claude.json .env .env.local .env.prod.local
-  for path in .codex/auth.json .claude/.credentials.json .claude.json .env .env.local .env.prod.local; do
+  mkdir -p .codex .claude .opencode/data/opencode; touch .codex/auth.json .claude/.credentials.json .claude.json .opencode/data/opencode/auth.json .env .env.local .env.prod.local
+  for path in .codex/auth.json .claude/.credentials.json .claude.json .opencode/data/opencode/auth.json .env .env.local .env.prod.local; do
     git check-ignore -q "$path" || fail "$path is not ignored"
   done
-  ! git check-ignore -q .codex/hooks.json; ! git check-ignore -q .claude/settings.json; ! git check-ignore -q .agents/skills/rr-plan/SKILL.md
+  ! git check-ignore -q .codex/hooks.json; ! git check-ignore -q .claude/settings.json; ! git check-ignore -q opencode.json; ! git check-ignore -q .opencode/plugins/check-container.js; ! git check-ignore -q .agents/skills/rr-plan/SKILL.md
 )
 
 # rq-aeab49a7
@@ -114,7 +130,7 @@ test_staged_secrets_rejected_without_disclosure() (
 
 # rq-0bb9767e
 test_legitimate_integration_passes() (
-  setup_project; cd "$PROJECT"; git init -q; git add .codex/hooks.json .claude/settings.json .agents/skills/rr-plan/SKILL.md
+  setup_project; cd "$PROJECT"; git init -q; git add .codex/hooks.json .claude/settings.json opencode.json .opencode/plugins/check-container.js .opencode/skills/rr-plan/SKILL.md .agents/skills/rr-plan/SKILL.md
   .riprap/managed/hooks/check-secrets.sh --staged
 )
 
@@ -192,6 +208,7 @@ test_unpinned_launch_records_week_and_latest() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = latest || fail 'Claude does not track the current release'
   test "$(build_key CODEX_VERSION)" = latest || fail 'Codex does not track the current release'
+  test "$(build_key OPENCODE_VERSION)" = latest || fail 'OpenCode does not track the current release'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
     fail "build key records '$(build_key REFRESH)' rather than the current ISO week"
 )
@@ -211,7 +228,7 @@ test_second_launch_in_same_week_is_unchanged() (
 # rq-62939bfc
 test_new_week_changes_the_build_key() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\n' \
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nOPENCODE_VERSION=latest\nREFRESH=1970-W01\n' \
     > .riprap/state/podman/agent-build.env
   bash rr.sh </dev/null
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'a new week did not update the build key'
@@ -220,10 +237,11 @@ test_new_week_changes_the_build_key() (
 # rq-c82c7b32
 test_pin_installs_exact_release_and_suspends_refresh() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/user/agent-pin.env
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\nOPENCODE_VERSION=1.15.11\n' > .riprap/user/agent-pin.env
   bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = 0.144.6 || fail 'Codex pin not recorded'
+  test "$(build_key OPENCODE_VERSION)" = 1.15.11 || fail 'OpenCode pin not recorded'
   test "$(build_key REFRESH)" = pinned || fail 'a fully pinned key still records a week'
   # A later week must not disturb a fully pinned key.
   before=$(cksum .riprap/state/podman/agent-build.env)
@@ -240,6 +258,7 @@ test_partial_pin_keeps_the_unpinned_agent_current() (
   bash rr.sh </dev/null
   test "$(build_key CLAUDE_VERSION)" = 2.1.205 || fail 'Claude pin not recorded'
   test "$(build_key CODEX_VERSION)" = latest || fail 'unpinned Codex was pinned'
+  test "$(build_key OPENCODE_VERSION)" = latest || fail 'unpinned OpenCode was pinned'
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || \
     fail 'a partial pin suspended the refresh for the unpinned agent'
 )
@@ -247,7 +266,7 @@ test_partial_pin_keeps_the_unpinned_agent_current() (
 # rq-b06efb1e
 test_removing_the_pin_restores_the_schedule() (
   setup_project; cd "$PROJECT"
-  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\n' > .riprap/user/agent-pin.env
+  printf 'CLAUDE_VERSION=2.1.205\nCODEX_VERSION=0.144.6\nOPENCODE_VERSION=1.15.11\n' > .riprap/user/agent-pin.env
   bash rr.sh </dev/null
   rm .riprap/user/agent-pin.env
   bash rr.sh </dev/null
@@ -295,7 +314,7 @@ test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n
 test_failed_refresh_falls_back_to_existing_image() (
   setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
   id=$(cat .riprap/state/project-id)
-  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\n' > .riprap/state/podman/agent-build.env
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nOPENCODE_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\nINSTALLED_OPENCODE_VERSION=1.0.0\n' > .riprap/state/podman/agent-build.env
   before=$(cksum .riprap/state/podman/agent-build.env)
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
@@ -455,11 +474,13 @@ test_unknown_pin_name_outranks_a_bad_value() (
 # rq-fedf48c5
 test_ambient_version_variable_is_ignored() (
   setup_project; cd "$PROJECT"
-  CLAUDE_VERSION=9.9.9 CODEX_VERSION=8.8.8 bash rr.sh </dev/null
+  CLAUDE_VERSION=9.9.9 CODEX_VERSION=8.8.8 OPENCODE_VERSION=7.7.7 bash rr.sh </dev/null
   test "$(build_key INSTALLED_CLAUDE_VERSION)" = 2.1.205 || \
     fail "recorded Claude release is '$(build_key INSTALLED_CLAUDE_VERSION)', not the one the image reports"
   test "$(build_key INSTALLED_CODEX_VERSION)" = 0.144.6 || \
     fail "recorded Codex release is '$(build_key INSTALLED_CODEX_VERSION)', not the one the image reports"
+  test "$(build_key INSTALLED_OPENCODE_VERSION)" = 1.15.11 || \
+    fail "recorded OpenCode release is '$(build_key INSTALLED_OPENCODE_VERSION)', not the one the image reports"
   ! grep -q '9\.9\.9' "$PODMAN_LOG" || fail 'an ambient CLAUDE_VERSION reached the image labels'
 )
 
@@ -498,6 +519,12 @@ test_build_key_is_not_committed() (
   git check-ignore -q .riprap/state/podman/agent-build.env || fail 'the build key is not git-ignored'
   printf 'candidate\n' > .riprap/state/podman/agent-build.candidate.env
   git check-ignore -q .riprap/state/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
+  # The project Containerfile is rewritten from the project's own on every launch, so it
+  # describes this machine's image rather than the project.
+  test -f .riprap/state/podman/Project.Containerfile || \
+    fail 'the launcher did not write a project Containerfile'
+  git check-ignore -q .riprap/state/podman/Project.Containerfile || \
+    fail 'the generated project Containerfile is not git-ignored'
 )
 
 # The last interactive launch the mock recorded. The mock also logs the non-interactive
@@ -556,6 +583,7 @@ test_run_options_do_not_displace_template_configuration() (
   grep -Eq -- "-v [^ ]+:/work( |$)" <<<"$line" || fail 'the workspace mount was displaced'
   grep -Fq -- "-v riprap-$id-claude:/root/.claude" <<<"$line" || fail 'the Claude volume was displaced'
   grep -Fq -- "-v riprap-$id-codex:/root/.codex" <<<"$line" || fail 'the Codex volume was displaced'
+  grep -Fq -- "-v riprap-$id-opencode:/root/.opencode" <<<"$line" || fail 'the OpenCode volume was displaced'
   grep -Fq -- '-e CLAUDE_CONFIG_DIR=/root/.claude' <<<"$line" || fail 'the agent configuration was displaced'
   assert_run_tail '--shm-size=8g '
 )
@@ -616,12 +644,75 @@ test_run_option_with_embedded_carriage_return_stops_the_launch() {
 
 attr_eol() { git check-attr eol -- "$1" | sed 's/.*: eol: //'; }
 
+# A file is a script when its name carries a script extension, or when its first line is a "#!"
+# line naming a shell or PowerShell interpreter. Discovering scripts from content rather than
+# from a maintained list is what lets a script added to the template be covered as soon as it is
+# committed, including the tool-mandated names that cannot take an extension. Each discovered
+# path is printed with a tab and the endings its interpreter needs.
+# rq-9332ad0f
+discover_scripts() {
+  local path first interpreter
+  git add -A >/dev/null 2>&1 || true
+  while IFS= read -r path; do
+    case "$path" in
+      *.sh|*.ps1) printf '%s\tlf\n' "$path"; continue ;;
+      *.bat|*.cmd) printf '%s\tcrlf\n' "$path"; continue ;;
+    esac
+    [ -f "$path" ] || continue
+    first=$(head -n 1 -- "$path" 2>/dev/null | tr -d '\r')
+    case "$first" in '#!'*) ;; *) continue ;; esac
+    set -- ${first#\#!}
+    interpreter=$(basename -- "${1:-}")
+    [ "$interpreter" != env ] || interpreter=$(basename -- "${2:-}")
+    case "$interpreter" in
+      sh|bash|dash|ksh|zsh|pwsh) printf '%s\tlf\n' "$path" ;;
+    esac
+  done < <(git ls-files)
+}
+
+# Reports every discovered script whose "eol" attribute is not the one its interpreter needs.
+# Returning nonzero rather than exiting lets a caller assert the rejecting case as well.
+# rq-9332ad0f
+check_discovered_line_endings() {
+  local path want eol status=0
+  while IFS=$'\t' read -r path want; do
+    [ -n "$path" ] || continue
+    eol=$(attr_eol "$path")
+    if [ "$eol" != "$want" ]; then
+      printf '%s is not marked eol=%s (got %s)\n' "$path" "$want" "${eol:-unspecified}"
+      status=1
+    fi
+  done
+  return "$status"
+}
+
 # rq-d89e4c89
 test_scripts_marked_lf() (
   setup_project; cd "$PROJECT"; git init -q
-  for path in .riprap/managed/hooks/pre-commit .riprap/managed/hooks/check-secrets.sh rr.sh; do
-    eol=$(attr_eol "$path"); test "$eol" = lf || fail "$path is not marked eol=lf (got '$eol')"
+  discovered=$(discover_scripts)
+  # The extensionless scripts prove discovery reads content; a name-based rule cannot find them.
+  for required in .riprap/managed/hooks/pre-commit .riprap/managed/podman/opencode; do
+    grep -Fqx "$(printf '%s\tlf' "$required")" <<<"$discovered" || \
+      fail "$required was not discovered as a script"
   done
+  offenders=$(check_discovered_line_endings <<<"$discovered") || \
+    fail "discovered scripts carry the wrong endings: $offenders"
+)
+
+# rq-1eda0111
+test_uncovered_script_is_rejected() (
+  setup_project; cd "$PROJECT"; git init -q
+  mkdir -p devtools
+  printf '#!/usr/bin/env bash\ntrue\n' > devtools/uncovered-helper
+  discovered=$(discover_scripts)
+  grep -Fqx "$(printf 'devtools/uncovered-helper\tlf')" <<<"$discovered" || \
+    fail 'an extensionless shell script was not discovered'
+  test "$(attr_eol devtools/uncovered-helper)" != lf || \
+    fail 'the fixture is already covered by a rule, so it cannot exercise rejection'
+  offenders=$(check_discovered_line_endings <<<"$discovered") && \
+    fail 'validation accepted a script that no line-ending rule covers'
+  grep -Fq devtools/uncovered-helper <<<"$offenders" || \
+    fail "the rejection does not name the uncovered file: $offenders"
 )
 
 # rq-dbd3a295
@@ -673,7 +764,8 @@ test_generated_traceability_is_independent() (
 )
 
 test_first_launch_isolated_volumes; test_later_launch_reuses_state; test_claude_config_stored_in_volume
-test_scripts_marked_lf; test_batch_marked_crlf
+test_opencode_state_volume_and_wrapper
+test_scripts_marked_lf; test_uncovered_script_is_rejected; test_batch_marked_crlf
 test_bad_identity_blocks_podman
 test_reset_is_project_and_agent_scoped; test_ignore_scope; test_staged_secrets_rejected_without_disclosure
 test_legitimate_integration_passes; test_hook_install_preserves_custom_path; test_repository_scan_needs_no_hook

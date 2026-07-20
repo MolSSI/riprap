@@ -41,10 +41,10 @@ further tools without replacing either template-owned layer.
 - The installed Copier release is compatible with the template's declared minimum Copier major
   version.
 - The `copier` executable is available on `PATH` in interactive development containers.
-- The tooling image contains no Claude or Codex installation. It builds independently of agent
+- The tooling image contains no Claude, Codex, or OpenCode installation. It builds independently of agent
   release selection and refresh state.
-- The agent image is based on the tooling image and provides the Claude and Codex command-line
-  agents on `PATH` in interactive development containers.
+- The agent image is based on the tooling image and provides the Claude, Codex, and OpenCode
+  command-line agents on `PATH` in interactive development containers.
 - The project-owned image is based on the agent image.
 - Refreshing agents rebuilds the agent image without rebuilding the tooling image or conflating an
   agent download failure with a tooling-image build failure.
@@ -53,8 +53,9 @@ further tools without replacing either template-owned layer.
 
 - Each supported agent is installed at its current release by default. No routine user action keeps
   the agents current.
-- The development container disables the agents' in-container automatic updaters through
-  `DISABLE_AUTOUPDATER`. An agent that updates itself inside a disposable container installs into a
+- The development container disables each agent's in-container automatic updater through the
+  agent's supported environment or managed configuration mechanism. An agent that updates itself
+  inside a disposable container installs into a
   path that is not a mounted volume, so the update is discarded when the container is removed and
   is repeated every session. The agent image is therefore the only thing that determines which
   agent release runs.
@@ -75,11 +76,12 @@ further tools without replacing either template-owned layer.
 
 - `.riprap/state/podman/agent-build.env` is the successful agent build key. It records the release
   selection used by the installed agent image, as the assignments `CLAUDE_VERSION` and
-  `CODEX_VERSION`, together with a `REFRESH` value that changes on the refresh schedule.
+  `CODEX_VERSION` and `OPENCODE_VERSION`, together with a `REFRESH` value that changes on the
+  refresh schedule.
 - Before an agent refresh, the launcher derives a candidate build key without replacing the
   successful build key. The agent image build uses the candidate as its cache identity, so a change
   to the candidate rebuilds the agent installation layers while an unchanged candidate reuses them.
-- A successful agent-image build records its exact installed Claude and Codex releases in image
+- A successful agent-image build records its exact installed Claude, Codex, and OpenCode releases in image
   labels. The launcher verifies those labels and atomically promotes the candidate to the successful
   build key only after the build succeeds. The image labels are authoritative if local state and an
   image ever disagree.
@@ -103,8 +105,9 @@ further tools without replacing either template-owned layer.
 
 ## Optional Release Pin <!-- rq-5e710604 -->
 
-- `.riprap/user/agent-pin.env` is an optional, user-created file that pins one or both agents to an
-  exact release, using the same `CLAUDE_VERSION` and `CODEX_VERSION` assignments. It does not exist
+- `.riprap/user/agent-pin.env` is an optional, user-created file that pins any or all supported
+  agents to an exact release, using the same `CLAUDE_VERSION`, `CODEX_VERSION`, and
+  `OPENCODE_VERSION` assignments. It does not exist
   in a generated project until a user creates it, so the unpinned schedule above is the default.
 - A pinned agent is installed at exactly the pinned release. An unpinned agent continues to track
   its current release.
@@ -114,8 +117,9 @@ further tools without replacing either template-owned layer.
   its current release; a pinned agent is then reinstalled at its pinned release, which costs a
   download but never changes what is installed. Removing the file returns every agent to the
   refresh schedule at the next launch.
-- A present pin is a strict assignment file. It contains one or both of `CLAUDE_VERSION` and
-  `CODEX_VERSION`, each at most once and with a nonempty exact release version. Empty files, empty
+- A present pin is a strict assignment file. It contains one or more of `CLAUDE_VERSION`,
+  `CODEX_VERSION`, and `OPENCODE_VERSION`, each at most once and with a nonempty exact release
+  version. Empty files, empty
   values, duplicate assignments, unknown names, malformed lines, and non-exact versions fail the
   launch with an actionable message before any image is built. Falling back to the current release
   would silently discard the pin a user added deliberately, which is the opposite of what pinning
@@ -238,9 +242,10 @@ Feature: Riprap development container
   Scenario: Installed agent releases match authoritative image labels
     Given a generated project whose candidate records an exact release for each agent
     When the template-owned agent image is built successfully
-    Then its labels record the exact installed Claude and Codex releases
+    Then its labels record the exact installed Claude, Codex, and OpenCode releases
     And running "claude --version" in the built image reports the labeled Claude release
     And running "codex --version" in the built image reports the labeled Codex release
+    And running "opencode --version" in the built image reports the labeled OpenCode release
     And the successful build key matches the verified image labels
 
   @rq-b25f8408
@@ -477,7 +482,8 @@ Feature: Riprap development container
   Scenario: Launching disables the agents' in-container automatic updaters
     Given a generated project with a valid project UUID
     When the project launcher starts the development environment
-    Then the container environment sets "DISABLE_AUTOUPDATER"
+    Then Claude and Codex receive their supported automatic-update disablement
+    And the managed OpenCode configuration disables OpenCode automatic updates
 
   @rq-c75bb5d9
   Scenario: A project defaults to an Ubuntu LTS base image

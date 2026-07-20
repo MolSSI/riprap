@@ -1,7 +1,7 @@
 # Feature: Agent Credential Isolation <!-- rq-60eee682 -->
 
-Riprap keeps Claude and Codex authentication state in project-specific Podman named volumes.
-Generated projects never mount a user's host Claude or Codex configuration into the development
+Riprap keeps Claude, Codex, and OpenCode authentication state in project-specific Podman named
+volumes. Generated projects never mount a user's host agent configuration into the development
 container. Layered repository safeguards prevent credentials copied into the workspace from being
 committed or pushed accidentally. The version-controlled Git hooks and launch scripts are normalized
 so they run on every supported host.
@@ -19,21 +19,25 @@ so they run on every supported host.
 
 ## Credential Volumes <!-- rq-b96d41dc -->
 
-- Claude and Codex state use distinct Podman named volumes whose names include the project UUID and
-  the agent name.
-- Each agent's complete authentication and configuration state lives inside that agent's named
+- Claude, Codex, and OpenCode state use distinct Podman named volumes whose names include the
+  project UUID and the agent name.
+- Each agent's complete user-specific authentication and configuration state lives inside that agent's named
   volume. Because Claude otherwise keeps its top-level configuration file outside its credential
   directory, the development container points `CLAUDE_CONFIG_DIR` at the mounted Claude volume so
   that Claude's configuration file and credentials are both stored in the volume and survive removal
   of a disposable container.
+- OpenCode's durable authentication, provider, model selection, and session state lives in its named
+  volume, including the parts OpenCode keeps outside its data directory. Its disposable download and
+  package caches do not need to persist and are not treated as credential state. The mounted state
+  path does not hide the OpenCode executable supplied by the agent image.
 - The template-owned tooling and agent images carry no agent configuration of their own. Installing
   an agent leaves no agent configuration file or configuration directory in either image, so a
   mounted volume is the only source of an agent's configuration and an agent never migrates
   image-resident configuration over the state held in the volume.
 - Launching creates missing volumes and reuses existing volumes.
 - The project working directory remains the only host project bind mount.
-- Host paths such as `~/.claude`, `~/.claude.json`, and `~/.codex` are never mounted or copied into
-  the development container.
+- Host paths such as `~/.claude`, `~/.claude.json`, `~/.codex`, and the host's OpenCode
+  configuration and data directories are never mounted or copied into the development container.
 - Removing a disposable development container does not remove its named credential volumes.
 - A launcher command can reset one agent's state or all agent state for the current project. Reset
   requires explicit confirmation and never removes volumes belonging to another project UUID.
@@ -46,7 +50,7 @@ so they run on every supported host.
   also reject generated local container state, which describes one machine rather than the project.
   They reject nothing else, so no legitimate project content is hidden.
 - Legitimate versioned integration files such as `.codex/hooks.json`, `.claude/settings.json`, and
-  agent skill adapters remain trackable.
+  `opencode.json`, managed OpenCode plugins, and agent skill adapters remain trackable.
 - A managed secret scanner examines staged Git content without printing matched secret
   values. It rejects known credential paths, private-key material, and high-confidence supported
   token formats.
@@ -74,18 +78,25 @@ so they run on every supported host.
   `copier update`, sets the line endings of version-controlled Riprap files so that hooks and launch
   scripts run on Linux, macOS, WSL, and Windows regardless of a contributor's `core.autocrlf`
   setting.
-- Shell scripts and Git hooks, including the extensionless `pre-commit` hook and `check-secrets.sh`,
-  are checked out with LF endings so they execute under the bundled shell of Git for Windows.
+- Shell scripts and Git hooks are checked out with LF endings so they execute under the bundled
+  shell of Git for Windows. A script carries this rule whether or not its name has an extension,
+  because tool-mandated names such as the `pre-commit` hook and the `opencode` wrapper that the
+  development container places on its path cannot take one.
 - PowerShell scripts are checked out with LF endings.
 - Windows batch scripts are checked out with CRLF endings so `cmd.exe` control-flow constructs remain
   valid.
 - Text files without a more specific rule are normalized to LF in the repository.
+- Validation discovers the scripts it checks rather than consulting a maintained list, so a script
+  added to the template is covered as soon as it is committed. A version-controlled file is a script
+  when its name carries a `.sh`, `.ps1`, `.bat`, or `.cmd` extension, or when its first line is a
+  `#!` line naming a shell or PowerShell interpreter.
+- Every discovered script resolves to the `eol` attribute its interpreter needs. This holds on every
+  supported host, so a script that no rule covers is reported where it is authored rather than only
+  where its endings break an interpreter.
 - A checkout on each supported host produces working-tree files whose bytes carry the endings that
   host's interpreters need. The endings are established from checked-out file content, because the
   attributes Git reports describe the rules that should apply rather than the bytes an interpreter
-  will actually read. Validation discovers every version-controlled shell, PowerShell, batch, and
-  command script rather than relying on a maintained list, and rejects mixed line endings within a
-  file.
+  will actually read. Validation rejects mixed line endings within a file.
 - `credential-state.sh` and `credential-state.ps1` expose the same actions and produce the same
   observable state: the same canonical project identity, the same project-scoped volume names, and
   the same requirement for explicit confirmation before removing a volume.
@@ -93,10 +104,10 @@ so they run on every supported host.
 ## Feature Interface <!-- rq-22e021a0 -->
 
 - `rr.sh` and `rr.bat`
-  - Ensure `.riprap/state/project-id` and the project-specific Claude and Codex volumes exist before
+  - Ensure `.riprap/state/project-id` and the project-specific Claude, Codex, and OpenCode volumes exist before
     launching the development container.
   - Launch without exposing host agent configuration paths.
-- `rr.sh --reset-agent-state <claude|codex|all>` and the equivalent Windows command
+- `rr.sh --reset-agent-state <claude|codex|opencode|all>` and the equivalent Windows command
   - Display the exact project-scoped volumes that will be removed.
   - Require interactive confirmation unless an explicit non-interactive confirmation flag is used.
 - `rr.sh --install-git-hooks` and the equivalent Windows command
@@ -118,16 +129,16 @@ Feature: Isolate agent credentials from generated projects
     And Podman has no credential volumes for the project
     When the project launcher starts the development environment
     Then it atomically creates a canonical lowercase UUID in ".riprap/state/project-id"
-    And it creates distinct Claude and Codex named volumes containing that UUID
-    And the container receives no bind mount from the host's Claude or Codex configuration paths
+    And it creates distinct Claude, Codex, and OpenCode named volumes containing that UUID
+    And the container receives no bind mount from the host's agent configuration paths
 
   @rq-113c8ccd
   Scenario: Later launches reuse project credential state
     Given a generated project has a valid project UUID
-    And its Claude and Codex named volumes contain marker files
+    And its Claude, Codex, and OpenCode named volumes contain marker files
     When the project launcher starts and stops another disposable development container
     Then it reuses the same named volumes
-    And both marker files remain present
+    And all marker files remain present
 
   @rq-fb3e7cc2
   Scenario: Claude stores its configuration file inside its named volume
@@ -137,12 +148,23 @@ Feature: Isolate agent credentials from generated projects
     And a file written at that path in one container remains readable at that path after the
       container is removed and a new development container launches
 
+  @rq-aa0a9de2
+  Scenario: OpenCode state persists without shadowing its executable
+    Given a generated project with a valid project UUID and an existing OpenCode named volume
+    When the development container launches
+    Then OpenCode's durable authentication, provider, model selection, and session paths resolve
+      within the mounted OpenCode volume
+    And the "opencode" executable resolves outside every credential volume mount point
+    And state written in one container remains readable after that container is removed and a new
+      development container launches
+
   @rq-4e428654
   Scenario: Template-owned images carry no agent configuration
     Given a project rendered from the Riprap template
     When the template-owned tooling and agent images are built
     Then neither image contains a Claude configuration file at the default configuration path
     And neither image contains a Claude configuration directory
+    And neither image contains OpenCode authentication, provider, or session state
 
   @rq-6135fc70
   Scenario: A malformed project identity blocks launch safely
@@ -157,15 +179,26 @@ Feature: Isolate agent credentials from generated projects
     When the first project resets its Codex state with explicit confirmation
     Then only the first project's Codex volume is removed
     And both Claude volumes remain
+    And both OpenCode volumes remain
     And the second project's Codex volume remains
 
   @rq-d89e4c89
   Scenario: Version-controlled hooks and shell scripts are marked for LF checkout
     Given a project rendered from the Riprap template
-    When the effective Git "eol" attribute is evaluated for the version-controlled scripts
-    Then ".riprap/managed/hooks/pre-commit" has an "eol" attribute of "lf"
-    And ".riprap/managed/hooks/check-secrets.sh" has an "eol" attribute of "lf"
-    And "rr.sh" has an "eol" attribute of "lf"
+    When every version-controlled script is discovered and its effective Git "eol" attribute is
+      evaluated
+    Then every discovered shell and PowerShell script has an "eol" attribute of "lf"
+    And the discovered set includes the extensionless ".riprap/managed/hooks/pre-commit" hook
+    And the discovered set includes the extensionless ".riprap/managed/podman/opencode" wrapper
+
+  @rq-1eda0111
+  Scenario: A script that no line-ending rule covers is rejected
+    Given a project rendered from the Riprap template
+    And a version-controlled extensionless file whose first line names a shell interpreter
+    And no ".gitattributes" rule gives that file an "eol" attribute of "lf"
+    When every version-controlled script is discovered and its effective Git "eol" attribute is
+      evaluated
+    Then validation fails and names the uncovered file
 
   @rq-dbd3a295
   Scenario: Windows batch scripts are marked for CRLF checkout
@@ -177,10 +210,11 @@ Feature: Isolate agent credentials from generated projects
   Scenario: Known credential files are ignored without hiding integration configuration
     Given a generated project
     When Git ignore rules are evaluated
-    Then root-level Codex and Claude credential artifacts are ignored
+    Then root-level Codex, Claude, and OpenCode credential artifacts are ignored
     And local environment-secret files are ignored
     And ".codex/hooks.json" is not ignored
     And ".claude/settings.json" is not ignored
+    And "opencode.json" and managed files under ".opencode" are not ignored
     And agent skill adapters are not ignored
 
   @rq-aeab49a7
@@ -249,14 +283,14 @@ Feature: Isolate agent credentials from generated projects
     When every version-controlled script is discovered and its working-tree bytes are examined
     Then every ".bat" and ".cmd" script uses CRLF for every line ending
     And every ".sh" and ".ps1" script uses LF for every line ending
-    And the extensionless "pre-commit" hook ends its lines with LF
+    And every discovered extensionless script ends its lines with LF
 
   @rq-6b0d184f
   Scenario: The Windows credential helper creates the same project identity
     Given a generated project has no ".riprap/state/project-id"
     When the Windows credential helper ensures project state
     Then it creates a canonical lowercase UUID in ".riprap/state/project-id"
-    And it creates the Claude and Codex volume names the shell helper creates for that UUID
+    And it creates the Claude, Codex, and OpenCode volume names the shell helper creates for that UUID
 
   @rq-5e481eb3
   Scenario: The Windows credential helper reuses an existing project identity

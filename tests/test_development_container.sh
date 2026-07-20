@@ -59,17 +59,19 @@ build_key() {
 # so they write the key themselves to control which releases the image installs.
 write_build_key() {
   mkdir -p "$1/.riprap/state/podman"
-  printf 'CLAUDE_VERSION=%s\nCODEX_VERSION=%s\nREFRESH=%s\n' "$2" "$3" "$4" \
+  printf 'CLAUDE_VERSION=%s\nCODEX_VERSION=%s\nOPENCODE_VERSION=%s\nREFRESH=%s\n' "$2" "$3" "$4" "$5" \
     > "$1/.riprap/state/podman/agent-build.candidate.env"
 }
 
 build_agent_image() {
-  local project="$1" image="$2" tooling_image="${3:-localhost/riprap-tooling:latest}" claude_version codex_version
+  local project="$1" image="$2" tooling_image="${3:-localhost/riprap-tooling:latest}" claude_version codex_version opencode_version
   claude_version="$(build_key "$project" CLAUDE_VERSION)"
   codex_version="$(build_key "$project" CODEX_VERSION)"
+  opencode_version="$(build_key "$project" OPENCODE_VERSION)"
   podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" \
     --build-arg "CLAUDE_VERSION=$claude_version" \
     --build-arg "CODEX_VERSION=$codex_version" \
+    --build-arg "OPENCODE_VERSION=$opencode_version" \
     --build-arg "RIPRAP_TOOLING_IMAGE=$tooling_image" \
     --tag "$image" "$project/.riprap/managed/podman"
 }
@@ -86,13 +88,14 @@ with_built_image() (
   render_project "$language" "$project"
   # Exact releases rather than "latest", so the recorded value can be compared against
   # what the built image reports.
-  write_build_key "$project" 2.1.205 0.144.6 pinned
+  write_build_key "$project" 2.1.205 0.144.6 1.15.11 pinned
   tooling_image="localhost/riprap-test-$language-$$-tooling:latest"
   candidate_image="localhost/riprap-test-$language-$$-agent:candidate"
   podman build --tag "$tooling_image" "$project/.riprap/managed/podman"
   build_agent_image "$project" "$candidate_image" "$tooling_image"
   podman build -f "$project/.riprap/managed/podman/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
+    --build-arg OPENCODE_VERSION=1.15.11 \
     --build-arg TOOLING_IMAGE_ID=test-tooling \
     --build-arg "RIPRAP_AGENT_CANDIDATE_IMAGE=$candidate_image" \
     --tag "$image" "$project/.riprap/managed/podman"
@@ -102,11 +105,13 @@ with_built_image() (
 # rq-276c546b
 assert_versions_match_recording() {
   local project="$1" image="$2"
-  local claude_recorded codex_recorded reported
+  local claude_recorded codex_recorded opencode_recorded reported
   claude_recorded="$(build_key "$project" CLAUDE_VERSION)"
   codex_recorded="$(build_key "$project" CODEX_VERSION)"
+  opencode_recorded="$(build_key "$project" OPENCODE_VERSION)"
   test -n "$claude_recorded" || fail 'no CLAUDE_VERSION is recorded'
   test -n "$codex_recorded" || fail 'no CODEX_VERSION is recorded'
+  test -n "$opencode_recorded" || fail 'no OPENCODE_VERSION is recorded'
 
   reported="$(podman run --rm "$image" claude --version)"
   grep -Fq "$claude_recorded" <<<"$reported" || \
@@ -114,21 +119,26 @@ assert_versions_match_recording() {
   reported="$(podman run --rm "$image" codex --version)"
   grep -Fq "$codex_recorded" <<<"$reported" || \
     fail "image reports Codex '$reported', but $codex_recorded is recorded"
+  reported="$(podman run --rm "$image" opencode --version)"
+  grep -Fq "$opencode_recorded" <<<"$reported" || \
+    fail "image reports OpenCode '$reported', but $opencode_recorded is recorded"
   test "$(podman image inspect --format '{{ index .Labels "io.riprap.claude-version" }}' "$image")" = "$claude_recorded" || \
     fail 'Claude image label does not match the installed release'
   test "$(podman image inspect --format '{{ index .Labels "io.riprap.codex-version" }}' "$image")" = "$codex_recorded" || \
     fail 'Codex image label does not match the installed release'
+  test "$(podman image inspect --format '{{ index .Labels "io.riprap.opencode-version" }}' "$image")" = "$opencode_recorded" || \
+    fail 'OpenCode image label does not match the installed release'
 }
 
-# The credential volumes mount over /root/.claude and /root/.codex, so an agent program
+# The credential volumes mount over /root/.claude, /root/.codex, and /root/.opencode, so an agent program
 # installed beneath either path would be shadowed by the volume rather than pinned.
-# rq-d09c17d0 rq-4e428654
+# rq-d09c17d0 rq-4e428654 rq-aa0a9de2
 assert_programs_and_config_outside_volumes() {
   local image="$2" resolved
-  for agent in claude codex; do
+  for agent in claude codex opencode; do
     resolved="$(podman run --rm "$image" sh -c "readlink -f \"\$(command -v $agent)\"")"
     case "$resolved" in
-      /root/.claude/*|/root/.codex/*)
+      /root/.claude/*|/root/.codex/*|/root/.opencode/*)
         fail "$agent program resolves to $resolved, inside a credential volume mount point" ;;
       "") fail "$agent is not on PATH in the built image" ;;
     esac
@@ -139,6 +149,8 @@ assert_programs_and_config_outside_volumes() {
     fail 'image carries a build-time Claude configuration directory'
   podman run --rm "$image" sh -c 'test ! -e /root/.codex' || \
     fail 'image carries build-time content under the Codex volume mount point'
+  podman run --rm "$image" sh -c 'test ! -e /root/.opencode' || \
+    fail 'image carries build-time content under the OpenCode volume mount point'
 }
 
 # rq-fae13c6f
@@ -146,6 +158,54 @@ assert_autoupdaters_disabled() {
   local image="$2"
   test -n "$(podman run --rm "$image" printenv DISABLE_AUTOUPDATER)" || \
     fail 'the container environment does not set DISABLE_AUTOUPDATER'
+}
+
+# Runs "opencode run" against a rendered project inside the agent image, reporting what OpenCode
+# emitted in OPENCODE_OUTPUT and its exit status in OPENCODE_EXIT. Both travel in globals rather
+# than on stdout because the exit status is the assertion: a caller that read the output through
+# command substitution would run this in a subshell and lose the status with it. The project is
+# copied inside the container and the mount is read-only, so an assertion that rewrites the managed
+# check cannot disturb the copy a later assertion renders against. Git initialization gives the
+# plugin an unambiguous worktree to resolve.
+opencode_run_in_project() {
+  local project="$1" image="$2" preparation="${3:-true}"
+  OPENCODE_EXIT=0
+  OPENCODE_OUTPUT="$(timeout 240 podman run --rm -v "$project:/project:ro" "$image" sh -c "
+    mkdir -p /work && cp -a /project/. /work/ && cd /work
+    git init -q . >/dev/null 2>&1 || true
+    $preparation
+    opencode run 'print the word hello' 2>&1")" || OPENCODE_EXIT=$?
+}
+
+# Observing OpenCode is what demonstrates this boundary: the plugin's source cannot distinguish a
+# plugin OpenCode loads and honours from one it never invokes. Substituting a check that reports
+# failure is what makes the rejecting path reachable from inside a container, because Riprap
+# deliberately provides no way to make the canonical check report a chosen result.
+#
+# A refusal is recognised by what OpenCode does, not by what it prints: OpenCode renders a plugin
+# refusal as a generic internal error naming neither Riprap nor the launcher, so matching text
+# would assert something OpenCode does not promise. The refused and admitted outcomes are asserted
+# by separate assertions that this suite runs against one image; their contrast is what separates
+# a boundary that holds from a plugin that never ran.
+# rq-b1c40a30 rq-91dd9910 rq-20e684a9 rq-f2003da4
+assert_opencode_refuses_when_the_check_reports_failure() {
+  local project="$1" image="$2"
+  opencode_run_in_project "$project" "$image" \
+    'printf "#!/bin/sh\nexit 2\n" > .riprap/managed/hooks/check-container.sh'
+  test "$OPENCODE_EXIT" -ne 0 || \
+    fail "OpenCode completed a request although the container check reported failure: $OPENCODE_OUTPUT"
+}
+
+# The canonical check succeeds inside the agent image, so the boundary must stay out of the way and
+# OpenCode must reach its own handling of the prompt. Requiring a completed run is what keeps the
+# refusing assertion meaningful: were OpenCode unable to run here at all, both outcomes would fail
+# and the contrast that demonstrates the boundary would be gone.
+# rq-2a2787e3
+assert_opencode_admits_a_request_inside_the_container() {
+  local project="$1" image="$2"
+  opencode_run_in_project "$project" "$image"
+  test "$OPENCODE_EXIT" -eq 0 || \
+    fail "OpenCode did not handle a request inside the development container: $OPENCODE_OUTPUT"
 }
 
 # The tooling and agent installations occupy separate image definitions.
@@ -158,7 +218,7 @@ test_agents_are_isolated_from_tooling_image() (
   tooling="$project/.riprap/managed/podman/Containerfile"
   agent="$project/.riprap/managed/podman/Agent.Containerfile"
   project_container="$project/Containerfile"
-  ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh' "$tooling" || fail 'tooling image installs agents'
+  ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh|opencode\.ai/install' "$tooling" || fail 'tooling image installs agents'
   grep -Fq 'FROM ${RIPRAP_TOOLING_IMAGE}' "$agent" || fail 'agent image does not accept its scoped tooling image'
   grep -Fq 'FROM ${RIPRAP_AGENT_IMAGE}' "$project_container" || fail 'project image does not accept its scoped agent image'
 )
@@ -174,7 +234,7 @@ test_build_key_drives_the_layer_cache() (
 
   tooling_image="localhost/riprap-cache-test-$$-tooling:latest"
   podman build --tag "$tooling_image" "$project/.riprap/managed/podman" >/dev/null
-  write_build_key "$project" 2.1.205 0.144.6 pinned
+  write_build_key "$project" 2.1.205 0.144.6 1.15.11 pinned
   build_agent_image "$project" "$image" "$tooling_image" >/dev/null
   first="$(podman run --rm "$image" claude --version)"
 
@@ -183,7 +243,7 @@ test_build_key_drives_the_layer_cache() (
 
   # 2.1.204 is an earlier published release; any release other than the first one
   # demonstrates that the key's contents alone drive the rebuild.
-  write_build_key "$project" 2.1.204 0.144.6 pinned
+  write_build_key "$project" 2.1.204 0.144.6 1.15.11 pinned
   build_agent_image "$project" "$image" "$tooling_image" >/dev/null
   second="$(podman run --rm "$image" claude --version)"
   test "$first" != "$second" || fail 'changing the build key did not rebuild the agent layer'
@@ -194,7 +254,9 @@ test_agent_pinning_in_rust_container() {
   with_built_image rust \
     assert_versions_match_recording \
     assert_programs_and_config_outside_volumes \
-    assert_autoupdaters_disabled
+    assert_autoupdaters_disabled \
+    assert_opencode_admits_a_request_inside_the_container \
+    assert_opencode_refuses_when_the_check_reports_failure
 }
 
 # rq-a32974ac
