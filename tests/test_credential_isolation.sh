@@ -71,6 +71,9 @@ test_opencode_state_volume_and_wrapper() (
   grep -Fq 'XDG_DATA_HOME=/root/.opencode/data' .riprap/managed/podman/opencode || fail 'OpenCode data is not redirected into its volume'
   grep -Fq 'XDG_STATE_HOME=/root/.opencode/state' .riprap/managed/podman/opencode || fail 'OpenCode state is not redirected into its volume'
   grep -Fq 'OPENCODE_CONFIG_DIR=/root/.opencode/config' .riprap/managed/podman/opencode || fail 'OpenCode config is not redirected into its volume'
+  # A launch into a fresh volume must not fail on a redirected path OpenCode does not create.
+  grep -Eq '^mkdir -p .*/root/\.opencode/config' .riprap/managed/podman/opencode || \
+    fail 'the wrapper does not prepare the redirected OpenCode directories'
   grep -Fq 'exec /opt/opencode/bin/opencode' .riprap/managed/podman/opencode || fail 'OpenCode executable is not image-owned'
 )
 

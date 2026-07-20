@@ -5,4 +5,9 @@
 export XDG_DATA_HOME=/root/.opencode/data
 export XDG_STATE_HOME=/root/.opencode/state
 export OPENCODE_CONFIG_DIR=/root/.opencode/config
+# OpenCode derives and creates the XDG directories itself, but it writes into
+# OPENCODE_CONFIG_DIR without creating it and fails on a directory that is absent.
+# The credential volume mounts over /root/.opencode at run time, so the agent image
+# cannot prepare these paths; a launch into a fresh volume has to create them.
+mkdir -p /root/.opencode/data /root/.opencode/state /root/.opencode/config
 exec /opt/opencode/bin/opencode "$@"

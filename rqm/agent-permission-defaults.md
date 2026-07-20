@@ -53,10 +53,18 @@ disturb it.
 - A prose instruction, executable wrapper that exists only in the container, or check that runs
   only before agent tool calls does not satisfy this boundary because a host-installed OpenCode
   process could already have sent workspace content to a model.
-- Failure is closed and actionable: the request produces no AI response and identifies the Riprap
-  launcher that should be used.
+- Failure is closed: a refused request produces no AI response and the agent exits nonzero.
 - The plugin decides from the canonical check's exit status alone and performs no container
   detection of its own, so every supported agent shares one detection implementation.
+- Claude and Codex present the canonical check's diagnostic, which names the Riprap launcher.
+  OpenCode has no interface through which a plugin refuses a request with a reason its user sees:
+  a refusal reaches the user as a generic internal error that names neither Riprap nor the
+  launcher. Riprap accepts that opaque diagnostic. A plugin that writes the reason to OpenCode's
+  output streams deadlocks the request instead of refusing it, and a plugin that presents the
+  reason by adopting the name of an OpenCode internal error type is still reduced to the same
+  generic error while gaining a dependency on a name OpenCode is free to change. Closing the
+  boundary takes precedence over explaining it, so the refusal stays silent until OpenCode offers
+  a supported way to decline a request.
 
 ## Verifying Container Enforcement <!-- rq-91dd9910 -->
 
@@ -70,6 +78,10 @@ disturb it.
   the canonical check detects a container.
 - The interactive and non-interactive entry points reach a model through one request path, so
   exercising the non-interactive entry point demonstrates the boundary for both.
+- A refusal is recognised by what OpenCode does rather than by what it prints, because the text it
+  prints is a generic internal error. A refused request ends without an AI response and exits
+  nonzero; an admitted request proceeds into OpenCode's own handling of the prompt. Comparing the
+  two outcomes is what distinguishes a boundary that holds from one that never ran.
 - Rejection of a host Windows process is asserted from the plugin's content, because a host that
   can run the containerized agent image is not the host that exercises that branch.
 
@@ -140,7 +152,6 @@ Feature: Ship least-privilege agent permission defaults
     When the user submits a prompt
     Then the container check rejects the request before workspace content is sent to a model
     And OpenCode produces no AI response
-    And the diagnostic identifies the Riprap launcher
 
   @rq-20e684a9
   Scenario: OpenCode blocks non-interactive use outside the development container
@@ -149,7 +160,7 @@ Feature: Ship least-privilege agent permission defaults
     When `opencode run` submits a prompt
     Then the container check rejects the request before workspace content is sent to a model
     And OpenCode produces no AI response
-    And the command exits nonzero with a diagnostic identifying the Riprap launcher
+    And the command exits nonzero
 
   @rq-b1c40a30
   Scenario: OpenCode refuses a request whenever the container check reports failure
@@ -157,7 +168,7 @@ Feature: Ship least-privilege agent permission defaults
     And OpenCode is running inside Riprap's development container
     When `opencode run` submits a prompt
     Then OpenCode produces no AI response
-    And the command exits nonzero with a diagnostic identifying the Riprap launcher
+    And the command exits nonzero
 
   @rq-2a2787e3
   Scenario: OpenCode accepts requests inside the development container
@@ -165,8 +176,8 @@ Feature: Ship least-privilege agent permission defaults
     And the managed container check reports success
     When an interactive or non-interactive prompt is submitted
     Then the container check succeeds
-    And no diagnostic identifying the Riprap launcher is produced
-    And OpenCode may process the request normally
+    And the request is not refused
+    And OpenCode proceeds into its own handling of the prompt
 
   @rq-f928505b
   Scenario: A project's own permissions are not version-controlled

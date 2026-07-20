@@ -160,50 +160,51 @@ assert_autoupdaters_disabled() {
     fail 'the container environment does not set DISABLE_AUTOUPDATER'
 }
 
-# The substring identifies the managed refusal specifically, so a refusal for any other reason
-# (an absent provider, a malformed request) cannot be mistaken for the boundary holding.
-OPENCODE_REFUSAL='must run inside the project development container'
-
-# Runs "opencode run" against a rendered project inside the agent image and prints what OpenCode
-# emitted. The prompt is never answered: the image carries no credentials, so a request that gets
-# past the boundary fails for an unrelated reason, which is exactly what distinguishes the two
-# outcomes. The project is copied inside the container and the mount is read-only, so an assertion
-# that rewrites the managed check cannot disturb the copy a later assertion renders against. Git
-# initialization gives the plugin an unambiguous worktree to resolve.
+# Runs "opencode run" against a rendered project inside the agent image, prints what OpenCode
+# emitted, and reports its exit status in OPENCODE_EXIT. The project is copied inside the container
+# and the mount is read-only, so an assertion that rewrites the managed check cannot disturb the
+# copy a later assertion renders against. Git initialization gives the plugin an unambiguous
+# worktree to resolve.
 opencode_run_in_project() {
-  local project="$1" image="$2" preparation="${3:-true}"
-  timeout 180 podman run --rm -v "$project:/project:ro" "$image" sh -c "
+  local project="$1" image="$2" preparation="${3:-true}" output status=0
+  output="$(timeout 240 podman run --rm -v "$project:/project:ro" "$image" sh -c "
     mkdir -p /work && cp -a /project/. /work/ && cd /work
     git init -q . >/dev/null 2>&1 || true
     $preparation
-    opencode run 'print the word hello' 2>&1" || true
+    opencode run 'print the word hello' 2>&1")" || status=$?
+  OPENCODE_EXIT=$status
+  printf '%s' "$output"
 }
 
 # Observing OpenCode is what demonstrates this boundary: the plugin's source cannot distinguish a
 # plugin OpenCode loads and honours from one it never invokes. Substituting a check that reports
 # failure is what makes the rejecting path reachable from inside a container, because Riprap
 # deliberately provides no way to make the canonical check report a chosen result.
+#
+# A refusal is recognised by what OpenCode does, not by what it prints: OpenCode renders a plugin
+# refusal as a generic internal error naming neither Riprap nor the launcher, so matching text
+# would assert something OpenCode does not promise. The refused and admitted outcomes are asserted
+# by separate assertions that this suite runs against one image; their contrast is what separates
+# a boundary that holds from a plugin that never ran.
 # rq-b1c40a30 rq-91dd9910 rq-20e684a9 rq-f2003da4
 assert_opencode_refuses_when_the_check_reports_failure() {
   local project="$1" image="$2" output
   output="$(opencode_run_in_project "$project" "$image" \
     'printf "#!/bin/sh\nexit 2\n" > .riprap/managed/hooks/check-container.sh')"
-  grep -Fq "$OPENCODE_REFUSAL" <<<"$output" || \
-    fail "OpenCode did not refuse a request when the container check reported failure: $output"
+  test "$OPENCODE_EXIT" -ne 0 || \
+    fail "OpenCode completed a request although the container check reported failure: $output"
 }
 
-# The canonical check succeeds inside the agent image, so the boundary must stay out of the way.
-# The request still fails for want of credentials; only the absence of the managed refusal is
-# asserted, because an answered prompt would require a model call.
+# The canonical check succeeds inside the agent image, so the boundary must stay out of the way and
+# OpenCode must reach its own handling of the prompt. Requiring a completed run is what keeps the
+# refusing assertion meaningful: were OpenCode unable to run here at all, both outcomes would fail
+# and the contrast that demonstrates the boundary would be gone.
 # rq-2a2787e3
 assert_opencode_admits_a_request_inside_the_container() {
   local project="$1" image="$2" output
-  # Absence proves nothing if the text being looked for is no longer the text OpenCode would emit.
-  grep -Fq "$OPENCODE_REFUSAL" "$project/.opencode/plugins/check-container.js" || \
-    fail 'the managed refusal text changed, so its absence no longer demonstrates anything'
   output="$(opencode_run_in_project "$project" "$image")"
-  ! grep -Fq "$OPENCODE_REFUSAL" <<<"$output" || \
-    fail "OpenCode refused a request inside the development container: $output"
+  test "$OPENCODE_EXIT" -eq 0 || \
+    fail "OpenCode did not handle a request inside the development container: $output"
 }
 
 # The tooling and agent installations occupy separate image definitions.
