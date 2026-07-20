@@ -1,7 +1,5 @@
 # Riprap
 
-**Important:** This repository and the ideas expressed within represent an early effort to identify best practices for AI-assisted development, and do not yet reflect official MolSSI recommendations.
-
 ## Getting Started
 
 ### Prerequisites
@@ -10,7 +8,7 @@ Install Podman, following the official podman installation [instructions](https:
 
 Install [Copier](https://copier.readthedocs.io/en/stable/#installation).
 
-You'll also need access to either Claude Code or Codex.
+You'll also need access to Claude Code, Codex, or a model provider supported by OpenCode.
 
 ### Creating a new repository
 
@@ -70,10 +68,11 @@ Because the CodeQL workflow is a seed, keeping its `github/codeql-action` versio
 #### 1. Launch a development container
 
 All development **must** take place within a Podman container.
-The template includes hooks that prevent Claude Code and Codex from answering prompts unless you are running in a containerized environment.
+The template includes checks that prevent Claude Code, Codex, and OpenCode from answering prompts unless you are running in a containerized environment.
 To launch a development environment, run `bash rr.sh` on Linux/Mac, or `rr.bat` on Windows.
 This builds the container and drops you into an interactive bash shell in `/work`.
-Run `claude` from the shell to start Claude Code, or `codex` to start Codex.
+Run `claude` from the shell to start Claude Code, `codex` to start Codex, or `opencode` to start
+OpenCode.
 Before using Codex for the first time in a project, authenticate from inside the container with
 `codex login --device-auth` and complete the login in your browser (you may run the browser outside
 the container). Device authentication because the container operates within an isolated network
@@ -81,11 +80,19 @@ namespace - for the purpose of logging in, your container counts as a separate d
 only necessary the first time you use the container for this project.
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
+For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with
+`/models`; OpenCode also ships free built-in models that need no provider account.
+
+Each agent's authentication is stored in its own Podman named volume, scoped by the random UUID in
+`.riprap/state/project-id`, and the launchers never mount your host agent configuration
+directories. The UUID is non-secret project metadata and should be committed. To clear
+authentication, run `bash rr.sh --reset-agent-state claude`, `codex`, `opencode`, or `all` (use
+`rr.bat` on Windows).
 
 The container is built in three layers. The managed tooling definition at
 `.riprap/managed/podman/Containerfile` adds Copier, the language toolchain, and supporting
-utilities to the selected `base_image`. A separate managed agent layer installs Claude Code and
-Codex. Finally, the user-owned `Containerfile` at the project root adds project-specific tools.
+utilities to the selected `base_image`. A separate managed agent layer installs Claude Code, Codex,
+and OpenCode. Finally, the user-owned `Containerfile` at the project root adds project-specific tools.
 Each project's local image names are scoped by its stable project UUID, so projects with different
 base images do not overwrite one another's images.
 
@@ -93,7 +100,7 @@ Edit the root `Containerfile` to install additional system packages or tools you
 leave the managed definitions alone so that `copier update` can keep them in sync with upstream
 changes.
 
-#### Updating Claude Code and Codex
+#### Updating the agents
 
 The agents update themselves automatically, at most once a week, with no action from you.
 
@@ -113,6 +120,7 @@ for an upstream fix. Create `.riprap/user/agent-pin.env`:
 ```
 CLAUDE_VERSION=2.1.205
 CODEX_VERSION=0.144.6
+OPENCODE_VERSION=1.15.11
 ```
 
 Pinned agents are held at exactly those releases; any agent you leave out keeps tracking its
@@ -138,6 +146,8 @@ In Codex, use:
 ```
 $rr-architecture I want to build a molecular dynamics code.
 ```
+
+In OpenCode, ask it to use the `rr-architecture` skill with the same description.
 
 The agent will ask a series of questions to turn a broad ambition into concrete, load-bearing decisions — the intended scale and audience, execution targets (CPU, GPU, distributed), which features carry architectural weight, how the system should be extended (for example, whether it needs a plugin system for user-defined components), the key libraries, and how whole-project testing should be handled.
 It records the results in `rqm/ARCHITECTURE.md`, which the agent's project guidance references so that every later planning and implementation step shares the same architectural context.
@@ -169,6 +179,8 @@ In Codex, use:
 ```
 $rr-plan I want to add a parser to my code that parses XYZ molecular structure files. Help me plan this feature, and place the requirements document in rqm/parser.md.
 ```
+
+In OpenCode, ask it to use the `rr-plan` skill with the same request.
 
 The agent will then ask you numerous questions to clarify your detailed requirements, and will write them to a corresponding markdown file in the `rqm` directory.
 Examine this file carefully, including the Gherkin scenarios - these will later be used to generate unit tests for your code.
@@ -239,7 +251,7 @@ In this approach, it may be helpful to view the development process as natural-l
 
 It is important that you understand the functionality of your code.
 To help with this, the template includes a `rr-quiz` skill. Invoke it as `/rr-quiz` in Claude Code
-or `$rr-quiz` in Codex.
+or `$rr-quiz` in Codex; in OpenCode, ask it to use the `rr-quiz` skill.
 If you prompt the LLM with this skill, it will ask you a question about the implementation details of your code.
 Using this skill periodically is a great way to ensure that you aren't creating code you don't understand.
 
@@ -247,8 +259,9 @@ Using this skill periodically is a great way to ensure that you aren't creating 
 ### Customizing skills
 
 The authoritative, agent-neutral skill implementations live under `.riprap/managed/skills/`.
-Claude discovers managed adapters under `.claude/skills/`, while Codex discovers managed adapters
-under `.agents/skills/`. Project-owned extensions live separately under
+Claude discovers managed adapters under `.claude/skills/`, Codex discovers managed adapters
+under `.agents/skills/`, and OpenCode discovers managed adapters under `.opencode/skills/`.
+Project-owned extensions live separately under
 `.riprap/user/skills/<skill-name>/local.md`.
 
 Riprap creates each `local.md` when your project is generated and never touches it again, so your
@@ -263,10 +276,41 @@ Riprap-managed implementations live under `.riprap/managed/` and should not be e
 project customizations live under `.riprap/user/`. Shared project identity and machine-local build
 state live under `.riprap/state/`; generated ignore rules distinguish which state should be
 committed. A few managed adapters remain at tool-mandated locations, including `rr.sh`, `rr.bat`,
-`.claude/skills/`, and `.agents/skills/`.
+`.claude/skills/`, `.agents/skills/`, `.opencode/skills/`, and `.opencode/plugins/`.
 
 Conventional files outside `.riprap`, such as source files, manifests, `README.md`, and the root
 `Containerfile`, belong to the generated project and are preserved by `copier update`.
+
+### Agent permissions
+
+Generated projects ship least-privilege permission defaults for each agent that provides a
+permission mechanism. The defaults pre-approve the commands Riprap's own skills run and your
+language's routine build, test, and lint commands, and they deny reading credential files. They
+deliberately do **not** pre-approve a general language interpreter, a package installer, or a
+shell, so those prompt the first time they are used. Each language variant grants named commands
+rather than an interpreter, so the breadth of the default does not depend on which language you
+chose.
+
+**Claude Code** reads `.claude/settings.json`, which is Riprap-managed. Record your project's own
+permissions in `.claude/settings.local.json`, which Claude Code merges with the managed settings
+rather than replacing them; choosing "don't ask again" at a prompt writes the rule there for you.
+That file is ignored by Git, so one contributor's approvals do not silently become the project's
+policy, and template updates never disturb them.
+
+**OpenCode** reads `opencode.json`, which is Riprap-managed and carries the equivalent defaults. It
+also disables OpenCode's automatic updater, since the launcher manages agent versions (see
+"Updating the agents" above). Store personal provider, model, and permission choices through
+OpenCode's own user configuration, which lives in the project-scoped OpenCode state volume rather
+than in the repository.
+
+**Codex** receives no permission configuration, because it exposes no permission mechanism that
+Riprap can populate. Codex is governed by its own sandbox and approval settings together with the
+development container. This is deliberate: a rule an agent ignores is not a default, it is a
+comment that reads like one.
+
+These permission defaults narrow accidental exposure; they are not a containment boundary. A
+permitted shell command can still read a denied path. The rootless container is the boundary, and
+keeping credentials out of the workspace and out of Git is a separate safeguard.
 
 
 ## Key Rules of AI-Assisted Programming
@@ -284,7 +328,8 @@ One of the most important things you can do to protect yourself is to restrict a
 Note that although Docker is currently the most popular containerization option, Docker containers have root access by default and are therefore not a good solution to the LLM security problem.
 Instead, The MolSSI recommends using Podman.
 Podman containers do not have root access by default, making them a generally better option when security is a concern.
-To help you avoid accidentally exposing your entire system to hackers, generated repositories include hooks that prevent Claude Code and Codex from answering prompts unless they are run in a container.
+To help you avoid accidentally exposing your entire system to hackers, generated repositories include checks that prevent Claude Code, Codex, and OpenCode from answering prompts unless they are run in a container.
+Claude Code and Codex use their supported project hook mechanisms; OpenCode, which has no hook mechanism, uses a managed project plugin that runs the same container check.
 
 Note that containerization is merely a first step in protecting yourself when using LLM agents.
 Even when working in a container, you should treat the agent with considerable skepticism.

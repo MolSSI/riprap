@@ -24,7 +24,8 @@ The UUID is non-secret project metadata and should be committed. To clear authen
 `bash rr.sh --reset-agent-state claude`, `codex`, `opencode`, or `all` (use `rr.bat` on Windows).
 On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
 Codex deliberately does not run a new project-local hook until you approve its exact definition.
-For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with `/models`.
+For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with
+`/models`; OpenCode also ships free built-in models that need no provider account.
 
 #### Updating the agents
 
