@@ -22,10 +22,12 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes pipx podman software-properties-common
-          sudo add-apt-repository --yes ppa:apptainer/ppa
-          sudo apt-get update
-          sudo apt-get install --yes apptainer
+          sudo apt-get install --yes pipx podman
+          curl --fail --show-error --location \
+            --retry 5 --retry-all-errors \
+            --output "$RUNNER_TEMP/apptainer.deb" \
+            https://github.com/apptainer/apptainer/releases/download/v1.5.1/apptainer_1.5.1_amd64.deb
+          sudo apt-get install --yes "$RUNNER_TEMP/apptainer.deb"
           pipx install 'copier>=9,<10'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
