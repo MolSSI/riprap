@@ -68,6 +68,10 @@ knowledge of a user's hosts, credentials, or network.
   cluster login environment commonly exports a large module-derived environment and holds the user's
   own credentials in their home directory; a runtime default that carried either into the container
   would silently widen the boundary that the development container exists to establish.
+- Containment preserves the image-owned home directory at `/opt/riprap/home` while suppressing the
+  runtime's automatic host-home mount. Programs and language toolchains installed beneath the
+  image-owned home remain available, while the explicit agent credential bindings replace only
+  their corresponding configuration directories.
 - The launcher mounts the project working directory at `/work` and makes it the working directory,
   matching the build host so that a project's own tooling and documentation describe one workspace
   path on every host.
@@ -222,6 +226,16 @@ Feature: Portable development image
     Then the runtime receives the option that contains the container
     And the runtime receives the option that supplies a clean environment
     And the runtime receives no bind of the invoking user's home directory
+
+  @rq-113ef8b2
+  Scenario: Execution preserves programs installed in the image-owned home
+    Given an exported image containing Copier, the project language toolchain, and the supported
+      agent programs
+    When the project launcher runs the exported image under the execution runtime
+    Then Copier runs successfully inside the container
+    And the project language toolchain runs successfully inside the container
+    And each supported agent program runs successfully inside the container
+    And none of those programs is loaded from the invoking user's home directory
 
   @rq-cc89b043
   Scenario: Execution presents the workspace at the same path as a build host

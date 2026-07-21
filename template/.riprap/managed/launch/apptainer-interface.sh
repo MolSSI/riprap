@@ -52,13 +52,16 @@ IFS='
 for option in $options; do set -- "$@" "$option"; done
 unset IFS
 
-# --containall isolates the invoking user's home directory and default binds; --cleanenv keeps the
-# execution host's ambient environment out of the container; --writable-tmpfs supplies scratch
-# space so the read-only image starts. Each credential directory binds to its agent's configuration
-# home under the image-owned home directory, holding credentials and session state only. The host's
-# own agent configuration paths are never bound.
+# --containall isolates the invoking user's home directory and default binds; --no-home prevents
+# Apptainer from replacing the image-owned HOME with an empty containment mount, so programs
+# installed beneath it remain available. --cleanenv keeps the execution host's ambient environment
+# out of the container; --writable-tmpfs supplies scratch space so the read-only image starts. Each
+# credential directory binds to its agent's configuration home under the image-owned home directory,
+# holding credentials and session state only. The host's own agent configuration paths are never
+# bound.
 exec apptainer shell \
     --containall \
+    --no-home \
     --cleanenv \
     --writable-tmpfs \
     --pwd /work \

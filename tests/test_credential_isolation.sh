@@ -851,6 +851,7 @@ test_run_sif_isolates_and_binds() (
   bash rr.sh --run-sif </dev/null || fail 'run-sif failed against a matching image'
   line=$(apptainer_run_line)
   grep -Fq -- '--containall' <<<"$line" || fail 'the run does not contain the host home directory'
+  grep -Fq -- '--no-home' <<<"$line" || fail 'the run hides the image-owned home directory'
   grep -Fq -- '--cleanenv' <<<"$line" || fail 'the run does not supply a clean environment'
   grep -Fq -- '--writable-tmpfs' <<<"$line" || fail 'the run does not supply writable scratch space'
   grep -Eq -- '--bind [^ ]+/work:/work|--bind [^ ]+:/work' <<<"$line" || fail 'the workspace is not bound at /work'
