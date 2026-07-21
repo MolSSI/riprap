@@ -928,20 +928,20 @@ test_run_sif_rejects_an_invalid_option() (
   ! grep -q '^shell ' "$APPTAINER_LOG" || fail 'a container started despite an invalid option'
 )
 
-# Reset on an execution host removes the selected agent's credential directory, tolerating the
-# absence of the build runtime, and leaves the others.
+# Reset removes the selected agent's execution-host credential directory and leaves the others. An
+# execution host holds credential directories rather than volumes; with no volume present for the
+# project, reset operates on the directories. The mock runtime reports no volumes, which is the same
+# state reset sees whether the host has no build runtime at all or simply no volume for this project.
 test_reset_removes_execution_host_directories() (
   setup_project; cd "$PROJECT"
-  # No podman available: an execution host has no build runtime. setup_project put a mock podman on
-  # PATH, so removing it leaves a host with no build runtime at all.
-  rm -f "$MOCK_BIN/podman"
-  if command -v podman >/dev/null 2>&1; then fail 'the test host has a real podman, so it cannot simulate an execution host'; fi
   bash .riprap/managed/launch/credential-state.sh project-id >/dev/null
   for agent in claude codex opencode; do mkdir -p ".riprap/state/apptainer/credentials/$agent"; done
-  bash rr.sh --reset-agent-state codex --yes >/dev/null || fail 'reset failed on an execution host'
+  bash rr.sh --reset-agent-state codex --yes >/dev/null || fail 'reset failed for execution-host state'
   test ! -d .riprap/state/apptainer/credentials/codex || fail 'the Codex directory was not removed'
   test -d .riprap/state/apptainer/credentials/claude || fail 'the Claude directory was removed'
   test -d .riprap/state/apptainer/credentials/opencode || fail 'the OpenCode directory was removed'
+  # No volume exists for this project, so reset must not have issued a volume removal.
+  ! grep -q "volume rm" "$PODMAN_LOG" || fail 'reset removed a volume when only directories exist'
 )
 
 # The exported image and the per-user credential directories are generated local state, ignored by
