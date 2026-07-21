@@ -7,6 +7,10 @@ template updates. The agent image adds the supported AI agents at current releas
 bounded schedule that requires no routine action from the user. The project-owned image may add
 further tools without replacing either template-owned layer.
 
+Image definitions live under `.riprap/managed/container/` and describe one image that every supported
+container runtime executes. A project image built here can also be exported and executed on a host
+that cannot build one, as described in `portable-development-image.md`.
+
 ## Project Image Identity <!-- rq-3555aab7 -->
 
 - Every locally tagged tooling, candidate-agent, successful-agent, and project image has a name
@@ -49,6 +53,24 @@ further tools without replacing either template-owned layer.
 - Refreshing agents rebuilds the agent image without rebuilding the tooling image or conflating an
   agent download failure with a tooling-image build failure.
 
+## Unprivileged Execution <!-- rq-d292bdd6 -->
+
+- The images run correctly as an arbitrary unprivileged user. Nothing in the tooling, language, or
+  agent layers requires being root inside the container, a writable image filesystem, or a
+  privilege-mapping facility of the host that runs it.
+- The image sets a home directory at an image-owned path outside `/root`, and installs the language
+  toolchain, the Copier application, and every agent's configuration home beneath it. Paths under
+  `/root` are unreadable to any other user, so an image that placed a program or a configuration home
+  there would be usable only by a runtime that maps the caller to root.
+- That home directory and the paths beneath it that are not credential mount points are readable and
+  traversable by any user, so the same image serves a runtime that runs the container as root and one
+  that runs it as the invoking user.
+- Nothing the toolchain or the agents require at startup is written to the image's own filesystem. A
+  runtime may present the image read-only, and durable state belongs in a credential mount or the
+  workspace rather than in the image.
+- These are properties of the image rather than of one runtime, so they are established wherever any
+  container runtime is available by running the image as a user other than root.
+
 ## Agent Releases <!-- rq-ce1eb03c -->
 
 - Each supported agent is installed at its current release by default. No routine user action keeps
@@ -65,16 +87,17 @@ further tools without replacing either template-owned layer.
   core is a refresh failure: the agent image is left unlabeled and the successful build key is
   unchanged. A launcher never records a release value drawn from its ambient environment, so a
   variable that happens to share a name with a build-key assignment cannot reach an image label.
-- Agent program files live in the image, never inside a credential volume. Where an agent installs
+- Agent program files live in the image, never inside a credential mount. Where an agent installs
   its program beneath its own configuration home, the image installs the program under an
   image-owned configuration home and the container points that agent's configuration home at the
-  mounted volume, which then holds credentials and session state only. A program installed inside a
-  credential volume would shadow the installed release, because the volume takes precedence over
-  the image at that path, and would be destroyed by an agent state reset.
+  credential mount, which then holds credentials and session state only. A program installed inside a
+  credential mount would shadow the installed release, because the mount takes precedence over
+  the image at that path, and would be destroyed by an agent state reset. This holds for every
+  mechanism a runtime provides for credential state, whether a managed volume or a bound directory.
 
 ## Agent Refresh Schedule <!-- rq-f3736651 -->
 
-- `.riprap/state/podman/agent-build.env` is the successful agent build key. It records the release
+- `.riprap/state/container/agent-build.env` is the successful agent build key. It records the release
   selection used by the installed agent image, as the assignments `CLAUDE_VERSION` and
   `CODEX_VERSION` and `OPENCODE_VERSION`, together with a `REFRESH` value that changes on the
   refresh schedule.
@@ -149,8 +172,12 @@ further tools without replacing either template-owned layer.
 
 ## Container Run Options <!-- rq-70d01853 -->
 
-- `.riprap/user/podman/run-options` supplies container runtime options for the interactive
-  development container beyond those the template always applies. It is a user-owned seed file:
+- `.riprap/user/podman/run-options` supplies build-host container runtime options for the
+  interactive development container beyond those the template always applies. The file is named for
+  its runtime because runtime options are runtime-specific: an option granting one runtime access to
+  the host's GPUs is not valid for another, so each supported runtime reads its own file and an
+  execution host reads the file described in `portable-development-image.md`. It is a user-owned seed
+  file:
   the template creates it once and preserves it thereafter, so options a project enables survive
   template updates. It is ordinary project content, so a team may commit it to share one
   environment or leave it untracked to configure a single machine.
@@ -207,7 +234,7 @@ further tools without replacing either template-owned layer.
   POSIX shell, and the Windows launcher under `cmd.exe` with the PowerShell helpers it invokes.
   Launch orchestration is written twice, in two languages with different quoting, control-flow, and
   variable-expansion rules, so validating one launcher establishes nothing about the other.
-- Launcher validation substitutes a mock container runtime on `PATH` for Podman. Pin validation,
+- Launcher validation substitutes a mock container runtime on `PATH` for the real one. Pin validation,
   candidate and build-key state, build sequencing, version verification, and failure fallback are
   all observable from the commands a launcher issues and the state it writes, so none of them
   requires a real image build.
@@ -276,11 +303,34 @@ Feature: Riprap development container
       project's images
 
   @rq-d09c17d0
-  Scenario: Agent programs are installed outside the credential volume paths
+  Scenario: Agent programs are installed outside the credential mount paths
     Given a generated project rendered from the Riprap template
     When the template-owned agent image is built
-    Then each agent executable resolves to a program path that no credential volume mounts over
-    And the image contains no agent program files beneath a credential volume mount point
+    Then each agent executable resolves to a program path that no credential mount covers
+    And the image contains no agent program files beneath a credential mount point
+
+  @rq-3640e734
+  Scenario: The image runs correctly as an unprivileged user
+    Given a generated project rendered from the Riprap template
+    When its project image is run as a user other than root
+    Then "copier --version" succeeds
+    And the language toolchain for the project's language is present
+    And running "claude --version", "codex --version", and "opencode --version" each succeeds
+
+  @rq-e7703bd3
+  Scenario: No program or configuration home is installed beneath "/root"
+    Given a generated project rendered from the Riprap template
+    When its template-owned images are built
+    Then the image's home directory is a path outside "/root"
+    And no agent executable, language toolchain, or agent configuration home resolves beneath "/root"
+
+  @rq-56835ed3
+  Scenario: The image starts without a writable image filesystem
+    Given a generated project rendered from the Riprap template
+    When its project image is run with the image filesystem presented read-only
+    And the workspace and credential mounts are writable
+    Then an interactive shell starts
+    And running "claude --version" succeeds
 
   @rq-7c6a2afa
   Scenario: An unpinned launch records the current week and tracks current releases
@@ -476,7 +526,7 @@ Feature: Riprap development container
   Scenario: The build key is not committed
     Given a generated project whose launcher has written the build key
     When Git ignore rules are evaluated
-    Then ".riprap/state/podman/agent-build.env" is ignored
+    Then ".riprap/state/container/agent-build.env" is ignored
 
   @rq-fae13c6f
   Scenario: Launching disables the agents' in-container automatic updaters

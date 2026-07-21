@@ -16,6 +16,14 @@ if "%~1"=="--install-git-hooks" (
     powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\credential-state.ps1 -Action InstallHooks
     exit /b !ERRORLEVEL!
 )
+if "%~1"=="--export-sif" (
+    echo Riprap: exporting a single-file image is unavailable on Windows; Apptainer does not run on this platform.>&2
+    exit /b 1
+)
+if "%~1"=="--run-sif" (
+    echo Riprap: running a single-file image is unavailable on Windows; Apptainer does not run on this platform.>&2
+    exit /b 1
+)
 
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\credential-state.ps1 -Action Ensure`) do set PROJECT_ID=%%i
 REM FOR /F does not reliably propagate the child command's exit status. Ensure emits an ID
@@ -33,7 +41,7 @@ if errorlevel 1 exit /b %ERRORLEVEL%
 set "CANDIDATE_CLAUDE_VERSION="
 set "CANDIDATE_CODEX_VERSION="
 set "CANDIDATE_OPENCODE_VERSION="
-for /f "usebackq tokens=1,* delims==" %%i in (".riprap\state\podman\agent-build.candidate.env") do (
+for /f "usebackq tokens=1,* delims==" %%i in (".riprap\state\container\agent-build.candidate.env") do (
     if "%%i"=="CLAUDE_VERSION" set "CANDIDATE_CLAUDE_VERSION=%%j"
     if "%%i"=="CODEX_VERSION" set "CANDIDATE_CODEX_VERSION=%%j"
     if "%%i"=="OPENCODE_VERSION" set "CANDIDATE_OPENCODE_VERSION=%%j"
@@ -43,7 +51,7 @@ if not defined CANDIDATE_CODEX_VERSION exit /b 1
 if not defined CANDIDATE_OPENCODE_VERSION exit /b 1
 
 REM Tooling failures are never treated as refresh failures.
-call podman build -t !TOOLING_IMAGE! .riprap\managed\podman
+call podman build -t !TOOLING_IMAGE! .riprap\managed\container
 if errorlevel 1 (
     powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\agent-build.ps1 discard
     echo Riprap: tooling image build failed. 1>&2
@@ -51,7 +59,7 @@ if errorlevel 1 (
 )
 for /f "usebackq delims=" %%i in (`podman image inspect --format "{{.Id}}" !TOOLING_IMAGE!`) do set TOOLING_ID=%%i
 
-call podman build -f .riprap\managed\podman\Agent.Containerfile --build-arg CLAUDE_VERSION=!CANDIDATE_CLAUDE_VERSION! --build-arg CODEX_VERSION=!CANDIDATE_CODEX_VERSION! --build-arg OPENCODE_VERSION=!CANDIDATE_OPENCODE_VERSION! --build-arg RIPRAP_TOOLING_IMAGE=!TOOLING_IMAGE! -t !AGENT_CANDIDATE_IMAGE! .riprap\managed\podman
+call podman build -f .riprap\managed\container\Agent.Containerfile --build-arg CLAUDE_VERSION=!CANDIDATE_CLAUDE_VERSION! --build-arg CODEX_VERSION=!CANDIDATE_CODEX_VERSION! --build-arg OPENCODE_VERSION=!CANDIDATE_OPENCODE_VERSION! --build-arg RIPRAP_TOOLING_IMAGE=!TOOLING_IMAGE! -t !AGENT_CANDIDATE_IMAGE! .riprap\managed\container
 if errorlevel 1 goto agent_refresh_failed
 set "CLAUDE_VERSION="
 set "CODEX_VERSION="
@@ -72,7 +80,7 @@ powershell -NoProfile -Command "if ($env:RIPRAP_VERSION_TO_CHECK -notmatch '\d+\
 if errorlevel 1 goto agent_refresh_failed
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "[regex]::Match($env:RIPRAP_VERSION_TO_CHECK, '\d+\.\d+\.\d+').Value"`) do set OPENCODE_VERSION=%%i
 set "RIPRAP_VERSION_TO_CHECK="
-call podman build -f .riprap\managed\podman\AgentLabels.Containerfile --build-arg CLAUDE_VERSION=!CLAUDE_VERSION! --build-arg CODEX_VERSION=!CODEX_VERSION! --build-arg OPENCODE_VERSION=!OPENCODE_VERSION! --build-arg TOOLING_IMAGE_ID=!TOOLING_ID! --build-arg RIPRAP_AGENT_CANDIDATE_IMAGE=!AGENT_CANDIDATE_IMAGE! -t !AGENT_IMAGE! .riprap\managed\podman
+call podman build -f .riprap\managed\container\AgentLabels.Containerfile --build-arg CLAUDE_VERSION=!CLAUDE_VERSION! --build-arg CODEX_VERSION=!CODEX_VERSION! --build-arg OPENCODE_VERSION=!OPENCODE_VERSION! --build-arg TOOLING_IMAGE_ID=!TOOLING_ID! --build-arg RIPRAP_PROJECT_ID=!PROJECT_ID! --build-arg RIPRAP_AGENT_CANDIDATE_IMAGE=!AGENT_CANDIDATE_IMAGE! -t !AGENT_IMAGE! .riprap\managed\container
 if errorlevel 1 goto agent_refresh_failed
 powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\agent-build.ps1 promote !CLAUDE_VERSION! !CODEX_VERSION! !OPENCODE_VERSION!
 if errorlevel 1 exit /b %ERRORLEVEL%
@@ -96,7 +104,7 @@ exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\project-container.ps1
 if errorlevel 1 exit /b !ERRORLEVEL!
-call podman build -f .riprap\state\podman\Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=!AGENT_IMAGE! -t !PROJECT_IMAGE! .
+call podman build -f .riprap\state\container\Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=!AGENT_IMAGE! -t !PROJECT_IMAGE! .
 
 powershell -NoProfile -ExecutionPolicy Bypass -File .riprap\managed\launch\interface.ps1 -Image !PROJECT_IMAGE! -ProjectId !PROJECT_ID!
 if errorlevel 1 exit /b !ERRORLEVEL!

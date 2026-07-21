@@ -1,7 +1,14 @@
 FROM {{ base_image }}
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="$PATH:/root/.local/bin"
+
+# The image runs as root under a runtime that maps the caller to root and as the
+# invoking user under one that does not, so nothing it installs may live under
+# /root, which no other user can read or traverse. Every program, toolchain, and
+# agent configuration home sits beneath one image-owned home directory instead.
+ENV HOME=/opt/riprap/home
+ENV PATH="/opt/riprap/home/.local/bin:$PATH"
+RUN mkdir -p /opt/riprap/home && chmod 0755 /opt/riprap /opt/riprap/home
 
 # Base tooling. jq is needed for the requirements index script; curl and
 # ca-certificates support project tooling and the separate agent image.
@@ -25,7 +32,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 ENV RUST_VERSION=1.93.0
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV PATH="/opt/riprap/home/.cargo/bin:${PATH}"
 {% endif %}
 {% if language == "python" %}
 # Install Python tooling
@@ -34,3 +41,8 @@ RUN apt-get update && \
     pip3 install --break-system-packages bandit pylint && \
     rm -rf /var/lib/apt/lists/*
 {% endif %}
+
+# Installers create their files for the building user alone. Grant read and, for
+# directories and executables, traverse and execute to everyone, so an arbitrary
+# unprivileged user reaches the same toolchain the building user installed.
+RUN chmod -R a+rX /opt/riprap

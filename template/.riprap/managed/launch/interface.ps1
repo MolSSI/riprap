@@ -4,7 +4,7 @@ param(
 )
 
 if (-not $Image) {
-    $Image = (Get-Content .riprap/managed/podman/image_name -Raw).Trim()
+    $Image = (Get-Content .riprap/managed/container/image_name -Raw).Trim()
 }
 
 $runOptionsFile = ".riprap/user/podman/run-options"
@@ -56,10 +56,10 @@ if (Test-Path -LiteralPath $runOptionsFile) {
 # its last occurrence resolves it in the project's favor.
 podman run --rm -it `
     -v "${PWD}:/work" `
-    -v "riprap-${ProjectId}-claude:/root/.claude" `
-    -v "riprap-${ProjectId}-codex:/root/.codex" `
-    -v "riprap-${ProjectId}-opencode:/root/.opencode" `
-    -e CLAUDE_CONFIG_DIR=/root/.claude `
+    -v "riprap-${ProjectId}-claude:/opt/riprap/home/.claude" `
+    -v "riprap-${ProjectId}-codex:/opt/riprap/home/.codex" `
+    -v "riprap-${ProjectId}-opencode:/opt/riprap/home/.opencode" `
+    -e CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude `
     -w /work `
     @runOptions `
     $Image `
