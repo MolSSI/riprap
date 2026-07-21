@@ -62,12 +62,13 @@ that cannot build one, as described in `portable-development-image.md`.
   toolchain, the Copier application, and every agent's configuration home beneath it. Paths under
   `/root` are unreadable to any other user, so an image that placed a program or a configuration home
   there would be usable only by a runtime that maps the caller to root.
-- The home directory is sticky world-writable, like a shared temporary directory, because the user
-  that runs the container is not known when the image is built: one runtime runs it as root and
-  another as the invoking user. Any such user can therefore create the scratch and configuration
-  directories the toolchain and agents write beneath the home directory at startup, while the sticky
-  bit and the root ownership of the installed program directories keep one user from replacing an
-  installed program.
+- The home directory and every directory beneath it are sticky world-writable, like a shared
+  temporary directory, because the user that runs the container is not known when the image is built:
+  one runtime runs it as root and another as the invoking user. A build step running as root leaves
+  directories beneath the home -- a package cache, a toolchain directory -- and any runtime user must
+  still be able to create scratch beneath them at startup, so the writable mode covers the whole tree
+  rather than only its root. Installed files stay readable but not writable, and the sticky bit keeps
+  one user from removing another's, so no runtime user can replace an installed program.
 - Durable state -- credentials and session state -- belongs in a credential mount, never in the
   image. Disposable scratch that an agent re-derives, such as a download cache, is written beneath
   the writable home directory and discarded with the container. The image's own layers need not be
