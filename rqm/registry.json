@@ -162,6 +162,18 @@
     "title": "Later launches reuse project credential state",
     "type": "scenario"
   },
+  "rq-113ef8b2": {
+    "decl": "Scenario: Execution preserves programs installed in the image-owned home",
+    "file": "portable-development-image",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Execution preserves programs installed in the image-owned home",
+    "type": "scenario"
+  },
   "rq-12165531": {
     "decl": "## Required-Location Exceptions",
     "file": "template-ownership-layout",

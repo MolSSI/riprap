@@ -84,7 +84,7 @@ build_agent_image() {
 # so the agent downloads happen once rather than once per assertion.
 with_built_image() (
   local language="$1"; shift
-  local temp project image assertion tooling_image candidate_image
+  local temp project image assertion tooling_image candidate_image project_id
   temp="$(mktemp -d)"
   image="riprap-agent-test-$language-$$"
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
@@ -95,16 +95,56 @@ with_built_image() (
   write_build_key "$project" 2.1.205 0.144.6 1.15.11 pinned
   tooling_image="localhost/riprap-test-$language-$$-tooling:latest"
   candidate_image="localhost/riprap-test-$language-$$-agent:candidate"
+  project_id=00000000-0000-4000-8000-000000000001
   podman build --tag "$tooling_image" "$project/.riprap/managed/container"
   build_agent_image "$project" "$candidate_image" "$tooling_image"
   podman build -f "$project/.riprap/managed/container/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
     --build-arg OPENCODE_VERSION=1.15.11 \
     --build-arg TOOLING_IMAGE_ID=test-tooling \
+    --build-arg "RIPRAP_PROJECT_ID=$project_id" \
     --build-arg "RIPRAP_AGENT_CANDIDATE_IMAGE=$candidate_image" \
     --tag "$image" "$project/.riprap/managed/container"
   for assertion in "$@"; do "$assertion" "$project" "$image"; done
 )
+
+# rq-113ef8b2
+assert_exported_image_keeps_image_owned_home() {
+  local project="$1" image="$2" project_id output
+  if ! command -v apptainer >/dev/null 2>&1; then
+    printf 'SKIP: Apptainer is unavailable; exported-image execution test not run\n'
+    return
+  fi
+
+  project_id="$(podman image inspect --format '{{ index .Labels "io.riprap.project-id" }}' "$image")"
+  test -n "$project_id" || fail 'the test image has no project identity label'
+  mkdir -p "$project/.riprap/state"
+  printf '%s\n' "$project_id" > "$project/.riprap/state/project-id"
+  (
+    cd "$project"
+    .riprap/managed/launch/export-sif.sh "$project_id" "$image"
+  )
+
+  output="$(
+    printf '%s\n' \
+      'set -e' \
+      'copier --version' \
+      'cargo --version' \
+      'claude --version' \
+      'codex --version' \
+      'opencode --version' \
+      'for program in copier cargo claude codex opencode; do readlink -f "$(command -v "$program")"; done' \
+      'exit' |
+      (cd "$project" && .riprap/managed/launch/apptainer-interface.sh "$project_id")
+  )" || fail 'the exported image did not run successfully through the Apptainer launcher'
+
+  grep -Eq '^copier 9\.' <<<"$output" || fail 'Copier is unavailable in the exported image'
+  grep -Eq '^cargo 1\.' <<<"$output" || fail 'the Rust toolchain is unavailable in the exported image'
+  grep -Fq '2.1.205' <<<"$output" || fail 'Claude is unavailable in the exported image'
+  grep -Fq '0.144.6' <<<"$output" || fail 'Codex is unavailable in the exported image'
+  grep -Fq '1.15.11' <<<"$output" || fail 'OpenCode is unavailable in the exported image'
+  ! grep -Fq "$HOME/" <<<"$output" || fail 'a tested program resolved into the invoking user home'
+}
 
 # rq-276c546b
 assert_versions_match_recording() {
@@ -324,6 +364,7 @@ test_agent_pinning_in_rust_container() {
     assert_nothing_installed_under_root \
     assert_image_runs_as_unprivileged_user \
     assert_image_starts_read_only \
+    assert_exported_image_keeps_image_owned_home \
     assert_autoupdaters_disabled \
     assert_opencode_admits_a_request_inside_the_container \
     assert_opencode_refuses_when_the_check_reports_failure

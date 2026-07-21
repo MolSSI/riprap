@@ -22,7 +22,10 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes pipx podman
+          sudo apt-get install --yes pipx podman software-properties-common
+          sudo add-apt-repository --yes ppa:apptainer/ppa
+          sudo apt-get update
+          sudo apt-get install --yes apptainer
           pipx install 'copier>=9,<10'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
