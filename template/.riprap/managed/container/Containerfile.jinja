@@ -37,6 +37,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     rm -rf /var/lib/apt/lists/*
 ENV RUST_VERSION=1.93.0
+# Locate the Rust toolchain by absolute path rather than through HOME, because a runtime may set HOME
+# to something other than the image-owned home; rustup would then find no installed toolchain.
+ENV RUSTUP_HOME=/opt/riprap/home/.rustup
+ENV CARGO_HOME=/opt/riprap/home/.cargo
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}
 ENV PATH="/opt/riprap/home/.cargo/bin:${PATH}"
 {% endif %}
