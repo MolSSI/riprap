@@ -62,12 +62,17 @@ that cannot build one, as described in `portable-development-image.md`.
   toolchain, the Copier application, and every agent's configuration home beneath it. Paths under
   `/root` are unreadable to any other user, so an image that placed a program or a configuration home
   there would be usable only by a runtime that maps the caller to root.
-- That home directory and the paths beneath it that are not credential mount points are readable and
-  traversable by any user, so the same image serves a runtime that runs the container as root and one
-  that runs it as the invoking user.
-- Nothing the toolchain or the agents require at startup is written to the image's own filesystem. A
-  runtime may present the image read-only, and durable state belongs in a credential mount or the
-  workspace rather than in the image.
+- The home directory is sticky world-writable, like a shared temporary directory, because the user
+  that runs the container is not known when the image is built: one runtime runs it as root and
+  another as the invoking user. Any such user can therefore create the scratch and configuration
+  directories the toolchain and agents write beneath the home directory at startup, while the sticky
+  bit and the root ownership of the installed program directories keep one user from replacing an
+  installed program.
+- Durable state -- credentials and session state -- belongs in a credential mount, never in the
+  image. Disposable scratch that an agent re-derives, such as a download cache, is written beneath
+  the writable home directory and discarded with the container. The image's own layers need not be
+  writable: a runtime may present them read-only and supply an ephemeral writable layer for the
+  scratch paths, which is how the image runs on a host that presents it read-only.
 - These are properties of the image rather than of one runtime, so they are established wherever any
   container runtime is available by running the image as a user other than root.
 
@@ -312,8 +317,7 @@ Feature: Riprap development container
   @rq-3640e734
   Scenario: The image runs correctly as an unprivileged user
     Given a generated project rendered from the Riprap template
-    When its project image is run as a user other than root
-    And each agent's configuration home is mounted writable, as every runtime runs it
+    When its project image is run as a user other than root with no mounts
     Then "copier --version" succeeds
     And the language toolchain for the project's language is present
     And running "claude --version", "codex --version", and "opencode --version" each succeeds

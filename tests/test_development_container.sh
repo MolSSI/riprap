@@ -224,33 +224,24 @@ assert_nothing_installed_under_root() {
 # rq-3640e734
 # The same image must serve a runtime that maps the caller to root and one that runs the container
 # as the invoking user, so every program has to work for an arbitrary uid. 65534 is the conventional
-# unprivileged "nobody" uid and owns nothing in the image.
-#
-# Every runtime mounts writable storage at each agent's configuration home -- Podman a named volume,
-# Apptainer a bound directory owned by the invoking user -- and an agent writes its session state
-# there. The unprivileged non-root run with those homes mounted writable is exactly how Apptainer
-# runs the image on an execution host; a bare run with no such mount is a configuration no runtime
-# produces. The homes are mounted here as world-writable tmpfs so the run reflects the real one.
+# unprivileged "nobody" uid and owns nothing in the image. No mounts are supplied: the image's home
+# directory is sticky world-writable, so a non-root user can create the scratch and configuration
+# directories the toolchain and agents write at startup without a credential mount present.
 assert_image_runs_as_unprivileged_user() {
   local image="$2"
-  local homes=(
-    --tmpfs "$RIPRAP_IMAGE_HOME/.claude:rw,mode=1777"
-    --tmpfs "$RIPRAP_IMAGE_HOME/.codex:rw,mode=1777"
-    --tmpfs "$RIPRAP_IMAGE_HOME/.opencode:rw,mode=1777"
-  )
-  podman run --rm --user 65534:65534 "${homes[@]}" "$image" copier --version >/dev/null || \
+  podman run --rm --user 65534:65534 "$image" copier --version >/dev/null || \
     fail 'copier does not run as an unprivileged user'
   for agent in claude codex opencode; do
-    podman run --rm --user 65534:65534 "${homes[@]}" "$image" "$agent" --version >/dev/null || \
+    podman run --rm --user 65534:65534 "$image" "$agent" --version >/dev/null || \
       fail "$agent does not run as an unprivileged user"
   done
   # Probe whichever language toolchain the image carries; the image installs exactly one.
   if podman run --rm "$image" sh -c 'command -v cargo' >/dev/null 2>&1; then
-    podman run --rm --user 65534:65534 "${homes[@]}" "$image" cargo --version >/dev/null || \
+    podman run --rm --user 65534:65534 "$image" cargo --version >/dev/null || \
       fail 'the Rust toolchain does not run as an unprivileged user'
   fi
   if podman run --rm "$image" sh -c 'command -v python3' >/dev/null 2>&1; then
-    podman run --rm --user 65534:65534 "${homes[@]}" "$image" python3 --version >/dev/null || \
+    podman run --rm --user 65534:65534 "$image" python3 --version >/dev/null || \
       fail 'the Python toolchain does not run as an unprivileged user'
   fi
 }
