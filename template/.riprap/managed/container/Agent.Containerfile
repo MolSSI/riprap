@@ -34,6 +34,7 @@ ENV CODEX_HOME=/opt/riprap/home/.codex
 ENV DISABLE_AUTOUPDATER=1
 
 # Reach the agent programs as any unprivileged user, on the same terms as the toolchain the tooling
-# image installed, and keep the home directory sticky world-writable so any runtime user can create
-# the scratch and configuration directories the agents write at startup.
-RUN chmod -R a+rX /opt/riprap /opt/codex /opt/opencode && chmod 1777 /opt/riprap/home
+# image installed. Every directory beneath the home directory is made sticky world-writable so any
+# runtime user can create the scratch and configuration directories the agents write at startup --
+# an agent installed as root leaves directories there that the runtime user must write into.
+RUN chmod -R a+rX /opt/riprap /opt/codex /opt/opencode && find /opt/riprap/home -type d -exec chmod 1777 {} +

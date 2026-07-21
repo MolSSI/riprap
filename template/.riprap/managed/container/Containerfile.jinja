@@ -50,6 +50,9 @@ RUN apt-get update && \
 
 # Installers create their files for the building user alone. Grant read and, for directories and
 # executables, traverse and execute to everyone, so an arbitrary unprivileged user reaches the same
-# toolchain the building user installed. The recursive grant only adds bits, so it preserves the
-# sticky world-writable home; the trailing chmod restates that mode so it stays explicit.
-RUN chmod -R a+rX /opt/riprap && chmod 1777 /opt/riprap/home
+# toolchain the building user installed. Every directory beneath the home directory is then made
+# sticky world-writable, because a build step running as root creates directories there -- a package
+# cache, a toolchain directory -- into which the runtime user, whose id is not known when the image
+# is built, must still write scratch at startup. The sticky bit and the read-only file permissions
+# keep that user from replacing an installed program; only new files can be added.
+RUN chmod -R a+rX /opt/riprap && find /opt/riprap/home -type d -exec chmod 1777 {} +
