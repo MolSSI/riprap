@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 param(
     [string]$Source = "Containerfile",
-    [string]$Output = ".riprap\state\podman\Project.Containerfile"
+    [string]$Output = ".riprap\state\container\Project.Containerfile"
 )
 
 $ErrorActionPreference = "Stop"

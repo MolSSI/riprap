@@ -8,4 +8,4 @@
 *.bat  text eol=crlf
 *.cmd  text eol=crlf
 .riprap/managed/hooks/* text eol=lf
-.riprap/managed/podman/opencode text eol=lf
+.riprap/managed/container/opencode text eol=lf

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-image="${1:-$(cat .riprap/managed/podman/image_name)}"
+image="${1:-$(cat .riprap/managed/container/image_name)}"
 project_id="${2:?project UUID is required}"
 
 mount_pwd="$(pwd)"
@@ -18,40 +18,17 @@ fi
 
 run_options_file=".riprap/user/podman/run-options"
 
-fail() {
-    printf 'Riprap: %s\n' "$1" >&2
-    exit 1
-}
-
-# The project's runtime options become positional parameters, which is how a POSIX shell
-# carries a list of arguments without re-quoting it. One argument per line keeps the file
-# free of shell quoting rules, so an option reaches the runtime exactly as written.
-#
-# A line is accepted only as a single whitespace-free argument beginning with "-". Checks
-# run in a fixed order -- whitespace, then leading "-" -- so a line with both defects is
-# reported identically by every launcher.
+# The project's runtime options become positional parameters, which is how a POSIX shell carries a
+# list of arguments without re-quoting it. The shared helper validates the file identically for
+# every runtime and emits each accepted option on its own line; splitting on newlines alone is safe
+# because every accepted option is whitespace-free.
+. .riprap/managed/launch/run-options.sh
+options="$(emit_run_options "$run_options_file")" || exit 1
 set --
-if [ -f "$run_options_file" ]; then
-    line_number=0
-    while IFS= read -r line || [ -n "$line" ]; do
-        line_number=$((line_number + 1))
-        # Remove only the terminal carriage return from a CRLF checkout. An embedded
-        # carriage return remains content and is rejected by the whitespace check below.
-        option="$(printf '%s' "$line" | sed 's/\r$//; s/^[[:space:]]*//; s/[[:space:]]*$//')"
-        case "$option" in
-            ''|'#'*) continue ;;
-        esac
-        case "$option" in
-            *[[:space:]]*)
-                fail "${run_options_file} line ${line_number}: an option must be a single argument with no spaces: ${option}" ;;
-        esac
-        case "$option" in
-            -*) ;;
-            *) fail "${run_options_file} line ${line_number}: an option must begin with '-': ${option}" ;;
-        esac
-        set -- "$@" "$option"
-    done < "$run_options_file"
-fi
+IFS='
+'
+for option in $options; do set -- "$@" "$option"; done
+unset IFS
 
 # Claude stores its top-level configuration file (.claude.json), which records the
 # authenticated account and onboarding state, outside its credential directory by
@@ -66,10 +43,10 @@ fi
 # its last occurrence resolves it in the project's favor.
 podman run --rm -it \
     -v "${mount_pwd}:/work" \
-    -v "riprap-${project_id}-claude:/root/.claude" \
-    -v "riprap-${project_id}-codex:/root/.codex" \
-    -v "riprap-${project_id}-opencode:/root/.opencode" \
-    -e CLAUDE_CONFIG_DIR=/root/.claude \
+    -v "riprap-${project_id}-claude:/opt/riprap/home/.claude" \
+    -v "riprap-${project_id}-codex:/opt/riprap/home/.codex" \
+    -v "riprap-${project_id}-opencode:/opt/riprap/home/.opencode" \
+    -e CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude \
     -w /work \
     "$@" \
     "$image" \

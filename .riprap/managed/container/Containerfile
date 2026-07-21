@@ -1,0 +1,56 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# The image runs as root under a runtime that maps the caller to root and as the
+# invoking user under one that does not, so nothing it installs may live under
+# /root, which no other user can read or traverse. Every program, toolchain, and
+# agent configuration home sits beneath one image-owned home directory instead.
+ENV HOME=/opt/riprap/home
+ENV PATH="/opt/riprap/home/.local/bin:$PATH"
+# The home directory is sticky world-writable, like /tmp, because the runtime user is not known
+# when the image is built: Podman runs the container as root, while Apptainer runs it as whatever
+# unprivileged user invokes it. Either must be able to create the scratch and configuration
+# directories the toolchain and agents write beneath the home directory at startup. The sticky bit
+# stops one user from removing another's files, and the root-owned program directories installed
+# below stay owned by root, so no runtime user can replace an installed program.
+RUN mkdir -p /opt/riprap/home && chmod 0755 /opt/riprap && chmod 1777 /opt/riprap/home
+
+# Base tooling. jq is needed for the requirements index script; curl and
+# ca-certificates support project tooling and the separate agent image.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        pipx && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Copier as an isolated CLI application for template updates and validation.
+RUN pipx install 'copier>=9,<10'
+
+
+# Install Rust
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+ENV RUST_VERSION=1.93.0
+# Locate the Rust toolchain by absolute path rather than through HOME, because a runtime may set HOME
+# to something other than the image-owned home; rustup would then find no installed toolchain.
+ENV RUSTUP_HOME=/opt/riprap/home/.rustup
+ENV CARGO_HOME=/opt/riprap/home/.cargo
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}
+ENV PATH="/opt/riprap/home/.cargo/bin:${PATH}"
+
+
+
+# Installers create their files for the building user alone. Grant read and, for directories and
+# executables, traverse and execute to everyone, so an arbitrary unprivileged user reaches the same
+# toolchain the building user installed. Every directory beneath the home directory is then made
+# sticky world-writable, because a build step running as root creates directories there -- a package
+# cache, a toolchain directory -- into which the runtime user, whose id is not known when the image
+# is built, must still write scratch at startup. The sticky bit and the read-only file permissions
+# keep that user from replacing an installed program; only new files can be added.
+RUN chmod -R a+rX /opt/riprap && find /opt/riprap/home -type d -exec chmod 1777 {} +

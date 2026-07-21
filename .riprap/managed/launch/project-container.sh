@@ -3,7 +3,7 @@
 set -eu
 
 source_file=${1:-Containerfile}
-output_file=${2:-.riprap/state/podman/Project.Containerfile}
+output_file=${2:-.riprap/state/container/Project.Containerfile}
 
 mkdir -p "$(dirname "$output_file")"
 awk '
