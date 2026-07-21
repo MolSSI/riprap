@@ -799,7 +799,7 @@ MOCK
   chmod +x "$MOCK_BIN/podman"
 }
 
-apptainer_run_line() { grep '^shell ' "$APPTAINER_LOG" | tail -n 1; }
+apptainer_run_line() { grep '^exec ' "$APPTAINER_LOG" | tail -n 1; }
 
 # Exporting builds the project image by the ordinary path, then writes a project-scoped single-file
 # image under the apptainer state directory, and starts no container.
@@ -860,6 +860,10 @@ test_run_sif_isolates_and_binds() (
     test -d ".riprap/state/apptainer/credentials/$agent" || fail "$agent credential directory was not created"
   done
   grep -Fq -- '--env CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude' <<<"$line" || fail 'the Claude config env was not set'
+  # Apptainer refuses --env HOME, so the image-owned home is exported by the command the container
+  # runs instead; without it HOME points at an account home holding none of the installation.
+  ! grep -Fq -- '--env HOME=' <<<"$line" || fail 'HOME is set through the environment Apptainer refuses'
+  grep -Eq -- 'env HOME=/opt/riprap/home bash$' <<<"$line" || fail 'the image-owned home is not exported for the shell'
 )
 
 # Credential directories are created without group or other access on a shared host.
@@ -886,7 +890,7 @@ test_run_sif_refuses_a_foreign_image() (
   ! output=$(bash rr.sh --run-sif </dev/null 2>&1) || fail 'a foreign image was accepted'
   grep -Fq foreign <<<"$output" || fail 'the refusal does not name the image project'
   grep -Fq "$id" <<<"$output" || fail 'the refusal does not name the workspace project'
-  ! grep -q '^shell ' "$APPTAINER_LOG" || fail 'a container started despite the mismatch'
+  ! grep -q '^exec ' "$APPTAINER_LOG" || fail 'a container started despite the mismatch'
 )
 
 # A missing exported image is reported by the path the launcher expected.
@@ -911,7 +915,7 @@ test_run_sif_applies_execution_run_options() (
   printf -- '--nv\n' > .riprap/user/apptainer/run-options
   bash rr.sh --run-sif </dev/null || fail 'run-sif failed with an enabled option'
   line=$(apptainer_run_line)
-  [[ "$line" == *"--nv "*"riprap-$id-project.sif" ]] || fail "the option does not follow the template arguments: $line"
+  [[ "$line" == *"--nv "*"riprap-$id-project.sif "* ]] || fail "the option does not follow the template arguments: $line"
 )
 
 # An invalid execution-host option stops the launch before any container starts.
@@ -925,7 +929,7 @@ test_run_sif_rejects_an_invalid_option() (
   printf -- '--bind /a /b\n' > .riprap/user/apptainer/run-options
   ! output=$(bash rr.sh --run-sif </dev/null 2>&1) || fail 'an invalid option was accepted'
   grep -Fq 'single argument with no spaces' <<<"$output" || fail 'the defect was not reported'
-  ! grep -q '^shell ' "$APPTAINER_LOG" || fail 'a container started despite an invalid option'
+  ! grep -q '^exec ' "$APPTAINER_LOG" || fail 'a container started despite an invalid option'
 )
 
 # Reset removes the selected agent's execution-host credential directory and leaves the others. An

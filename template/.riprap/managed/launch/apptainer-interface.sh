@@ -60,11 +60,16 @@ unset IFS
 # holding credentials and session state only. The host's own agent configuration paths are never
 # bound.
 #
-# HOME is set to the image-owned home explicitly, because Apptainer otherwise points it at the
-# invoking user's account home rather than honoring the image's HOME. Tools that resolve their state
-# through HOME -- the language toolchain, an agent's cache -- would otherwise look in a directory
-# that holds none of the image's installation.
-exec apptainer shell \
+# HOME must be the image-owned home so tools resolve their state through it -- the language
+# toolchain, each agent's configuration home and cache -- rather than an account home that holds
+# none of the image's installation. Apptainer will not take HOME from the environment: an
+# --env HOME (APPTAINERENV_HOME) is refused with "Overriding HOME environment variable ... is not
+# permitted" and ignored, and its --home flag bind-mounts a host directory over the target, which
+# would hide the toolchain installed beneath the image-owned home. So HOME is exported by the
+# command the container runs -- after Apptainer's own startup -- which the interactive shell and
+# everything launched from it inherit. exec (rather than shell) is used because only a run form that
+# takes a command can carry that env assignment.
+exec apptainer exec \
     --containall \
     --no-home \
     --cleanenv \
@@ -74,7 +79,7 @@ exec apptainer shell \
     --bind "$(pwd)/${credentials_dir}/claude:/opt/riprap/home/.claude" \
     --bind "$(pwd)/${credentials_dir}/codex:/opt/riprap/home/.codex" \
     --bind "$(pwd)/${credentials_dir}/opencode:/opt/riprap/home/.opencode" \
-    --env HOME=/opt/riprap/home \
     --env CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude \
     "$@" \
-    "$sif_image"
+    "$sif_image" \
+    env HOME=/opt/riprap/home bash
