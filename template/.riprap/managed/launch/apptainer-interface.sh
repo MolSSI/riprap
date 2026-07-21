@@ -59,6 +59,11 @@ unset IFS
 # credential directory binds to its agent's configuration home under the image-owned home directory,
 # holding credentials and session state only. The host's own agent configuration paths are never
 # bound.
+#
+# HOME is set to the image-owned home explicitly, because Apptainer otherwise points it at the
+# invoking user's account home rather than honoring the image's HOME. Tools that resolve their state
+# through HOME -- the language toolchain, an agent's cache -- would otherwise look in a directory
+# that holds none of the image's installation.
 exec apptainer shell \
     --containall \
     --no-home \
@@ -69,6 +74,7 @@ exec apptainer shell \
     --bind "$(pwd)/${credentials_dir}/claude:/opt/riprap/home/.claude" \
     --bind "$(pwd)/${credentials_dir}/codex:/opt/riprap/home/.codex" \
     --bind "$(pwd)/${credentials_dir}/opencode:/opt/riprap/home/.opencode" \
+    --env HOME=/opt/riprap/home \
     --env CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude \
     "$@" \
     "$sif_image"

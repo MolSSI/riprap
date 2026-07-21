@@ -2,10 +2,13 @@
 # Riprap keeps OpenCode's durable XDG data, state, and user configuration in one
 # project-scoped credential mount without redirecting other programs' XDG state.
 # The cache holds only re-derivable downloads, so it stays in the disposable
-# container. The paths sit under the image-owned home directory, which every
-# supported runtime presents at the same location whatever user it runs as.
+# container. Every path is an absolute location under the image-owned home rather
+# than derived from HOME, because a runtime may set HOME to another directory; the
+# cache in particular would otherwise land wherever that HOME points, which need
+# not exist or be writable.
 export XDG_DATA_HOME=/opt/riprap/home/.opencode/data
 export XDG_STATE_HOME=/opt/riprap/home/.opencode/state
+export XDG_CACHE_HOME=/opt/riprap/home/.cache
 export OPENCODE_CONFIG_DIR=/opt/riprap/home/.opencode/config
 # OpenCode derives and creates the XDG directories itself, but it writes into
 # OPENCODE_CONFIG_DIR without creating it and fails on a directory that is absent.
