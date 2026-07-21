@@ -242,7 +242,7 @@ Test-Case "the Windows launcher adapts a legacy project Containerfile" {
         Fail "the legacy shared agent base was not adapted"
     }
     $log = Get-PodmanLog
-    if ($log -notmatch [regex]::Escape("-f .riprap\state\podman\Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest")) {
+    if ($log -notmatch [regex]::Escape("-f .riprap\state\container\Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest")) {
         Fail "the project build did not use the adapted Containerfile and scoped agent image"
     }
 }
