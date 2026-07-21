@@ -313,6 +313,7 @@ Feature: Riprap development container
   Scenario: The image runs correctly as an unprivileged user
     Given a generated project rendered from the Riprap template
     When its project image is run as a user other than root
+    And each agent's configuration home is mounted writable, as every runtime runs it
     Then "copier --version" succeeds
     And the language toolchain for the project's language is present
     And running "claude --version", "codex --version", and "opencode --version" each succeeds
