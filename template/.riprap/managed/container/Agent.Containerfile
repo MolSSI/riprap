@@ -33,6 +33,7 @@ RUN chmod 0755 /usr/local/bin/opencode
 ENV CODEX_HOME=/opt/riprap/home/.codex
 ENV DISABLE_AUTOUPDATER=1
 
-# Reach the agent programs as any unprivileged user, on the same terms as the
-# toolchain the tooling image installed.
-RUN chmod -R a+rX /opt/riprap /opt/codex /opt/opencode
+# Reach the agent programs as any unprivileged user, on the same terms as the toolchain the tooling
+# image installed, and keep the home directory sticky world-writable so any runtime user can create
+# the scratch and configuration directories the agents write at startup.
+RUN chmod -R a+rX /opt/riprap /opt/codex /opt/opencode && chmod 1777 /opt/riprap/home

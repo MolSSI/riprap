@@ -8,7 +8,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 # agent configuration home sits beneath one image-owned home directory instead.
 ENV HOME=/opt/riprap/home
 ENV PATH="/opt/riprap/home/.local/bin:$PATH"
-RUN mkdir -p /opt/riprap/home && chmod 0755 /opt/riprap /opt/riprap/home
+# The home directory is sticky world-writable, like /tmp, because the runtime user is not known
+# when the image is built: Podman runs the container as root, while Apptainer runs it as whatever
+# unprivileged user invokes it. Either must be able to create the scratch and configuration
+# directories the toolchain and agents write beneath the home directory at startup. The sticky bit
+# stops one user from removing another's files, and the root-owned program directories installed
+# below stay owned by root, so no runtime user can replace an installed program.
+RUN mkdir -p /opt/riprap/home && chmod 0755 /opt/riprap && chmod 1777 /opt/riprap/home
 
 # Base tooling. jq is needed for the requirements index script; curl and
 # ca-certificates support project tooling and the separate agent image.
@@ -42,7 +48,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 {% endif %}
 
-# Installers create their files for the building user alone. Grant read and, for
-# directories and executables, traverse and execute to everyone, so an arbitrary
-# unprivileged user reaches the same toolchain the building user installed.
-RUN chmod -R a+rX /opt/riprap
+# Installers create their files for the building user alone. Grant read and, for directories and
+# executables, traverse and execute to everyone, so an arbitrary unprivileged user reaches the same
+# toolchain the building user installed. The recursive grant only adds bits, so it preserves the
+# sticky world-writable home; the trailing chmod restates that mode so it stays explicit.
+RUN chmod -R a+rX /opt/riprap && chmod 1777 /opt/riprap/home
