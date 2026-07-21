@@ -29,6 +29,8 @@ Riprap provides:
   template-owned skill implementations.
 - Rootless, isolated development environments containing supported AI agents, language toolchains,
   and Riprap maintenance tools.
+- Development images that are portable to hosts that cannot build them, including managed compute
+  clusters, so that AI-assisted development can run where a project's data and hardware already are.
 - Launch workflows for Linux, macOS, and Windows hosts.
 - Generated project variants for Rust and Python, including optional language-specific skeletons,
   tests, continuous integration, documentation, and packaging configuration.
@@ -45,6 +47,11 @@ platform in each release.
 Riprap does not treat privileged Docker containers as equivalent to its rootless isolation
 boundary. General-purpose container orchestration and production application deployment are outside
 its scope.
+
+Riprap does not schedule, submit, or manage cluster workloads. Running a development environment on
+a compute cluster provides an interactive session with the project's own tooling; workload managers,
+batch submission, and distributed execution belong to the generated project rather than to the
+template.
 
 ## Architectural Decisions
 
@@ -123,13 +130,46 @@ the corresponding adapter.
 ### Development Isolation
 
 Development runs inside an unprivileged container boundary so that AI agents do not receive broad
-access to the host. Podman is the supported rootless container runtime. The design may add other
-rootless isolation systems, such as Apptainer, provided they preserve the security boundary and do
-not require agent-neutral workflows to depend on a particular runtime.
+access to the host. The boundary is established explicitly by the launcher rather than inherited from
+a runtime's defaults: a launcher states the workspace, credential, environment, and home-directory
+disposition it requires, so a runtime that would otherwise expose the invoking user's home directory
+or ambient environment cannot silently widen the boundary. The boundary is also verified from within,
+because agents decline to run unless they can confirm they are inside a Riprap development container,
+and that confirmation recognizes every supported execution runtime.
+
+Building a development image and executing one are separate roles that may fall on different
+machines. Podman is the supported runtime for building images, and executes them on hosts where they
+are built. Apptainer executes a previously built image, which allows development on a host that
+cannot build one — most commonly a managed cluster, where users lack the privileges, network access,
+or local daemon that building requires. A project's development image is therefore a transferable
+artifact: an image built under Podman is exported to a single-file Apptainer image, moved to the
+execution host by whatever means that host already provides, and launched there without rebuilding.
+Riprap owns both ends of that path and not the transfer between them, so the template acquires no
+knowledge of a user's hosts, credentials, or network.
+
+The recorded provenance of an image survives export. Installed agent releases are carried as image
+metadata rather than as accompanying state, so an image on an execution host reports what it contains
+without reference to the machine that built it or to any file that traveled alongside it.
+
+Development images run correctly as an arbitrary unprivileged user. Neither the toolchain nor the
+agent configuration depends on being root inside the container, on a writable image filesystem, or on
+any privilege-mapping facility of the execution host, because an execution host may map the invoking
+user to their own identity and may present the image read-only. One image definition therefore serves
+both runtimes, and execution-host support does not rest on site configuration that a cluster
+administrator may have disabled.
+
+Agent credential and session state persists per project, stays isolated from host credentials, and
+can be reset. The mechanism is a property of the runtime: a runtime offering managed volumes uses
+them, and a runtime addressing only the filesystem uses a directory in the project's generated local
+state, excluded from version control and created with restrictive permissions. The filesystem
+mechanism places credentials on whatever storage the project occupies, which on shared infrastructure
+is a disclosure the project must weigh.
 
 Host launch scripts support Linux, macOS, and Windows while presenting a consistent workspace and
 tooling environment inside the container. Each host's launcher is a separate implementation held to
-the same observable behavior, so a capability offered on one platform is offered on all of them.
+the same observable behavior, so a capability offered on one platform is offered on every platform
+able to provide it. Parity binds launchers filling the same role; it does not assert that every
+runtime exists on every host, and Apptainer execution is accordingly available on Unix hosts alone.
 
 The container image is layered by how often each layer changes and by who owns it. A template-owned
 tooling image supplies the common Riprap and language toolchain. A template-owned agent image
@@ -179,8 +219,8 @@ The principal extension points are:
   Riprap skills.
 - Language variants, which contribute conditional skeleton, build, test, documentation, and CI
   templates.
-- Rootless container backends, which may provide host launch and environment-building integrations
-  behind the same isolation goals.
+- Container runtimes, which contribute host launch integrations behind the same isolation goals, and
+  which may build development images, execute them, or do only one of the two.
 - Per-project `local.md` files and user-owned container layers, which customize generated projects
   without forking template-owned behavior.
 
@@ -210,6 +250,12 @@ Container runtime behavior — image contents, volume semantics, and process iso
 real rootless runtime and is tested only on runners that provide one. The two layers are tested
 separately: an orchestration test never builds an image, and a runtime test never runs a launcher.
 
+Image portability is a third concern within the runtime layer. Exporting a built image to a
+single-file image and launching it on an execution runtime requires a runner providing that runtime.
+The separate property that an image runs correctly as an arbitrary unprivileged user does not depend
+on which runtime enforces it, and is exercised wherever any container runtime is available by running
+the image as a non-root user, so most portability risk is covered without a second runtime present.
+
 Focused tests cover deterministic tooling shipped by Riprap, including requirements-management
 scripts, hooks, launch helpers, and other purely mechanical behavior. Failure paths and preservation
 of user-owned data receive explicit coverage where they can be reproduced in CI.
@@ -222,8 +268,9 @@ automated scenarios.
 
 ## Open Questions
 
-- Which rootless container runtime should be supported after Podman, and what common interface is
-  required to keep host launch behavior consistent?
+- How should agent credential state be protected on execution hosts whose storage is shared, backed
+  up, or readable by administrators, given that a runtime without managed volumes must persist that
+  state on the same filesystem the project occupies?
 - Which additional generated-project languages have sufficient community demand and conventional
   tooling to justify inclusion in the maintained CI matrix?
 - Which agent behaviors can eventually be tested through stable, non-interactive interfaces without

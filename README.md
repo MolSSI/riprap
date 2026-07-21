@@ -127,6 +127,40 @@ Pinned agents are held at exactly those releases; any agent you leave out keeps 
 current release. Only exact `x.y.z` versions are accepted; values such as `latest` will error.
 Delete the file to return to the weekly schedule described above.
 
+#### Running on a compute cluster
+
+Many clusters run [Apptainer](https://apptainer.org) rather than Podman, and often you cannot build
+an image on them at all. Riprap allows you to instead build the image on a machine where you do have
+Podman and subsequently run it on the cluster.
+
+First: on a machine with Podman, build the image and export it as a single Apptainer image (this step
+needs Apptainer installed alongside Podman):
+
+```
+bash rr.sh --export-sif
+```
+
+This writes `.riprap/state/apptainer/riprap-<uuid>-project.sif`. Copy the entire repository
+to the cluster with whatever you already use (e.g, `scp`, `rsync`, or a shared filesystem). Then,
+from the repository on the cluster:
+
+```
+bash rr.sh --run-sif
+```
+
+This drops you into an Apptainer container that works much the same way as the Podman containers.
+The launcher contains the invoking user's home directory and environment, so the container
+sees neither, and it presents the image read-only. Exporting and running are Unix-only; Windows
+does not support Apptainer.
+
+Note that `.sif` files can be quite large, and therefore should not be committed to the git
+repository.
+
+Agent authentication on the cluster is stored in directories under
+`.riprap/state/apptainer/credentials/`, created readable only by you. Note that cluster home and
+project filesystems are commonly shared, backed up, and readable by administrators, who could
+potentially view your agent credentials.
+
 #### 2. Create an initial file structure
 
 The template seeds a skeletal, buildable project for you (unless you answered no to `include_rust_skeleton` / `include_python_skeleton`); follow the "Initializing the project" instructions in your generated project's README to set up an environment and check that the sample tests pass.

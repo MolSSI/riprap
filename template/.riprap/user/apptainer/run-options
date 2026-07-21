@@ -1,0 +1,39 @@
+# Runtime options for the interactive development container on an execution host.
+#
+# An execution host runs a single-file image you built and exported elsewhere with
+# "rr.sh --export-sif", then launched here with "rr.sh --run-sif" -- most often a
+# compute cluster that cannot build images itself.
+#
+# This file belongs to your project. Riprap creates it once and never updates it,
+# so options you enable here survive `copier update`. It is ordinary project
+# content: commit it to share one environment with your team, or leave it
+# untracked to configure a single machine.
+#
+# These options are separate from the build host's ".riprap/user/podman/run-options"
+# because runtime options are runtime-specific: an option that grants one runtime
+# access to the host's GPUs is not valid for the other.
+#
+# Format
+#   One runtime argument per line. Blank lines, and lines whose first non-blank
+#   character is "#", are ignored. An option that carries a value must occupy a
+#   single line in "--name=value" form, with no space before the value:
+#
+#       --nv                     correct
+#       --bind /scratch:/scratch correct
+#       --bind /scratch /scratch rejected: this is two arguments on one line
+#
+#   Launching fails with the offending line when a line is not a single argument
+#   beginning with "-". Riprap passes every option through to Apptainer verbatim
+#   and attaches no meaning to any of them, so consult the `apptainer shell`
+#   documentation for what an option does.
+#
+#   These options are applied in addition to the workspace bind, the credential
+#   binds, the containment and clean-environment options, and the working
+#   directory, which are always present.
+#
+# Expose the host's NVIDIA GPUs to the container
+#   Uncomment the line below to run CUDA software inside the development container
+#   on a host with the NVIDIA driver installed. Apptainer's "--nv" flag binds the
+#   host driver libraries and devices into the container.
+#
+# --nv

@@ -387,10 +387,10 @@ test_updated_variants_satisfy_ownership_contract() (
 test_ignore_rules_distinguish_machine_and_project_state() (
   local project="$1"
   git -C "$project" init --quiet
-  mkdir -p "$project/.riprap/state/podman"
+  mkdir -p "$project/.riprap/state/container"
   printf '00000000-0000-4000-8000-000000000000\n' > "$project/.riprap/state/project-id"
-  : > "$project/.riprap/state/podman/agent-build.env"
-  git -C "$project" check-ignore -q .riprap/state/podman/agent-build.env ||
+  : > "$project/.riprap/state/container/agent-build.env"
+  git -C "$project" check-ignore -q .riprap/state/container/agent-build.env ||
     fail 'machine-local build state is not ignored'
   ! git -C "$project" check-ignore -q .riprap/state/project-id ||
     fail 'shared project identity is ignored'
@@ -405,7 +405,7 @@ test_ownership_layout_has_no_symbolic_links() (
 # rq-9045b67e
 test_direct_component_directories_are_absent() (
   local project="$1" name
-  for name in skills hooks podman; do
+  for name in skills hooks container; do
     test ! -e "$project/.riprap/$name" || fail "parallel canonical path exists: .riprap/$name"
   done
 )

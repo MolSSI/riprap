@@ -29,8 +29,10 @@ _skip_if_exists:
   # owned by the user thereafter
   - /rqm/ARCHITECTURE.md
   # Container run options: seeded fully commented, then owned by the user, whose
-  # enabled options must survive an update.
+  # enabled options must survive an update. One file per runtime, because runtime
+  # options are runtime-specific.
   - /.riprap/user/podman/run-options
+  - /.riprap/user/apptainer/run-options
   # Development tooling: seeded once, owned by the user thereafter
   - /devtools/**
 

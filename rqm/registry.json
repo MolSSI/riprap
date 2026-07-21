@@ -11,6 +11,14 @@
     "title": "A Windows checkout carries the line endings its interpreters need",
     "type": "scenario"
   },
+  "rq-070cbb28": {
+    "decl": "## Credential State on an Execution Host",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Credential State on an Execution Host",
+    "type": "section"
+  },
   "rq-08b8e355": {
     "decl": "Scenario: A malformed pin line stops the launch before any image is built",
     "file": "development-container",
@@ -191,6 +199,14 @@
     "title": "Both launchers report the same defect for the same invalid pin",
     "type": "scenario"
   },
+  "rq-13f3d68a": {
+    "decl": "## Gherkin Scenarios",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Gherkin Scenarios",
+    "type": "section"
+  },
   "rq-145d819f": {
     "decl": "Scenario: A second launch in the same week reuses the cached agent layers",
     "file": "development-container",
@@ -242,6 +258,14 @@
     ],
     "title": "The Windows launcher validates the pin before building",
     "type": "scenario"
+  },
+  "rq-184a5bfb": {
+    "decl": "## Out of Scope",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Out of Scope",
+    "type": "section"
   },
   "rq-197626f6": {
     "decl": "Scenario: LGPL distribution includes its complete license basis",
@@ -355,7 +379,12 @@
     "decl": "## Container Enforcement",
     "file": "agent-permission-defaults",
     "level": 2,
-    "refs": [],
+    "refs": [
+      {
+        "file": "tests/test_agent_permissions.sh",
+        "kind": "code"
+      }
+    ],
     "title": "Container Enforcement",
     "type": "section"
   },
@@ -468,6 +497,18 @@
     "title": "Project Image Identity",
     "type": "section"
   },
+  "rq-3640e734": {
+    "decl": "Scenario: The image runs correctly as an unprivileged user",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The image runs correctly as an unprivileged user",
+    "type": "scenario"
+  },
   "rq-37192a21": {
     "decl": "Scenario: A required external entry point delegates to managed implementation",
     "file": "template-ownership-layout",
@@ -482,6 +523,13 @@
       }
     ],
     "title": "A required external entry point delegates to managed implementation",
+    "type": "scenario"
+  },
+  "rq-372c5252": {
+    "decl": "Scenario: Reset removes only the selected agent's execution-host state",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Reset removes only the selected agent's execution-host state",
     "type": "scenario"
   },
   "rq-38ddfa1e": {
@@ -548,6 +596,13 @@
     "title": "Projects use distinct local image identities",
     "type": "scenario"
   },
+  "rq-41eb7773": {
+    "decl": "Scenario: Credential directories are created without group or other access",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Credential directories are created without group or other access",
+    "type": "scenario"
+  },
   "rq-41eeda01": {
     "decl": "Scenario: The Windows launcher refuses an agent version it cannot parse",
     "file": "development-container",
@@ -572,6 +627,34 @@
     "title": "Planning Clarification",
     "type": "section"
   },
+  "rq-43e6dc0e": {
+    "decl": "Scenario: Export produces a project-scoped image without launching",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Export produces a project-scoped image without launching",
+    "type": "scenario"
+  },
+  "rq-4543a5d9": {
+    "decl": "Scenario: A relocated managed component leaves nothing at its former path",
+    "file": "template-ownership-layout",
+    "refs": [],
+    "title": "A relocated managed component leaves nothing at its former path",
+    "type": "scenario"
+  },
+  "rq-4a16eccf": {
+    "decl": "Scenario: The Windows launcher reports that export is unavailable",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "The Windows launcher reports that export is unavailable",
+    "type": "scenario"
+  },
+  "rq-4a2d41bf": {
+    "decl": "Scenario: An execution-host run option that is not an option stops the launch",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An execution-host run option that is not an option stops the launch",
+    "type": "scenario"
+  },
   "rq-4afcfc2c": {
     "decl": "## Feature Interface",
     "file": "development-container",
@@ -579,6 +662,13 @@
     "refs": [],
     "title": "Feature Interface",
     "type": "section"
+  },
+  "rq-4dcc2d3a": {
+    "decl": "Scenario: The container check recognizes every supported runtime",
+    "file": "agent-permission-defaults",
+    "refs": [],
+    "title": "The container check recognizes every supported runtime",
+    "type": "scenario"
   },
   "rq-4e428654": {
     "decl": "Scenario: Template-owned images carry no agent configuration",
@@ -612,6 +702,13 @@
     "title": "Python Documentation",
     "type": "section"
   },
+  "rq-533155e6": {
+    "decl": "Scenario: A relocated managed component does not disturb its user-owned file",
+    "file": "template-ownership-layout",
+    "refs": [],
+    "title": "A relocated managed component does not disturb its user-owned file",
+    "type": "scenario"
+  },
   "rq-53993832": {
     "decl": "Scenario: OpenCode receives equivalent permission defaults",
     "file": "agent-permission-defaults",
@@ -622,6 +719,18 @@
       }
     ],
     "title": "OpenCode receives equivalent permission defaults",
+    "type": "scenario"
+  },
+  "rq-56835ed3": {
+    "decl": "Scenario: The image starts without a writable image filesystem",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The image starts without a writable image filesystem",
     "type": "scenario"
   },
   "rq-56ec2cc3": {
@@ -655,6 +764,14 @@
     "title": "Feature: Riprap Repository Continuous Integration",
     "type": "file"
   },
+  "rq-59469611": {
+    "decl": "## Execution-Host Launch",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Execution-Host Launch",
+    "type": "section"
+  },
   "rq-59ada47d": {
     "decl": "Scenario: Validation examines hidden directories in the template tree",
     "file": "template-traceability-boundary",
@@ -686,6 +803,13 @@
     "refs": [],
     "title": "License Distribution",
     "type": "section"
+  },
+  "rq-5cd0d07b": {
+    "decl": "Scenario: Executing an exported image builds nothing",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Executing an exported image builds nothing",
+    "type": "scenario"
   },
   "rq-5d572c3c": {
     "decl": "## Gherkin Scenarios",
@@ -774,6 +898,13 @@
     "title": "A new week rebuilds the agent layers",
     "type": "scenario"
   },
+  "rq-634af0c8": {
+    "decl": "Scenario: A template update preserves enabled execution-host run options",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "A template update preserves enabled execution-host run options",
+    "type": "scenario"
+  },
   "rq-637415e2": {
     "decl": "## Gherkin Scenarios",
     "file": "agent-neutral-skills",
@@ -821,6 +952,14 @@
     ],
     "title": "Contributor guidance matches a generated language skeleton",
     "type": "scenario"
+  },
+  "rq-6b0c39ca": {
+    "decl": "## Export",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Export",
+    "type": "section"
   },
   "rq-6b0d184f": {
     "decl": "Scenario: The Windows credential helper creates the same project identity",
@@ -886,6 +1025,21 @@
     "title": "A generated project starts with an independent traceability namespace",
     "type": "scenario"
   },
+  "rq-725e1140": {
+    "decl": "## Project Correspondence",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Project Correspondence",
+    "type": "section"
+  },
+  "rq-73fc74a3": {
+    "decl": "Scenario: The Windows launcher reports that execution is unavailable",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "The Windows launcher reports that execution is unavailable",
+    "type": "scenario"
+  },
   "rq-7471ee4f": {
     "decl": "Scenario: An enabled run option reaches the container runtime",
     "file": "development-container",
@@ -922,6 +1076,13 @@
     "title": "Updated projects satisfy the complete ownership contract",
     "type": "scenario"
   },
+  "rq-7a59cfaf": {
+    "decl": "Scenario: Export without the export runtime stops with an actionable message",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Export without the export runtime stops with an actionable message",
+    "type": "scenario"
+  },
   "rq-7c6a2afa": {
     "decl": "Scenario: An unpinned launch records the current week and tracks current releases",
     "file": "development-container",
@@ -954,6 +1115,14 @@
     "title": "Gherkin Scenarios",
     "type": "section"
   },
+  "rq-8281e83b": {
+    "decl": "## Feature Interface",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Feature Interface",
+    "type": "section"
+  },
   "rq-83545aca": {
     "decl": "Scenario: A generated project enables no additional run options",
     "file": "development-container",
@@ -968,6 +1137,13 @@
       }
     ],
     "title": "A generated project enables no additional run options",
+    "type": "scenario"
+  },
+  "rq-860c43c8": {
+    "decl": "Scenario: A generated project enables no execution-host run options",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "A generated project enables no execution-host run options",
     "type": "scenario"
   },
   "rq-876d30dd": {
@@ -1086,6 +1262,13 @@
     "title": "Verifying Container Enforcement",
     "type": "section"
   },
+  "rq-92348db8": {
+    "decl": "Scenario: Execution isolates the invoking user's home directory and environment",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Execution isolates the invoking user's home directory and environment",
+    "type": "scenario"
+  },
   "rq-9332ad0f": {
     "decl": "## Cross-Platform Script Execution",
     "file": "agent-credential-isolation",
@@ -1103,6 +1286,13 @@
     "title": "Cross-Platform Script Execution",
     "type": "section"
   },
+  "rq-93899522": {
+    "decl": "Scenario: The container check recognizes no host as a container",
+    "file": "agent-permission-defaults",
+    "refs": [],
+    "title": "The container check recognizes no host as a container",
+    "type": "scenario"
+  },
   "rq-93f9b6ff": {
     "decl": "Scenario: Shipped defaults grant no interpreter, installer, or shell",
     "file": "agent-permission-defaults",
@@ -1113,6 +1303,21 @@
       }
     ],
     "title": "Shipped defaults grant no interpreter, installer, or shell",
+    "type": "scenario"
+  },
+  "rq-96d0dd76": {
+    "decl": "## Image Roles",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Image Roles",
+    "type": "section"
+  },
+  "rq-9c9e0a67": {
+    "decl": "Scenario: A missing exported image is reported by path",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "A missing exported image is reported by path",
     "type": "scenario"
   },
   "rq-9d9dea75": {
@@ -1254,6 +1459,20 @@
     "title": "Agent installation is isolated from the tooling image",
     "type": "scenario"
   },
+  "rq-b3a587aa": {
+    "decl": "Scenario: An execution-host run option containing whitespace stops the launch",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An execution-host run option containing whitespace stops the launch",
+    "type": "scenario"
+  },
+  "rq-b42f7249": {
+    "decl": "Scenario: Reset requires explicit confirmation on an execution host",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Reset requires explicit confirmation on an execution host",
+    "type": "scenario"
+  },
   "rq-b4c43b87": {
     "decl": "Scenario: Every pull request runs repository CI",
     "file": "repository-ci",
@@ -1288,6 +1507,13 @@
       }
     ],
     "title": "An absent run options file enables no options",
+    "type": "scenario"
+  },
+  "rq-b7ad5dec": {
+    "decl": "Scenario: Credential state outlives a disposable container",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Credential state outlives a disposable container",
     "type": "scenario"
   },
   "rq-b96d41dc": {
@@ -1433,6 +1659,27 @@
     "title": "Illustrative identifiers remain valid template content",
     "type": "scenario"
   },
+  "rq-cb7456b8": {
+    "decl": "Scenario: Credential directories are not committed",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Credential directories are not committed",
+    "type": "scenario"
+  },
+  "rq-cc89b043": {
+    "decl": "Scenario: Execution presents the workspace at the same path as a build host",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Execution presents the workspace at the same path as a build host",
+    "type": "scenario"
+  },
+  "rq-cd754953": {
+    "decl": "Scenario: An absent execution-host run options file enables no options",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An absent execution-host run options file enables no options",
+    "type": "scenario"
+  },
   "rq-cdb90fb3": {
     "decl": "Scenario: An unreadable requested Git object fails closed",
     "file": "agent-credential-isolation",
@@ -1471,7 +1718,7 @@
     "type": "scenario"
   },
   "rq-d09c17d0": {
-    "decl": "Scenario: Agent programs are installed outside the credential volume paths",
+    "decl": "Scenario: Agent programs are installed outside the credential mount paths",
     "file": "development-container",
     "refs": [
       {
@@ -1479,7 +1726,7 @@
         "kind": "code"
       }
     ],
-    "title": "Agent programs are installed outside the credential volume paths",
+    "title": "Agent programs are installed outside the credential mount paths",
     "type": "scenario"
   },
   "rq-d0c2c83d": {
@@ -1494,6 +1741,21 @@
     "title": "The ownership layout uses no symbolic-link indirection",
     "type": "scenario"
   },
+  "rq-d292bdd6": {
+    "decl": "## Unprivileged Execution",
+    "file": "development-container",
+    "level": 2,
+    "refs": [],
+    "title": "Unprivileged Execution",
+    "type": "section"
+  },
+  "rq-d51385ac": {
+    "decl": "Scenario: An exported image records its releases and its project",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An exported image records its releases and its project",
+    "type": "scenario"
+  },
   "rq-d6488ee9": {
     "decl": "Scenario: A GPU base image carries the whole tooling layer",
     "file": "development-container",
@@ -1505,6 +1767,13 @@
     ],
     "title": "A GPU base image carries the whole tooling layer",
     "type": "scenario"
+  },
+  "rq-d86d20e0": {
+    "decl": "# Feature: Portable Development Image",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Feature: Portable Development Image",
+    "type": "file"
   },
   "rq-d89e4c89": {
     "decl": "Scenario: Version-controlled hooks and shell scripts are marked for LF checkout",
@@ -1585,6 +1854,18 @@
     "title": "User customization survives a template update",
     "type": "scenario"
   },
+  "rq-e7703bd3": {
+    "decl": "Scenario: No program or configuration home is installed beneath \"/root\"",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "No program or configuration home is installed beneath \"/root\"",
+    "type": "scenario"
+  },
   "rq-eb18200a": {
     "decl": "Scenario: A run option that is not an option stops the launch",
     "file": "development-container",
@@ -1599,6 +1880,13 @@
       }
     ],
     "title": "A run option that is not an option stops the launch",
+    "type": "scenario"
+  },
+  "rq-eb4a9bc2": {
+    "decl": "Scenario: Export is atomic",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Export is atomic",
     "type": "scenario"
   },
   "rq-f13ed893": {
@@ -1673,6 +1961,14 @@
     "title": "Shipped defaults cover the commands Riprap's own skills invoke",
     "type": "scenario"
   },
+  "rq-f4a834db": {
+    "decl": "## Run Options",
+    "file": "portable-development-image",
+    "level": 2,
+    "refs": [],
+    "title": "Run Options",
+    "type": "section"
+  },
   "rq-f5edc2ae": {
     "decl": "Scenario: Other pushes do not run repository CI",
     "file": "repository-ci",
@@ -1733,6 +2029,13 @@
     "title": "Enabling the delivered GPU example grants device access",
     "type": "scenario"
   },
+  "rq-f88d5d7d": {
+    "decl": "Scenario: An enabled execution-host run option reaches the runtime",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An enabled execution-host run option reaches the runtime",
+    "type": "scenario"
+  },
   "rq-f8bf5e72": {
     "decl": "Scenario: Known credential files are ignored without hiding integration configuration",
     "file": "agent-credential-isolation",
@@ -1780,6 +2083,20 @@
       }
     ],
     "title": "Reset removes only selected project credential state",
+    "type": "scenario"
+  },
+  "rq-fa98015e": {
+    "decl": "Scenario: An image belonging to another project is refused",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "An image belonging to another project is refused",
+    "type": "scenario"
+  },
+  "rq-faa69453": {
+    "decl": "Scenario: Execution binds credential directories rather than host agent paths",
+    "file": "portable-development-image",
+    "refs": [],
+    "title": "Execution binds credential directories rather than host agent paths",
     "type": "scenario"
   },
   "rq-fae13c6f": {

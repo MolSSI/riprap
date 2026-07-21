@@ -15,7 +15,7 @@ render_project() {
     # A dependency-free fallback exercises static runtime files in minimal dev images.
     mkdir -p "$1"; cp -a "$ROOT/template/." "$1/"
     mv "$1/.gitignore.jinja" "$1/.gitignore"
-    mv "$1/.riprap/managed/podman/image_name.jinja" "$1/.riprap/managed/podman/image_name"
+    mv "$1/.riprap/managed/container/image_name.jinja" "$1/.riprap/managed/container/image_name"
     mv "$1/.claude/settings.json.jinja" "$1/.claude/settings.json"
   fi
 }
@@ -23,7 +23,7 @@ render_project() {
 setup_project() {
   TEST_TMP="$(mktemp -d)"; PROJECT="$TEST_TMP/project"; MOCK_BIN="$TEST_TMP/bin"
   mkdir -p "$MOCK_BIN" "$TEST_TMP/volumes"; render_project "$PROJECT"
-  mkdir -p "$PROJECT/.riprap/state/podman"
+  mkdir -p "$PROJECT/.riprap/state/container"
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
 echo "$*" >> "$PODMAN_LOG"
@@ -67,14 +67,14 @@ test_later_launch_reuses_state() (
 test_opencode_state_volume_and_wrapper() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
   id=$(cat .riprap/state/project-id)
-  grep -Eq -- "-v riprap-$id-opencode:/root/\.opencode( |$)" "$PODMAN_LOG" || fail 'OpenCode state volume not mounted'
-  grep -Fq 'XDG_DATA_HOME=/root/.opencode/data' .riprap/managed/podman/opencode || fail 'OpenCode data is not redirected into its volume'
-  grep -Fq 'XDG_STATE_HOME=/root/.opencode/state' .riprap/managed/podman/opencode || fail 'OpenCode state is not redirected into its volume'
-  grep -Fq 'OPENCODE_CONFIG_DIR=/root/.opencode/config' .riprap/managed/podman/opencode || fail 'OpenCode config is not redirected into its volume'
+  grep -Eq -- "-v riprap-$id-opencode:/opt/riprap/home/\.opencode( |$)" "$PODMAN_LOG" || fail 'OpenCode state volume not mounted'
+  grep -Fq 'XDG_DATA_HOME=/opt/riprap/home/.opencode/data' .riprap/managed/container/opencode || fail 'OpenCode data is not redirected into its volume'
+  grep -Fq 'XDG_STATE_HOME=/opt/riprap/home/.opencode/state' .riprap/managed/container/opencode || fail 'OpenCode state is not redirected into its volume'
+  grep -Fq 'OPENCODE_CONFIG_DIR=/opt/riprap/home/.opencode/config' .riprap/managed/container/opencode || fail 'OpenCode config is not redirected into its volume'
   # A launch into a fresh volume must not fail on a redirected path OpenCode does not create.
-  grep -Eq '^mkdir -p .*/root/\.opencode/config' .riprap/managed/podman/opencode || \
+  grep -Eq '^mkdir -p .*/opt/riprap/home/\.opencode/config' .riprap/managed/container/opencode || \
     fail 'the wrapper does not prepare the redirected OpenCode directories'
-  grep -Fq 'exec /opt/opencode/bin/opencode' .riprap/managed/podman/opencode || fail 'OpenCode executable is not image-owned'
+  grep -Fq 'exec /opt/opencode/bin/opencode' .riprap/managed/container/opencode || fail 'OpenCode executable is not image-owned'
 )
 
 # rq-fb3e7cc2
@@ -84,8 +84,8 @@ test_claude_config_stored_in_volume() (
   # The Claude configuration directory must resolve to the same container path where the
   # persistent Claude volume is mounted, so the top-level configuration file is stored in
   # the volume rather than the disposable container.
-  grep -Eq -- "-v riprap-$id-claude:/root/\.claude( |$)" "$PODMAN_LOG" || fail 'Claude volume not mounted at /root/.claude'
-  grep -Eq -- "-e CLAUDE_CONFIG_DIR=/root/\.claude( |$)" "$PODMAN_LOG" || fail 'CLAUDE_CONFIG_DIR not pointed at the Claude volume'
+  grep -Eq -- "-v riprap-$id-claude:/opt/riprap/home/\.claude( |$)" "$PODMAN_LOG" || fail 'Claude volume not mounted at /opt/riprap/home/.claude'
+  grep -Eq -- "-e CLAUDE_CONFIG_DIR=/opt/riprap/home/\.claude( |$)" "$PODMAN_LOG" || fail 'CLAUDE_CONFIG_DIR not pointed at the Claude volume'
 )
 
 # rq-6135fc70
@@ -201,7 +201,7 @@ MOCK
   ! grep -Fq 'ordinary' <<<"$output" || fail 'unreadable-object diagnostic disclosed content'
 )
 
-build_key() { sed -n "s/^$1=//p" .riprap/state/podman/agent-build.env | head -n 1; }
+build_key() { sed -n "s/^$1=//p" .riprap/state/container/agent-build.env | head -n 1; }
 
 # rq-7c6a2afa
 test_unpinned_launch_records_week_and_latest() (
@@ -218,9 +218,9 @@ test_unpinned_launch_records_week_and_latest() (
 # rq-145d819f
 test_second_launch_in_same_week_is_unchanged() (
   setup_project; cd "$PROJECT"; bash rr.sh </dev/null
-  before=$(cksum .riprap/state/podman/agent-build.env)
+  before=$(cksum .riprap/state/container/agent-build.env)
   bash rr.sh </dev/null
-  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'build key changed within one week'
+  test "$before" = "$(cksum .riprap/state/container/agent-build.env)" || fail 'build key changed within one week'
 )
 
 # A new week must change the key. The stamp is compared against a key left over from an
@@ -229,7 +229,7 @@ test_second_launch_in_same_week_is_unchanged() (
 test_new_week_changes_the_build_key() (
   setup_project; cd "$PROJECT"
   printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nOPENCODE_VERSION=latest\nREFRESH=1970-W01\n' \
-    > .riprap/state/podman/agent-build.env
+    > .riprap/state/container/agent-build.env
   bash rr.sh </dev/null
   test "$(build_key REFRESH)" = "$(date -u +%G-W%V)" || fail 'a new week did not update the build key'
 )
@@ -244,9 +244,9 @@ test_pin_installs_exact_release_and_suspends_refresh() (
   test "$(build_key OPENCODE_VERSION)" = 1.15.11 || fail 'OpenCode pin not recorded'
   test "$(build_key REFRESH)" = pinned || fail 'a fully pinned key still records a week'
   # A later week must not disturb a fully pinned key.
-  before=$(cksum .riprap/state/podman/agent-build.env)
+  before=$(cksum .riprap/state/container/agent-build.env)
   bash rr.sh </dev/null
-  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'pinned key changed'
+  test "$before" = "$(cksum .riprap/state/container/agent-build.env)" || fail 'pinned key changed'
 )
 
 # An agent left out of the pin must keep tracking its current release, which requires the
@@ -314,8 +314,8 @@ test_malformed_pin_line_stops_launch() { assert_invalid_pin 'not-an-assignment\n
 test_failed_refresh_falls_back_to_existing_image() (
   setup_project; cd "$PROJECT"; .riprap/managed/launch/credential-state.sh ensure >/dev/null
   id=$(cat .riprap/state/project-id)
-  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nOPENCODE_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\nINSTALLED_OPENCODE_VERSION=1.0.0\n' > .riprap/state/podman/agent-build.env
-  before=$(cksum .riprap/state/podman/agent-build.env)
+  printf 'CLAUDE_VERSION=latest\nCODEX_VERSION=latest\nOPENCODE_VERSION=latest\nREFRESH=1970-W01\nINSTALLED_CLAUDE_VERSION=1.0.0\nINSTALLED_CODEX_VERSION=1.0.0\nINSTALLED_OPENCODE_VERSION=1.0.0\n' > .riprap/state/container/agent-build.env
+  before=$(cksum .riprap/state/container/agent-build.env)
   cat > "$MOCK_BIN/podman" <<'MOCK'
 #!/bin/sh
 echo "$*" >> "$PODMAN_LOG"
@@ -332,8 +332,8 @@ MOCK
   grep -q 'run --rm' "$PODMAN_LOG" || fail 'no development container was started'
   grep -Fq "image exists localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
     fail 'fallback did not inspect the project-scoped agent image'
-  test "$before" = "$(cksum .riprap/state/podman/agent-build.env)" || fail 'failed refresh changed successful state'
-  test ! -e .riprap/state/podman/agent-build.candidate.env || fail 'failed refresh left candidate state'
+  test "$before" = "$(cksum .riprap/state/container/agent-build.env)" || fail 'failed refresh changed successful state'
+  test ! -e .riprap/state/container/agent-build.candidate.env || fail 'failed refresh left candidate state'
 )
 
 # rq-4155ad59
@@ -341,7 +341,7 @@ test_projects_use_distinct_image_names() (
   setup_project
   first="$PROJECT"; second="$TEST_TMP/second"
   render_project "$second"
-  mkdir -p "$second/.riprap/state/podman"
+  mkdir -p "$second/.riprap/state/container"
   cd "$first"; bash rr.sh </dev/null; first_id=$(cat .riprap/state/project-id)
   cd "$second"; bash rr.sh </dev/null; second_id=$(cat .riprap/state/project-id)
   test "$first_id" != "$second_id" || fail 'distinct projects received the same UUID'
@@ -361,11 +361,11 @@ test_legacy_project_container_uses_scoped_agent_image() (
   printf 'FROM localhost/riprap-agent:latest\nRUN true\n' > Containerfile
   bash rr.sh </dev/null
   id=$(cat .riprap/state/project-id)
-  grep -Fqx 'ARG RIPRAP_AGENT_IMAGE' .riprap/state/podman/Project.Containerfile ||
+  grep -Fqx 'ARG RIPRAP_AGENT_IMAGE' .riprap/state/container/Project.Containerfile ||
     fail 'legacy project Containerfile was not adapted'
-  grep -Fqx 'FROM ${RIPRAP_AGENT_IMAGE}' .riprap/state/podman/Project.Containerfile ||
+  grep -Fqx 'FROM ${RIPRAP_AGENT_IMAGE}' .riprap/state/container/Project.Containerfile ||
     fail 'adapted project Containerfile still names the shared agent image'
-  grep -Fq -- "-f .riprap/state/podman/Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
+  grep -Fq -- "-f .riprap/state/container/Project.Containerfile --build-arg RIPRAP_AGENT_IMAGE=localhost/riprap-$id-agent:latest" "$PODMAN_LOG" ||
     fail 'project build did not use its adapted Containerfile and scoped agent image'
 )
 
@@ -426,7 +426,7 @@ MOCK
   ! output=$(bash rr.sh </dev/null 2>&1) || fail 'tooling build failure used fallback'
   grep -Fq 'tooling image build failed' <<<"$output" || fail 'tooling failure was not identified'
   ! grep -Fq 'agent refresh failed' <<<"$output" || fail 'tooling failure was mislabeled as refresh failure'
-  test ! -e .riprap/state/podman/agent-build.candidate.env || fail 'tooling failure left candidate state'
+  test ! -e .riprap/state/container/agent-build.candidate.env || fail 'tooling failure left candidate state'
 )
 
 # The shell stamp is checked against ISO-8601 directly. Agreement between this
@@ -455,7 +455,7 @@ printf '2042-W07\n'
 MOCK
   chmod +x "$MOCK_BIN/date"
   .riprap/managed/launch/agent-build.sh prepare
-  refresh=$(sed -n 's/^REFRESH=//p' .riprap/state/podman/agent-build.candidate.env)
+  refresh=$(sed -n 's/^REFRESH=//p' .riprap/state/container/agent-build.candidate.env)
   test "$refresh" = 2042-W07 || fail 'the current refresh stamp did not use the portable date path'
 )
 
@@ -509,21 +509,21 @@ MOCK
   chmod +x "$MOCK_BIN/podman"
   ! bash rr.sh </dev/null >/dev/null 2>&1 || fail 'an unparseable agent version was accepted'
   ! grep -q 'AgentLabels' "$PODMAN_LOG" || fail 'the agent image was labeled with an unparseable version'
-  test ! -e .riprap/state/podman/agent-build.env || fail 'an unparseable version was promoted'
+  test ! -e .riprap/state/container/agent-build.env || fail 'an unparseable version was promoted'
 )
 
 # rq-ac53295e
 test_build_key_is_not_committed() (
   setup_project; cd "$PROJECT"; git init -q; bash rr.sh </dev/null
-  test -f .riprap/state/podman/agent-build.env || fail 'the launcher did not write a build key'
-  git check-ignore -q .riprap/state/podman/agent-build.env || fail 'the build key is not git-ignored'
-  printf 'candidate\n' > .riprap/state/podman/agent-build.candidate.env
-  git check-ignore -q .riprap/state/podman/agent-build.candidate.env || fail 'candidate state is not git-ignored'
+  test -f .riprap/state/container/agent-build.env || fail 'the launcher did not write a build key'
+  git check-ignore -q .riprap/state/container/agent-build.env || fail 'the build key is not git-ignored'
+  printf 'candidate\n' > .riprap/state/container/agent-build.candidate.env
+  git check-ignore -q .riprap/state/container/agent-build.candidate.env || fail 'candidate state is not git-ignored'
   # The project Containerfile is rewritten from the project's own on every launch, so it
   # describes this machine's image rather than the project.
-  test -f .riprap/state/podman/Project.Containerfile || \
+  test -f .riprap/state/container/Project.Containerfile || \
     fail 'the launcher did not write a project Containerfile'
-  git check-ignore -q .riprap/state/podman/Project.Containerfile || \
+  git check-ignore -q .riprap/state/container/Project.Containerfile || \
     fail 'the generated project Containerfile is not git-ignored'
 )
 
@@ -581,10 +581,10 @@ test_run_options_do_not_displace_template_configuration() (
   bash rr.sh </dev/null
   id=$(cat .riprap/state/project-id); line=$(run_line)
   grep -Eq -- "-v [^ ]+:/work( |$)" <<<"$line" || fail 'the workspace mount was displaced'
-  grep -Fq -- "-v riprap-$id-claude:/root/.claude" <<<"$line" || fail 'the Claude volume was displaced'
-  grep -Fq -- "-v riprap-$id-codex:/root/.codex" <<<"$line" || fail 'the Codex volume was displaced'
-  grep -Fq -- "-v riprap-$id-opencode:/root/.opencode" <<<"$line" || fail 'the OpenCode volume was displaced'
-  grep -Fq -- '-e CLAUDE_CONFIG_DIR=/root/.claude' <<<"$line" || fail 'the agent configuration was displaced'
+  grep -Fq -- "-v riprap-$id-claude:/opt/riprap/home/.claude" <<<"$line" || fail 'the Claude volume was displaced'
+  grep -Fq -- "-v riprap-$id-codex:/opt/riprap/home/.codex" <<<"$line" || fail 'the Codex volume was displaced'
+  grep -Fq -- "-v riprap-$id-opencode:/opt/riprap/home/.opencode" <<<"$line" || fail 'the OpenCode volume was displaced'
+  grep -Fq -- '-e CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude' <<<"$line" || fail 'the agent configuration was displaced'
   assert_run_tail '--shm-size=8g '
 )
 
@@ -691,7 +691,7 @@ test_scripts_marked_lf() (
   setup_project; cd "$PROJECT"; git init -q
   discovered=$(discover_scripts)
   # The extensionless scripts prove discovery reads content; a name-based rule cannot find them.
-  for required in .riprap/managed/hooks/pre-commit .riprap/managed/podman/opencode; do
+  for required in .riprap/managed/hooks/pre-commit .riprap/managed/container/opencode; do
     grep -Fqx "$(printf '%s\tlf' "$required")" <<<"$discovered" || \
       fail "$required was not discovered as a script"
   done
@@ -745,12 +745,219 @@ test_template_traceability_validation() (
 # rq-59ada47d
 test_template_traceability_scans_hidden_directories() (
   TEST_TMP="$(mktemp -d)"; trap 'rm -rf "$TEST_TMP"' EXIT
-  mkdir -p "$TEST_TMP/template/.riprap/podman" "$TEST_TMP/rqm"
+  mkdir -p "$TEST_TMP/template/.riprap/container" "$TEST_TMP/rqm"
   printf '{"rq-deadbeef": {"title": "A recorded Riprap requirement"}}\n' > "$TEST_TMP/rqm/registry.json"
-  printf '# rq-deadbeef\n' > "$TEST_TMP/template/.riprap/podman/Containerfile.jinja"
+  printf '# rq-deadbeef\n' > "$TEST_TMP/template/.riprap/container/Containerfile.jinja"
   ! output=$(bash "$ROOT/tests/check_template_traceability.sh" "$TEST_TMP" 2>&1) || \
     fail 'a registry-recorded ID inside a hidden template directory was accepted'
   grep -Fq 'Containerfile.jinja' <<<"$output" || fail 'offending hidden path not identified'
+)
+
+# ---------------------------------------------------------------------------
+# Portable development image: export on a build host, run on an execution host.
+# ---------------------------------------------------------------------------
+
+# A mock Apptainer that logs its arguments, reports a chosen project-id label for "inspect", and
+# writes a marker file for "build" so an export produces an image the run path can find. It logs to
+# APPTAINER_LOG so a test can assert what the launcher issued without a real runtime.
+install_mock_apptainer() {
+  cat > "$MOCK_BIN/apptainer" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$APPTAINER_LOG"
+case "$1" in
+  inspect)
+    for a in "$@"; do sif="$a"; done
+    printf '{"data":{"attributes":{"labels":{"io.riprap.project-id":"%s"}}}}\n' "$(cat "${sif}.projectid" 2>/dev/null)"
+    ;;
+  build)
+    dest="$2"; src="$3"; : > "$dest"
+    printf '%s' "$MOCK_IMAGE_PROJECT_ID" > "${dest}.projectid"
+    ;;
+esac
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/apptainer"
+}
+
+# A podman mock whose "save" leaves an OCI-archive marker and whose "image inspect" reports the
+# project-id label, so the export path completes without a real runtime.
+install_export_podman() {
+  cat > "$MOCK_BIN/podman" <<'MOCK'
+#!/bin/sh
+echo "$*" >> "$PODMAN_LOG"
+if [ "$1 $2" = 'volume inspect' ]; then [ -d "$MOCK_VOLUMES/$3" ]; exit; fi
+if [ "$1 $2" = 'volume create' ]; then mkdir -p "$MOCK_VOLUMES/$3"; echo "$3"; exit; fi
+if [ "$1 $2" = 'image inspect' ]; then echo tooling-id; exit; fi
+if [ "$1 $2" = 'image exists' ]; then exit 0; fi
+if [ "$1 $2" = 'run --rm' ]; then
+  case "$*" in *' claude --version') echo '2.1.205 (Claude Code)' ;; *' codex --version') echo 'codex-cli 0.144.6' ;; *' opencode --version') echo '1.15.11' ;; esac
+  exit
+fi
+if [ "$1" = save ]; then out=""; while [ $# -gt 0 ]; do [ "$1" = -o ] && { out="$2"; shift; }; shift; done; : > "$out"; exit 0; fi
+exit 0
+MOCK
+  chmod +x "$MOCK_BIN/podman"
+}
+
+apptainer_run_line() { grep '^shell ' "$APPTAINER_LOG" | tail -n 1; }
+
+# Exporting builds the project image by the ordinary path, then writes a project-scoped single-file
+# image under the apptainer state directory, and starts no container.
+test_export_writes_a_project_scoped_image() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  export MOCK_IMAGE_PROJECT_ID=ignored
+  install_export_podman; install_mock_apptainer
+  bash rr.sh --export-sif </dev/null || fail 'export failed'
+  id=$(cat .riprap/state/project-id)
+  test -f ".riprap/state/apptainer/riprap-$id-project.sif" || fail 'no project-scoped image was written'
+  grep -Fq "riprap-$id-project:latest" "$PODMAN_LOG" || fail 'the project image was not built before export'
+  ! grep -q '^run --rm -it ' "$PODMAN_LOG" || fail 'export started an interactive container'
+)
+
+# A build host without Apptainer cannot export, and says so without leaving a partial image.
+test_export_without_apptainer_stops() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  install_export_podman  # no apptainer mock installed
+  ! output=$(bash rr.sh --export-sif </dev/null 2>&1) || fail 'export succeeded without Apptainer'
+  grep -Fiq apptainer <<<"$output" || fail 'the failure did not name the missing runtime'
+  id=$(cat .riprap/state/project-id)
+  test ! -e ".riprap/state/apptainer/riprap-$id-project.sif" || fail 'a partial image was left behind'
+)
+
+# The exported image is scoped by the project UUID and its label records that UUID, so an execution
+# host can tell which project an image belongs to.
+test_export_labels_the_image_with_the_project() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(cat .riprap/state/project-id 2>/dev/null || true)
+  install_export_podman; install_mock_apptainer
+  bash rr.sh --export-sif </dev/null || fail 'export failed'
+  id=$(cat .riprap/state/project-id)
+  grep -Fq "RIPRAP_PROJECT_ID=$id" "$PODMAN_LOG" || fail 'the project-id was not passed as a build argument'
+)
+
+# Running an exported image binds the workspace and each credential directory, contains the host
+# home and environment, and presents the image read-only with writable scratch. It builds nothing.
+test_run_sif_isolates_and_binds() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(bash .riprap/managed/launch/credential-state.sh project-id)
+  install_mock_apptainer
+  export MOCK_IMAGE_PROJECT_ID="$id"
+  sif=".riprap/state/apptainer/riprap-$id-project.sif"
+  mkdir -p .riprap/state/apptainer; : > "$sif"; printf '%s' "$id" > "$sif.projectid"
+  bash rr.sh --run-sif </dev/null || fail 'run-sif failed against a matching image'
+  line=$(apptainer_run_line)
+  grep -Fq -- '--containall' <<<"$line" || fail 'the run does not contain the host home directory'
+  grep -Fq -- '--cleanenv' <<<"$line" || fail 'the run does not supply a clean environment'
+  grep -Fq -- '--writable-tmpfs' <<<"$line" || fail 'the run does not supply writable scratch space'
+  grep -Eq -- '--bind [^ ]+/work:/work|--bind [^ ]+:/work' <<<"$line" || fail 'the workspace is not bound at /work'
+  for agent in claude codex opencode; do
+    grep -Fq -- "credentials/$agent:/opt/riprap/home/.$agent" <<<"$line" || fail "$agent credentials were not bound"
+    test -d ".riprap/state/apptainer/credentials/$agent" || fail "$agent credential directory was not created"
+  done
+  grep -Fq -- '--env CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude' <<<"$line" || fail 'the Claude config env was not set'
+)
+
+# Credential directories are created without group or other access on a shared host.
+test_run_sif_credentials_are_private() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(cat .riprap/state/project-id 2>/dev/null || bash .riprap/managed/launch/credential-state.sh project-id)
+  install_mock_apptainer; export MOCK_IMAGE_PROJECT_ID="$id"
+  sif=".riprap/state/apptainer/riprap-$id-project.sif"
+  mkdir -p .riprap/state/apptainer; : > "$sif"; printf '%s' "$id" > "$sif.projectid"
+  bash rr.sh --run-sif </dev/null || fail 'run-sif failed'
+  mode=$(stat -c '%a' .riprap/state/apptainer/credentials/claude)
+  case "$mode" in *[1-7][0-7]|*[0-7][1-7]) fail "credential directory is group/other accessible: $mode" ;; esac
+)
+
+# An image built for another project is refused, naming both identities.
+test_run_sif_refuses_a_foreign_image() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(cat .riprap/state/project-id 2>/dev/null || bash .riprap/managed/launch/credential-state.sh project-id)
+  install_mock_apptainer; export MOCK_IMAGE_PROJECT_ID=foreign
+  sif=".riprap/state/apptainer/riprap-$id-project.sif"
+  mkdir -p .riprap/state/apptainer; : > "$sif"; printf 'foreign' > "$sif.projectid"
+  ! output=$(bash rr.sh --run-sif </dev/null 2>&1) || fail 'a foreign image was accepted'
+  grep -Fq foreign <<<"$output" || fail 'the refusal does not name the image project'
+  grep -Fq "$id" <<<"$output" || fail 'the refusal does not name the workspace project'
+  ! grep -q '^shell ' "$APPTAINER_LOG" || fail 'a container started despite the mismatch'
+)
+
+# A missing exported image is reported by the path the launcher expected.
+test_run_sif_missing_image_names_the_path() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  install_mock_apptainer
+  ! output=$(bash rr.sh --run-sif </dev/null 2>&1) || fail 'a missing image was accepted'
+  grep -Fq '.riprap/state/apptainer/' <<<"$output" || fail 'the failure does not name the expected path'
+)
+
+# The execution host validates its own run-options file with the same rules and passes accepted
+# options after the template-owned arguments.
+test_run_sif_applies_execution_run_options() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(cat .riprap/state/project-id 2>/dev/null || bash .riprap/managed/launch/credential-state.sh project-id)
+  install_mock_apptainer; export MOCK_IMAGE_PROJECT_ID="$id"
+  sif=".riprap/state/apptainer/riprap-$id-project.sif"
+  mkdir -p .riprap/state/apptainer; : > "$sif"; printf '%s' "$id" > "$sif.projectid"
+  test -f .riprap/user/apptainer/run-options || fail 'no execution-host run options file was seeded'
+  printf -- '--nv\n' > .riprap/user/apptainer/run-options
+  bash rr.sh --run-sif </dev/null || fail 'run-sif failed with an enabled option'
+  line=$(apptainer_run_line)
+  [[ "$line" == *"--nv "*"riprap-$id-project.sif" ]] || fail "the option does not follow the template arguments: $line"
+)
+
+# An invalid execution-host option stops the launch before any container starts.
+test_run_sif_rejects_an_invalid_option() (
+  setup_project; cd "$PROJECT"
+  export APPTAINER_LOG="$TEST_TMP/apptainer.log"; : > "$APPTAINER_LOG"
+  id=$(cat .riprap/state/project-id 2>/dev/null || bash .riprap/managed/launch/credential-state.sh project-id)
+  install_mock_apptainer; export MOCK_IMAGE_PROJECT_ID="$id"
+  sif=".riprap/state/apptainer/riprap-$id-project.sif"
+  mkdir -p .riprap/state/apptainer; : > "$sif"; printf '%s' "$id" > "$sif.projectid"
+  printf -- '--bind /a /b\n' > .riprap/user/apptainer/run-options
+  ! output=$(bash rr.sh --run-sif </dev/null 2>&1) || fail 'an invalid option was accepted'
+  grep -Fq 'single argument with no spaces' <<<"$output" || fail 'the defect was not reported'
+  ! grep -q '^shell ' "$APPTAINER_LOG" || fail 'a container started despite an invalid option'
+)
+
+# Reset on an execution host removes the selected agent's credential directory, tolerating the
+# absence of the build runtime, and leaves the others.
+test_reset_removes_execution_host_directories() (
+  setup_project; cd "$PROJECT"
+  # No podman available: an execution host has no build runtime. setup_project put a mock podman on
+  # PATH, so removing it leaves a host with no build runtime at all.
+  rm -f "$MOCK_BIN/podman"
+  if command -v podman >/dev/null 2>&1; then fail 'the test host has a real podman, so it cannot simulate an execution host'; fi
+  bash .riprap/managed/launch/credential-state.sh project-id >/dev/null
+  for agent in claude codex opencode; do mkdir -p ".riprap/state/apptainer/credentials/$agent"; done
+  bash rr.sh --reset-agent-state codex --yes >/dev/null || fail 'reset failed on an execution host'
+  test ! -d .riprap/state/apptainer/credentials/codex || fail 'the Codex directory was not removed'
+  test -d .riprap/state/apptainer/credentials/claude || fail 'the Claude directory was removed'
+  test -d .riprap/state/apptainer/credentials/opencode || fail 'the OpenCode directory was removed'
+)
+
+# The exported image and the per-user credential directories are generated local state, ignored by
+# version control.
+test_execution_host_state_is_ignored() (
+  setup_project; cd "$PROJECT"; git init -q
+  mkdir -p .riprap/state/apptainer/credentials/claude
+  : > .riprap/state/apptainer/riprap-x-project.sif
+  git check-ignore -q .riprap/state/apptainer/riprap-x-project.sif || fail 'the exported image is not ignored'
+  git check-ignore -q .riprap/state/apptainer/credentials/claude || fail 'the credential directory is not ignored'
+  # A nested credential file, not only its directory, is ignored.
+  mkdir -p .riprap/state/apptainer/credentials/codex
+  : > .riprap/state/apptainer/credentials/codex/auth.json
+  git check-ignore -q .riprap/state/apptainer/credentials/codex/auth.json || fail 'a nested credential file is not ignored'
+  # An exported image is a build artifact wherever it lands, including outside the state directory.
+  : > somewhere-else.sif
+  git check-ignore -q somewhere-else.sif || fail 'a .sif outside the state directory is not ignored'
 )
 
 # rq-70d8296b
@@ -793,4 +1000,10 @@ test_run_option_with_whitespace_stops_the_launch
 test_run_option_that_is_not_an_option_stops_the_launch
 test_whitespace_outranks_a_missing_leading_dash
 test_run_option_with_embedded_carriage_return_stops_the_launch
+test_export_writes_a_project_scoped_image; test_export_without_apptainer_stops
+test_export_labels_the_image_with_the_project
+test_run_sif_isolates_and_binds; test_run_sif_credentials_are_private
+test_run_sif_refuses_a_foreign_image; test_run_sif_missing_image_names_the_path
+test_run_sif_applies_execution_run_options; test_run_sif_rejects_an_invalid_option
+test_reset_removes_execution_host_directories; test_execution_host_state_is_ignored
 printf 'PASS: credential isolation and traceability boundary\n'

@@ -1,10 +1,16 @@
 # Feature: Agent Credential Isolation <!-- rq-60eee682 -->
 
-Riprap keeps Claude, Codex, and OpenCode authentication state in project-specific Podman named
-volumes. Generated projects never mount a user's host agent configuration into the development
-container. Layered repository safeguards prevent credentials copied into the workspace from being
-committed or pushed accidentally. The version-controlled Git hooks and launch scripts are normalized
-so they run on every supported host.
+Riprap keeps Claude, Codex, and OpenCode authentication state in project-specific storage that
+outlives a disposable container. Generated projects never mount a user's host agent configuration
+into the development container. Layered repository safeguards prevent credentials copied into the
+workspace from being committed or pushed accidentally. The version-controlled Git hooks and launch
+scripts are normalized so they run on every supported host.
+
+The storage mechanism is a property of the container runtime. A runtime offering managed volumes uses
+project-specific named volumes, described below. A runtime addressing only the filesystem uses
+project-specific directories in generated local state, described in `portable-development-image.md`.
+The isolation the mechanisms provide is the same: state is scoped to one project, is never the
+user's own host agent configuration, survives removal of a container, and can be reset.
 
 ## Project Identity <!-- rq-f3cf5b0e -->
 
@@ -41,7 +47,8 @@ so they run on every supported host.
 - Removing a disposable development container does not remove its named credential volumes.
 - A launcher command can reset one agent's state or all agent state for the current project. Reset
   requires explicit confirmation and never removes volumes belonging to another project UUID.
-- Linux, macOS, WSL, and Windows launch paths implement the same identity and volume model.
+- Linux, macOS, WSL, and Windows launch paths implement the same identity and credential-state model
+  for every runtime they support.
 
 ## Repository Leak Prevention <!-- rq-638ff671 -->
 
@@ -170,7 +177,7 @@ Feature: Isolate agent credentials from generated projects
   Scenario: A malformed project identity blocks launch safely
     Given ".riprap/state/project-id" is malformed or is a symbolic link
     When the project launcher starts the development environment
-    Then launch fails before Podman runs
+    Then launch fails before the container runtime runs
     And the existing path is not replaced or modified
 
   @rq-f957f555
@@ -189,7 +196,7 @@ Feature: Isolate agent credentials from generated projects
       evaluated
     Then every discovered shell and PowerShell script has an "eol" attribute of "lf"
     And the discovered set includes the extensionless ".riprap/managed/hooks/pre-commit" hook
-    And the discovered set includes the extensionless ".riprap/managed/podman/opencode" wrapper
+    And the discovered set includes the extensionless ".riprap/managed/container/opencode" wrapper
 
   @rq-1eda0111
   Scenario: A script that no line-ending rule covers is rejected

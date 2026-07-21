@@ -165,7 +165,7 @@ function Invoke-AgentBuild([string]$Project, [string[]]$Arguments) {
 function Get-PodmanLog { Get-Content -LiteralPath $env:PODMAN_LOG -Raw -ErrorAction SilentlyContinue }
 
 function Get-BuildKeyValue([string]$Project, [string]$Name) {
-    $path = Join-Path $Project ".riprap/state/podman/agent-build.env"
+    $path = Join-Path $Project ".riprap/state/container/agent-build.env"
     if (-not (Test-Path -LiteralPath $path)) { return $null }
     foreach ($line in Get-Content -LiteralPath $path) {
         if ($line -match "^$Name=(.*)$") { return $Matches[1] }
@@ -206,7 +206,7 @@ Test-Case "the Windows launcher stops on a tooling build failure" {
     if ($result.ExitCode -eq 0) { Fail "a tooling build failure did not stop the launch" }
     if ($result.Output -notmatch "tooling image build failed") { Fail "the tooling failure was not identified" }
     if ($result.Output -match "agent refresh failed") { Fail "a tooling failure was described as a refresh failure" }
-    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.candidate.env")) {
+    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/container/agent-build.candidate.env")) {
         Fail "the tooling failure left candidate state behind"
     }
 }
@@ -237,7 +237,7 @@ Test-Case "the Windows launcher adapts a legacy project Containerfile" {
     if ($result.ExitCode -ne 0) { Fail "the launch failed: $($result.Output)" }
     $id = (Get-Content -LiteralPath (Join-Path $t.Project ".riprap/state/project-id") -Raw).Trim()
     $adapted = Get-Content -LiteralPath `
-        (Join-Path $t.Project ".riprap/state/podman/Project.Containerfile") -Raw
+        (Join-Path $t.Project ".riprap/state/container/Project.Containerfile") -Raw
     if ($adapted -notmatch [regex]::Escape('FROM ${RIPRAP_AGENT_IMAGE}')) {
         Fail "the legacy shared agent base was not adapted"
     }
@@ -250,7 +250,7 @@ Test-Case "the Windows launcher adapts a legacy project Containerfile" {
 # rq-b68a63b5
 Test-Case "the Windows launcher falls back to a compatible agent image" {
     $t = New-TestProject
-    $key = Join-Path $t.Project ".riprap/state/podman/agent-build.env"
+    $key = Join-Path $t.Project ".riprap/state/container/agent-build.env"
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $key) | Out-Null
     Set-Content -LiteralPath $key -Value @(
         "CLAUDE_VERSION=latest", "CODEX_VERSION=latest", "OPENCODE_VERSION=latest", "REFRESH=1970-W01",
@@ -264,7 +264,7 @@ Test-Case "the Windows launcher falls back to a compatible agent image" {
     if ($result.Output -notmatch "agent refresh failed") { Fail "the failed refresh was not reported" }
     if ((Get-PodmanLog) -notmatch "run --rm") { Fail "no development container was started" }
     if ((Get-FileHash -LiteralPath $key).Hash -ne $before.Hash) { Fail "a failed refresh changed the successful build key" }
-    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.candidate.env")) {
+    if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/container/agent-build.candidate.env")) {
         Fail "a failed refresh left candidate state behind"
     }
 }
@@ -293,7 +293,7 @@ Test-Case "the Windows launcher refuses an agent version it cannot parse" {
         if ($result.ExitCode -eq 0) { Fail "an unparseable agent version was accepted" }
         if ((Get-PodmanLog) -match "AgentLabels") { Fail "the agent image was labeled with an unparseable version" }
         if ((Get-PodmanLog) -match "9\.9\.9") { Fail "an ambient CLAUDE_VERSION reached the image labels" }
-        if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/podman/agent-build.env")) {
+        if (Test-Path -LiteralPath (Join-Path $t.Project ".riprap/state/container/agent-build.env")) {
             Fail "an unparseable version was promoted to the successful build key"
         }
     } finally { Remove-Item Env:CLAUDE_VERSION -ErrorAction SilentlyContinue }
@@ -428,7 +428,7 @@ function Get-VersionControlledScripts {
 Test-Case "every discovered script resolves to the eol attribute its interpreter needs" {
     $scripts = Get-VersionControlledScripts
     foreach ($required in @("template/.riprap/managed/hooks/pre-commit",
-                            "template/.riprap/managed/podman/opencode")) {
+                            "template/.riprap/managed/container/opencode")) {
         if ($scripts.Path -notcontains $required) { Fail "$required was not discovered as a script" }
     }
     foreach ($script in $scripts) {
@@ -549,7 +549,7 @@ Test-Case "the Windows launcher applies the project's run options" {
     if ($line -notmatch [regex]::Escape("-w /work --shm-size=8g ")) {
         Fail "the run does not carry the project's option after the template-owned ones: $line"
     }
-    if ($line -notmatch [regex]::Escape("-e CLAUDE_CONFIG_DIR=/root/.claude")) {
+    if ($line -notmatch [regex]::Escape("-e CLAUDE_CONFIG_DIR=/opt/riprap/home/.claude")) {
         Fail "the run options displaced the template-owned configuration: $line"
     }
 }

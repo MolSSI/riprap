@@ -18,6 +18,16 @@ is_containerized() {
     return 0
   fi
 
+  # Check for Apptainer / Singularity. An execution host runs an exported image under Apptainer,
+  # which does not create /run/.containerenv, set container=podman, or present an overlay root, but
+  # does mark its containers with these variables and a runtime directory.
+  if [ -n "$APPTAINER_CONTAINER" ] || [ -n "$SINGULARITY_CONTAINER" ]; then
+    return 0
+  fi
+  if [ -d /.singularity.d ]; then
+    return 0
+  fi
+
   # Check for container in cgroup (Docker, Podman, LXC, Kubernetes)
   if grep -qE 'docker|libpod|lxc|kubepods' /proc/1/cgroup 2>/dev/null; then
     return 0

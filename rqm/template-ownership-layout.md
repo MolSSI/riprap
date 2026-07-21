@@ -69,9 +69,16 @@ external tool from discovering it.
 - `copier update` updates managed implementations and managed required-location exceptions while
   preserving user-owned files.
 - Riprap declares no Copier feature that requires a trust option. Generating a project and
-  updating one both succeed with the commands the documentation gives, and the rendered layout is
-  the only layout Riprap produces, so no update has to reconcile an earlier arrangement of the
-  same files.
+  updating one both succeed with the commands the documentation gives.
+- When a managed path moves, `copier update` alone completes the move: the component appears at its
+  current path and nothing remains at its former path. Managed content is Riprap's to place, so
+  relocating it requires no user action, no manual cleanup, and no trusted migration. A relocation
+  that left a stale managed file behind would leave a project holding two arrangements of one
+  component, only one of which any launcher reads.
+- A user-owned path does not move. A seed file is preserved rather than re-rendered, so relocating
+  one would orphan the copy a project had already customized and silently substitute an empty
+  default. A component whose managed part is renamed therefore keeps its user-owned file where the
+  project already has it.
 - Generated ignore rules exclude machine-local state but do not hide shared project state,
   user-owned customization, or managed files.
 - A managed file that projects are expected to extend separates a managed region from a clearly
@@ -79,7 +86,7 @@ external tool from discovering it.
   region without disturbing project content. Generated ignore rules follow this arrangement, with
   the project-owned region last.
 - The rendered repository has one canonical ownership layout and no parallel canonical tree at
-  direct `.riprap/skills`, `.riprap/hooks`, or `.riprap/podman` paths.
+  direct `.riprap/skills`, `.riprap/hooks`, or `.riprap/container` paths.
 
 ## Feature Interface <!-- rq-2debabe1 -->
 
@@ -189,6 +196,24 @@ Feature: Make generated-file ownership visible from location
     Then the customized user-owned file is unchanged
     And the managed implementations contain the later revision
 
+  @rq-4543a5d9
+  Scenario: A relocated managed component leaves nothing at its former path
+    Given a generated project rendered from a template revision that places a managed component at
+      one path
+    And a later template revision places that component at a different path
+    When "copier update" applies the later revision without a trust option
+    Then the command exits zero
+    And the component exists at its current path
+    And no file remains at its former path
+    And no manual cleanup step is required
+
+  @rq-533155e6
+  Scenario: A relocated managed component does not disturb its user-owned file
+    Given a generated project whose user-owned seed file for a component has been customized
+    And a later template revision relocates that component's managed files
+    When "copier update" applies the later revision
+    Then the customized user-owned seed file is unchanged and remains at its original path
+
   @rq-7749b071
   Scenario: Updated projects satisfy the complete ownership contract
     Given every supported project variant was rendered from an earlier template revision
@@ -226,5 +251,5 @@ Feature: Make generated-file ownership visible from location
     Given a project is rendered from the Riprap template
     When the ".riprap" directory is inspected
     Then no canonical implementation or supported customization exists directly under "skills",
-      "hooks", or "podman"
+      "hooks", or "container"
 ```

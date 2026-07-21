@@ -45,6 +45,10 @@ disturb it.
 
 - Every supported agent refuses to begin an AI response when a generated project is opened outside
   Riprap's development container.
+- The canonical check recognizes a container started by any supported container runtime, and
+  recognizes none of them on a host. A check that admitted only the runtime that builds images would
+  refuse every agent on an execution host, closing the boundary by making a supported environment
+  unusable rather than by detecting it correctly.
 - Claude and Codex use their supported project hook mechanisms. OpenCode uses a managed,
   dependency-free project plugin that performs the same container check before an interactive or
   non-interactive request can produce an AI response.
@@ -178,6 +182,19 @@ Feature: Ship least-privilege agent permission defaults
     Then the container check succeeds
     And the request is not refused
     And OpenCode proceeds into its own handling of the prompt
+
+  @rq-4dcc2d3a
+  Scenario: The container check recognizes every supported runtime
+    Given a development container started by a supported container runtime
+    When the managed container check runs inside it
+    Then the check reports success
+    And it reports success for a container started by each other supported runtime
+
+  @rq-93899522
+  Scenario: The container check recognizes no host as a container
+    Given a generated project on a host outside any development container
+    When the managed container check runs
+    Then the check reports failure
 
   @rq-f928505b
   Scenario: A project's own permissions are not version-controlled

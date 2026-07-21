@@ -8,6 +8,10 @@ fail() {
   exit 1
 }
 
+# The image-owned home directory the Containerfile establishes. Every program, toolchain, and agent
+# configuration home lives beneath it so the image runs as an arbitrary unprivileged user.
+RIPRAP_IMAGE_HOME=/opt/riprap/home
+
 copier_major() {
   sed -nE 's/^copier ([0-9]+)(\..*)?$/\1/p' | head -n 1
 }
@@ -45,22 +49,22 @@ assert_copier_in_container() (
   project="$temp/project"
 
   render_project "$language" "$project"
-  podman build --tag "$image" "$project/.riprap/managed/podman"
+  podman build --tag "$image" "$project/.riprap/managed/container"
   version="$(podman run --rm "$image" copier --version)"
   major="$(printf '%s\n' "$version" | copier_major)"
   test "$major" = 9 || fail "expected Copier major 9 in $language image, got: $version"
 )
 
 build_key() {
-  sed -n "s/^$2=//p" "$1/.riprap/state/podman/agent-build.candidate.env" | tr -d '\r' | head -n 1
+  sed -n "s/^$2=//p" "$1/.riprap/state/container/agent-build.candidate.env" | tr -d '\r' | head -n 1
 }
 
 # The launcher normally writes the build key; container tests build the image directly,
 # so they write the key themselves to control which releases the image installs.
 write_build_key() {
-  mkdir -p "$1/.riprap/state/podman"
+  mkdir -p "$1/.riprap/state/container"
   printf 'CLAUDE_VERSION=%s\nCODEX_VERSION=%s\nOPENCODE_VERSION=%s\nREFRESH=%s\n' "$2" "$3" "$4" "$5" \
-    > "$1/.riprap/state/podman/agent-build.candidate.env"
+    > "$1/.riprap/state/container/agent-build.candidate.env"
 }
 
 build_agent_image() {
@@ -68,12 +72,12 @@ build_agent_image() {
   claude_version="$(build_key "$project" CLAUDE_VERSION)"
   codex_version="$(build_key "$project" CODEX_VERSION)"
   opencode_version="$(build_key "$project" OPENCODE_VERSION)"
-  podman build -f "$project/.riprap/managed/podman/Agent.Containerfile" \
+  podman build -f "$project/.riprap/managed/container/Agent.Containerfile" \
     --build-arg "CLAUDE_VERSION=$claude_version" \
     --build-arg "CODEX_VERSION=$codex_version" \
     --build-arg "OPENCODE_VERSION=$opencode_version" \
     --build-arg "RIPRAP_TOOLING_IMAGE=$tooling_image" \
-    --tag "$image" "$project/.riprap/managed/podman"
+    --tag "$image" "$project/.riprap/managed/container"
 }
 
 # Builds one image from a rendered project and runs every named assertion against it,
@@ -91,14 +95,14 @@ with_built_image() (
   write_build_key "$project" 2.1.205 0.144.6 1.15.11 pinned
   tooling_image="localhost/riprap-test-$language-$$-tooling:latest"
   candidate_image="localhost/riprap-test-$language-$$-agent:candidate"
-  podman build --tag "$tooling_image" "$project/.riprap/managed/podman"
+  podman build --tag "$tooling_image" "$project/.riprap/managed/container"
   build_agent_image "$project" "$candidate_image" "$tooling_image"
-  podman build -f "$project/.riprap/managed/podman/AgentLabels.Containerfile" \
+  podman build -f "$project/.riprap/managed/container/AgentLabels.Containerfile" \
     --build-arg CLAUDE_VERSION=2.1.205 --build-arg CODEX_VERSION=0.144.6 \
     --build-arg OPENCODE_VERSION=1.15.11 \
     --build-arg TOOLING_IMAGE_ID=test-tooling \
     --build-arg "RIPRAP_AGENT_CANDIDATE_IMAGE=$candidate_image" \
-    --tag "$image" "$project/.riprap/managed/podman"
+    --tag "$image" "$project/.riprap/managed/container"
   for assertion in "$@"; do "$assertion" "$project" "$image"; done
 )
 
@@ -130,27 +134,90 @@ assert_versions_match_recording() {
     fail 'OpenCode image label does not match the installed release'
 }
 
-# The credential volumes mount over /root/.claude, /root/.codex, and /root/.opencode, so an agent program
-# installed beneath either path would be shadowed by the volume rather than pinned.
+# The credential mounts cover each agent's configuration home beneath the image-owned home
+# directory, so an agent program installed beneath one of those paths would be shadowed by the
+# mount rather than pinned.
 # rq-d09c17d0 rq-4e428654 rq-aa0a9de2
 assert_programs_and_config_outside_volumes() {
   local image="$2" resolved
   for agent in claude codex opencode; do
     resolved="$(podman run --rm "$image" sh -c "readlink -f \"\$(command -v $agent)\"")"
     case "$resolved" in
-      /root/.claude/*|/root/.codex/*|/root/.opencode/*)
-        fail "$agent program resolves to $resolved, inside a credential volume mount point" ;;
+      "$RIPRAP_IMAGE_HOME"/.claude/*|"$RIPRAP_IMAGE_HOME"/.codex/*|"$RIPRAP_IMAGE_HOME"/.opencode/*)
+        fail "$agent program resolves to $resolved, inside a credential mount point" ;;
       "") fail "$agent is not on PATH in the built image" ;;
     esac
   done
-  podman run --rm "$image" sh -c 'test ! -e /root/.claude.json' || \
+  podman run --rm "$image" sh -c "test ! -e $RIPRAP_IMAGE_HOME/.claude.json" || \
     fail 'image carries a build-time Claude configuration file'
-  podman run --rm "$image" sh -c 'test ! -e /root/.claude' || \
+  podman run --rm "$image" sh -c "test ! -e $RIPRAP_IMAGE_HOME/.claude" || \
     fail 'image carries a build-time Claude configuration directory'
-  podman run --rm "$image" sh -c 'test ! -e /root/.codex' || \
-    fail 'image carries build-time content under the Codex volume mount point'
-  podman run --rm "$image" sh -c 'test ! -e /root/.opencode' || \
-    fail 'image carries build-time content under the OpenCode volume mount point'
+  podman run --rm "$image" sh -c "test ! -e $RIPRAP_IMAGE_HOME/.codex" || \
+    fail 'image carries build-time content under the Codex credential mount point'
+  podman run --rm "$image" sh -c "test ! -e $RIPRAP_IMAGE_HOME/.opencode" || \
+    fail 'image carries build-time content under the OpenCode credential mount point'
+}
+
+# rq-e7703bd3
+# No program, toolchain, or agent configuration home may sit under /root, which is unreadable to
+# any other user, and the image's home directory must be somewhere else entirely.
+assert_nothing_installed_under_root() {
+  local image="$2" home resolved
+  home="$(podman run --rm "$image" printenv HOME)"
+  test -n "$home" || fail 'the image sets no HOME'
+  case "$home" in
+    /root|/root/*) fail "the image home directory is $home, which no other user can read" ;;
+  esac
+  test "$home" = "$RIPRAP_IMAGE_HOME" || \
+    fail "the image home directory is $home, not the expected $RIPRAP_IMAGE_HOME"
+  for program in claude codex opencode copier; do
+    resolved="$(podman run --rm "$image" sh -c "readlink -f \"\$(command -v $program)\"")"
+    case "$resolved" in
+      /root/*) fail "$program resolves to $resolved, which no other user can read" ;;
+      "") fail "$program is not on PATH in the built image" ;;
+    esac
+  done
+  podman run --rm "$image" sh -c 'test ! -d /root/.local/bin && test ! -d /root/.cargo' || \
+    fail 'the image installs a toolchain under /root'
+}
+
+# rq-3640e734
+# The same image must serve a runtime that maps the caller to root and one that runs the container
+# as the invoking user, so every program has to work for an arbitrary uid. 65534 is the conventional
+# unprivileged "nobody" uid and owns nothing in the image.
+assert_image_runs_as_unprivileged_user() {
+  local image="$2"
+  podman run --rm --user 65534:65534 "$image" copier --version >/dev/null || \
+    fail 'copier does not run as an unprivileged user'
+  for agent in claude codex opencode; do
+    podman run --rm --user 65534:65534 "$image" "$agent" --version >/dev/null || \
+      fail "$agent does not run as an unprivileged user"
+  done
+  # Probe whichever language toolchain the image carries; the image installs exactly one.
+  if podman run --rm "$image" sh -c 'command -v cargo' >/dev/null 2>&1; then
+    podman run --rm --user 65534:65534 "$image" cargo --version >/dev/null || \
+      fail 'the Rust toolchain does not run as an unprivileged user'
+  fi
+  if podman run --rm "$image" sh -c 'command -v python3' >/dev/null 2>&1; then
+    podman run --rm --user 65534:65534 "$image" python3 --version >/dev/null || \
+      fail 'the Python toolchain does not run as an unprivileged user'
+  fi
+}
+
+# rq-56835ed3
+# A runtime may present the image read-only, so nothing required at startup may be written to the
+# image's own filesystem. The workspace and credential mounts stay writable.
+assert_image_starts_read_only() {
+  local image="$2" temp
+  temp="$(mktemp -d)"
+  podman run --rm --read-only \
+    --tmpfs /tmp \
+    -v "$temp:$RIPRAP_IMAGE_HOME/.claude" \
+    "$image" claude --version >/dev/null || \
+    { rm -rf "$temp"; fail 'the image does not start with a read-only image filesystem'; }
+  podman run --rm --read-only --tmpfs /tmp "$image" sh -c 'echo ok' >/dev/null || \
+    { rm -rf "$temp"; fail 'a shell does not start with a read-only image filesystem'; }
+  rm -rf "$temp"
 }
 
 # rq-fae13c6f
@@ -215,8 +282,8 @@ test_agents_are_isolated_from_tooling_image() (
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project rust "$project"
-  tooling="$project/.riprap/managed/podman/Containerfile"
-  agent="$project/.riprap/managed/podman/Agent.Containerfile"
+  tooling="$project/.riprap/managed/container/Containerfile"
+  agent="$project/.riprap/managed/container/Agent.Containerfile"
   project_container="$project/Containerfile"
   ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh|opencode\.ai/install' "$tooling" || fail 'tooling image installs agents'
   grep -Fq 'FROM ${RIPRAP_TOOLING_IMAGE}' "$agent" || fail 'agent image does not accept its scoped tooling image'
@@ -233,7 +300,7 @@ test_build_key_drives_the_layer_cache() (
   render_project rust "$project"
 
   tooling_image="localhost/riprap-cache-test-$$-tooling:latest"
-  podman build --tag "$tooling_image" "$project/.riprap/managed/podman" >/dev/null
+  podman build --tag "$tooling_image" "$project/.riprap/managed/container" >/dev/null
   write_build_key "$project" 2.1.205 0.144.6 1.15.11 pinned
   build_agent_image "$project" "$image" "$tooling_image" >/dev/null
   first="$(podman run --rm "$image" claude --version)"
@@ -254,9 +321,21 @@ test_agent_pinning_in_rust_container() {
   with_built_image rust \
     assert_versions_match_recording \
     assert_programs_and_config_outside_volumes \
+    assert_nothing_installed_under_root \
+    assert_image_runs_as_unprivileged_user \
+    assert_image_starts_read_only \
     assert_autoupdaters_disabled \
     assert_opencode_admits_a_request_inside_the_container \
     assert_opencode_refuses_when_the_check_reports_failure
+}
+
+# rq-e7703bd3 rq-3640e734 rq-56835ed3
+# Unprivileged execution is a property of the image, so it is exercised for the Python variant too.
+test_unprivileged_execution_in_python_container() {
+  with_built_image python \
+    assert_nothing_installed_under_root \
+    assert_image_runs_as_unprivileged_user \
+    assert_image_starts_read_only
 }
 
 # rq-a32974ac
@@ -293,7 +372,7 @@ test_default_base_image_is_ubuntu_lts() (
   local temp project from year
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT; project="$temp/project"
   render_project rust "$project"
-  from="$(sed -n '1s/^FROM //p' "$project/.riprap/managed/podman/Containerfile")"
+  from="$(sed -n '1s/^FROM //p' "$project/.riprap/managed/container/Containerfile")"
   # Ubuntu LTS releases carry an even year and an .04 month.
   grep -Eq '^ubuntu:[0-9][0-9]\.04$' <<<"$from" || fail "the default base image is '$from', not an Ubuntu LTS release"
   year="${from#ubuntu:}"; year="${year%%.*}"
@@ -307,7 +386,7 @@ test_gpu_base_image_carries_the_tooling_layer() (
   trap 'podman image rm --force "$image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
   project="$temp/project"
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
-  podman build --tag "$image" "$project/.riprap/managed/podman"
+  podman build --tag "$image" "$project/.riprap/managed/container"
   version="$(podman run --rm "$image" copier --version)"
   test "$(printf '%s\n' "$version" | copier_major)" = 9 || \
     fail "expected Copier major 9 in the CUDA image, got: $version"
@@ -322,13 +401,13 @@ test_layering_is_unaffected_by_the_base_image() (
   local temp project
   temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT; project="$temp/project"
   render_project_with_base_image rust "$project" "$CUDA_BASE_IMAGE"
-  grep -Fqx "FROM $CUDA_BASE_IMAGE" "$project/.riprap/managed/podman/Containerfile" || \
+  grep -Fqx "FROM $CUDA_BASE_IMAGE" "$project/.riprap/managed/container/Containerfile" || \
     fail 'the tooling image does not build on the chosen base image'
-  grep -Fqx 'FROM ${RIPRAP_TOOLING_IMAGE}' "$project/.riprap/managed/podman/Agent.Containerfile" || \
+  grep -Fqx 'FROM ${RIPRAP_TOOLING_IMAGE}' "$project/.riprap/managed/container/Agent.Containerfile" || \
     fail 'the agent image does not accept the project-scoped tooling image'
   grep -Fqx 'FROM ${RIPRAP_AGENT_IMAGE}' "$project/Containerfile" || \
     fail 'the project-owned image does not accept the project-scoped agent image'
-  ! grep -Eq 'claude|codex' "$project/.riprap/managed/podman/Containerfile" || \
+  ! grep -Eq 'claude|codex' "$project/.riprap/managed/container/Containerfile" || \
     fail 'the tooling image installs an agent'
 )
 
@@ -373,5 +452,6 @@ test_copier_in_rust_container
 test_copier_in_python_container
 test_agents_are_isolated_from_tooling_image
 test_agent_pinning_in_rust_container
+test_unprivileged_execution_in_python_container
 test_build_key_drives_the_layer_cache
 printf 'PASS: generated development containers pin and provide agent tooling\n'

@@ -146,6 +146,20 @@ test_opencode_container_check_is_rendered() (
   grep -Fq "process.platform === 'win32'" "$plugin" || fail 'host Windows OpenCode is not rejected'
 )
 
+# The canonical container check must recognise an Apptainer container, or every agent would be
+# blocked on an execution host that runs an exported image. The Apptainer marker variable is
+# evaluated before any host-specific probe, so this branch is deterministic on any host.
+# rq-2430a9f0
+test_container_check_recognizes_apptainer() (
+  local project="$1" hook
+  hook="$project/.riprap/managed/hooks/check-container.sh"
+  test -f "$hook" || fail 'the container-check hook was not rendered'
+  APPTAINER_CONTAINER=/opt/riprap/image.sif bash "$hook" >/dev/null 2>&1 ||
+    fail 'the container check does not recognise an Apptainer container'
+  SINGULARITY_CONTAINER=/opt/riprap/image.sif bash "$hook" >/dev/null 2>&1 ||
+    fail 'the container check does not recognise a Singularity container'
+)
+
 # rq-f928505b
 test_project_own_permissions_are_not_version_controlled() (
   local project="$1"
@@ -215,6 +229,7 @@ main() {
   done
 
   test_opencode_container_check_is_rendered "$temp/rust"
+  test_container_check_recognizes_apptainer "$temp/rust"
 
   test_project_own_permissions_are_not_version_controlled "$temp/rust"
   test_project_own_permissions_survive_a_template_update

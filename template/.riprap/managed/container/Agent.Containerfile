@@ -5,10 +5,13 @@ ARG CLAUDE_VERSION
 ARG CODEX_VERSION
 ARG OPENCODE_VERSION
 
+# The installers place files beneath HOME, which the tooling image sets to an
+# image-owned path outside /root. Each agent's own configuration home under that
+# path is a credential mount point at run time, so the image leaves nothing there.
 RUN set -eu; \
     test -n "$CLAUDE_VERSION"; \
     curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"; \
-    rm -rf /root/.claude.json /root/.claude
+    rm -rf "$HOME/.claude.json" "$HOME/.claude"
 
 RUN set -eu; \
     test -n "$CODEX_VERSION"; \
@@ -21,11 +24,15 @@ RUN set -eu; \
     if [ "$OPENCODE_VERSION" = latest ]; then version_args=; else version_args="--version $OPENCODE_VERSION"; fi; \
     curl -fsSL https://opencode.ai/install | bash -s -- $version_args --no-modify-path; \
     mkdir -p /opt/opencode/bin; \
-    mv /root/.opencode/bin/opencode /opt/opencode/bin/opencode; \
-    rm -rf /root/.opencode
+    mv "$HOME/.opencode/bin/opencode" /opt/opencode/bin/opencode; \
+    rm -rf "$HOME/.opencode"
 
 COPY opencode /usr/local/bin/opencode
 RUN chmod 0755 /usr/local/bin/opencode
 
-ENV CODEX_HOME=/root/.codex
+ENV CODEX_HOME=/opt/riprap/home/.codex
 ENV DISABLE_AUTOUPDATER=1
+
+# Reach the agent programs as any unprivileged user, on the same terms as the
+# toolchain the tooling image installed.
+RUN chmod -R a+rX /opt/riprap /opt/codex /opt/opencode
