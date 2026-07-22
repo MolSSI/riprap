@@ -1780,6 +1780,18 @@
     "title": "A GPU base image carries the whole tooling layer",
     "type": "scenario"
   },
+  "rq-d78b570b": {
+    "decl": "Scenario: The current Codex release installs in the agent image",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "The current Codex release installs in the agent image",
+    "type": "scenario"
+  },
   "rq-d86d20e0": {
     "decl": "# Feature: Portable Development Image",
     "file": "portable-development-image",

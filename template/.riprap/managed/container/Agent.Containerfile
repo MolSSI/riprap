@@ -13,15 +13,15 @@ RUN set -eu; \
     curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"; \
     rm -rf "$HOME/.claude.json" "$HOME/.claude"
 
-# The installer extracts a release tarball with a bare `tar -xzf`, which under a root-mapped runtime
-# (Podman) restores the archived ownership; the extracted files then belong to a uid the build cannot
-# chmod, so tar's own permission pass fails with "Operation not permitted". TAR_OPTIONS makes GNU tar
-# skip the ownership restore, leaving every file owned by the build user, so the chmod pass succeeds.
+# The installer extracts a release tarball with a bare `tar -xzf`. Under a root-mapped runtime
+# (Podman), GNU tar cannot restore the archive's runner ownership or perform its deferred directory
+# mode pass. Keep the build user's ownership and apply the build umask instead; the archive already
+# carries executable bits, and the installer explicitly fixes the modes of its entry points.
 RUN set -eu; \
     test -n "$CODEX_VERSION"; \
     CODEX_HOME=/opt/codex; \
     export CODEX_HOME; \
-    TAR_OPTIONS=--no-same-owner; \
+    TAR_OPTIONS='--no-same-owner --no-same-permissions'; \
     export TAR_OPTIONS; \
     curl -fsSL https://chatgpt.com/codex/install.sh | sh -s -- --release "$CODEX_VERSION"
 
