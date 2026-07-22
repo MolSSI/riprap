@@ -329,6 +329,8 @@ test_agents_are_isolated_from_tooling_image() (
   project_container="$project/Containerfile"
   ! grep -Eq 'claude\.ai/install\.sh|chatgpt\.com/codex/install\.sh|opencode\.ai/install' "$tooling" || fail 'tooling image installs agents'
   grep -Fq 'FROM ${RIPRAP_TOOLING_IMAGE}' "$agent" || fail 'agent image does not accept its scoped tooling image'
+  grep -Fq "TAR_OPTIONS='--no-same-owner --no-same-permissions'" "$agent" || \
+    fail 'agent image does not disable unsupported Codex archive metadata restoration'
   grep -Fq 'FROM ${RIPRAP_AGENT_IMAGE}' "$project_container" || fail 'project image does not accept its scoped agent image'
 )
 
@@ -371,6 +373,25 @@ test_agent_pinning_in_rust_container() {
     assert_opencode_admits_a_request_inside_the_container \
     assert_opencode_refuses_when_the_check_reports_failure
 }
+
+# rq-d78b570b
+test_current_codex_release_installs() (
+  local temp project tooling_image agent_image reported
+  temp="$(mktemp -d)"
+  tooling_image="localhost/riprap-current-codex-test-$$-tooling:latest"
+  agent_image="localhost/riprap-current-codex-test-$$-agent:latest"
+  trap 'podman image rm --force "$agent_image" "$tooling_image" >/dev/null 2>&1 || true; rm -rf "$temp"' EXIT
+  project="$temp/project"
+
+  render_project python "$project"
+  podman build --tag "$tooling_image" "$project/.riprap/managed/container"
+  write_build_key "$project" 2.1.205 latest 1.15.11 current-codex
+  build_agent_image "$project" "$agent_image" "$tooling_image"
+
+  reported="$(podman run --rm "$agent_image" codex --version)"
+  grep -Eq '[0-9]+\.[0-9]+\.[0-9]+' <<<"$reported" || \
+    fail "current Codex release did not report a numeric version: $reported"
+)
 
 # rq-e7703bd3 rq-3640e734 rq-56835ed3
 # Unprivileged execution is a property of the image, so it is exercised for the Python variant too.
@@ -495,6 +516,7 @@ test_copier_in_rust_container
 test_copier_in_python_container
 test_agents_are_isolated_from_tooling_image
 test_agent_pinning_in_rust_container
+test_current_codex_release_installs
 test_unprivileged_execution_in_python_container
 test_build_key_drives_the_layer_cache
 printf 'PASS: generated development containers pin and provide agent tooling\n'

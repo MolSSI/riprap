@@ -249,6 +249,10 @@ that cannot build one, as described in `portable-development-image.md`.
 - Image content is validated separately, by building the real images where a rootless Podman
   runtime is available. The two validations do not overlap: a launcher check never builds an image,
   and an image check never runs a launcher.
+- Image validation builds Codex both at a known exact release and at its current release. The
+  current-release smoke test keeps the other agents at known exact releases so an upstream change
+  to Claude or OpenCode cannot obscure whether the current Codex installer and release artifact
+  remain compatible with the generated agent image.
 
 ## Gherkin Scenarios <!-- rq-88b04d5f -->
 
@@ -280,6 +284,14 @@ Feature: Riprap development container
     And running "codex --version" in the built image reports the labeled Codex release
     And running "opencode --version" in the built image reports the labeled OpenCode release
     And the successful build key matches the verified image labels
+
+  @rq-d78b570b
+  Scenario: The current Codex release installs in the agent image
+    Given a generated project's candidate selects "latest" for Codex
+    And the candidate selects known exact releases for Claude and OpenCode
+    When the template-owned agent image is built with rootless Podman
+    Then the image build succeeds
+    And running "codex --version" in the built image reports a numeric release version
 
   @rq-b25f8408
   Scenario: Agent installation is isolated from the tooling image
