@@ -452,6 +452,18 @@
     "title": "Feature Interface",
     "type": "section"
   },
+  "rq-2f0bbadb": {
+    "decl": "Scenario: Codex archive extraction tolerates restricted metadata operations",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Codex archive extraction tolerates restricted metadata operations",
+    "type": "scenario"
+  },
   "rq-2f86b6aa": {
     "decl": "Scenario: A template update preserves enabled run options",
     "file": "development-container",
@@ -713,6 +725,18 @@
     "refs": [],
     "title": "Python Documentation",
     "type": "section"
+  },
+  "rq-5285ccc2": {
+    "decl": "Scenario: Development image validation requires rootless Podman",
+    "file": "development-container",
+    "refs": [
+      {
+        "file": "tests/test_development_container.sh",
+        "kind": "code"
+      }
+    ],
+    "title": "Development image validation requires rootless Podman",
+    "type": "scenario"
   },
   "rq-533155e6": {
     "decl": "Scenario: A relocated managed component does not disturb its user-owned file",
