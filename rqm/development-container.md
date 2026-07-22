@@ -249,10 +249,20 @@ that cannot build one, as described in `portable-development-image.md`.
 - Image content is validated separately, by building the real images where a rootless Podman
   runtime is available. The two validations do not overlap: a launcher check never builds an image,
   and an image check never runs a launcher.
+- Image validation verifies that Podman is running rootless before building an image and fails
+  rather than silently exercising a rootful runtime. Its diagnostics identify the active storage
+  driver and overlay mount program so a failure can be related to the filesystem implementation
+  under test.
 - Image validation builds Codex both at a known exact release and at its current release. The
   current-release smoke test keeps the other agents at known exact releases so an upstream change
   to Claude or OpenCode cannot obscure whether the current Codex installer and release artifact
   remain compatible with the generated agent image.
+- Codex archive extraction is also validated with a synthetic archive whose directory hierarchy has
+  non-build ownership and whose files include an executable. The extraction fixture rejects
+  attempts to restore archived ownership or final directory modes, modeling a rootless builder
+  whose backing filesystem does not permit those metadata operations. Extraction must leave the
+  archive contents owned by the build identity and the executable usable without relying on the
+  upstream installer or a particular Codex release.
 
 ## Gherkin Scenarios <!-- rq-88b04d5f -->
 
@@ -292,6 +302,24 @@ Feature: Riprap development container
     When the template-owned agent image is built with rootless Podman
     Then the image build succeeds
     And running "codex --version" in the built image reports a numeric release version
+
+  @rq-5285ccc2
+  Scenario: Development image validation requires rootless Podman
+    Given the development image validation job provides Podman
+    When image validation begins
+    Then Podman reports that it is running rootless
+    And validation reports the active storage driver and overlay mount program
+    And validation stops before building an image if Podman is rootful
+
+  @rq-2f0bbadb
+  Scenario: Codex archive extraction tolerates restricted metadata operations
+    Given a synthetic Codex archive with nested directories owned by a different identity
+    And the archive contains an executable file
+    And the extraction fixture rejects archived ownership and final directory-mode restoration
+    When the agent image's Codex archive extraction policy is applied
+    Then extraction succeeds
+    And the extracted hierarchy is owned by the build identity
+    And the extracted executable remains executable
 
   @rq-b25f8408
   Scenario: Agent installation is isolated from the tooling image

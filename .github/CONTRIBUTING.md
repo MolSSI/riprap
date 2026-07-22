@@ -6,7 +6,7 @@ describes how to merge code changes into Riprap.
 ## Getting Started
 
 * Make sure you have a [GitHub account](https://github.com/signup/free).
-* Install `pipx`, Podman, and Copier 9 (`pipx install 'copier>=9,<10'`).
+* Install `pipx`, Podman, `strace`, and Copier 9 (`pipx install 'copier>=9,<10'`).
 * [Fork](https://help.github.com/articles/fork-a-repo/) this repository on GitHub.
 * On your local machine,
   [clone](https://help.github.com/articles/cloning-a-repository/) your fork of

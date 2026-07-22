@@ -22,7 +22,7 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes pipx podman
+          sudo apt-get install --yes pipx podman strace
           curl --fail --show-error --location \
             --retry 5 --retry-all-errors \
             --output "$RUNNER_TEMP/apptainer.deb" \

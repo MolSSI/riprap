@@ -8,6 +8,20 @@ fail() {
   exit 1
 }
 
+# rq-5285ccc2
+test_image_validation_uses_rootless_podman() {
+  local rootless storage_driver graph_options mount_program
+  rootless="$(podman info --format '{{.Host.Security.Rootless}}')"
+  storage_driver="$(podman info --format '{{.Store.GraphDriverName}}')"
+  graph_options="$(podman info --format '{{.Store.GraphOptions}}')"
+  mount_program="$(sed -n 's/.*overlay\.mount_program:\([^] ]*\).*/\1/p' <<<"$graph_options")"
+  if [[ -z "$mount_program" ]]; then mount_program=native-or-none; fi
+
+  printf 'Podman validation environment: rootless=%s storage-driver=%s overlay-mount-program=%s\n' \
+    "$rootless" "$storage_driver" "$mount_program"
+  [[ "$rootless" == true ]] || fail 'development image validation requires rootless Podman'
+}
+
 # The image-owned home directory the Containerfile establishes. Every program, toolchain, and agent
 # configuration home lives beneath it so the image runs as an arbitrary unprivileged user.
 RIPRAP_IMAGE_HOME=/opt/riprap/home
@@ -393,6 +407,46 @@ test_current_codex_release_installs() (
     fail "current Codex release did not report a numeric version: $reported"
 )
 
+# rq-2f0bbadb
+test_codex_archive_extraction_tolerates_restricted_metadata() (
+  local temp project agent tar_options source extracted archive trace metadata_calls owners
+  temp="$(mktemp -d)"; trap 'rm -rf "$temp"' EXIT
+  project="$temp/project"
+  agent="$project/.riprap/managed/container/Agent.Containerfile"
+  source="$temp/source"
+  extracted="$temp/extracted"
+  archive="$temp/codex-package.tar.gz"
+  trace="$temp/metadata.trace"
+
+  command -v strace >/dev/null 2>&1 || fail 'strace is required for the Codex extraction test'
+  render_project python "$project"
+  tar_options="$(sed -n "s/^[[:space:]]*TAR_OPTIONS='\([^']*\)';.*/\1/p" "$agent")"
+  [[ -n "$tar_options" ]] || fail 'agent image defines no Codex archive extraction policy'
+
+  mkdir -p "$source/codex-resources/zsh/bin" "$extracted"
+  cp /bin/true "$source/codex-resources/zsh/bin/zsh"
+  tar --owner=12345 --group=12345 -czf "$archive" -C "$source" .
+
+  if ! podman unshare strace -qq -f -o "$trace" \
+    -e trace=chmod,fchmod,fchmodat,chown,fchown,fchownat,lchown \
+    -e inject=chmod:error=EPERM -e inject=fchmod:error=EPERM \
+    -e inject=fchmodat:error=EPERM -e inject=chown:error=EPERM \
+    -e inject=fchown:error=EPERM -e inject=fchownat:error=EPERM \
+    -e inject=lchown:error=EPERM \
+    env TAR_OPTIONS="$tar_options" tar -xzf "$archive" -C "$extracted"; then
+    metadata_calls="$(grep -E '(chmod|chown)(at)?\(' "$trace" || true)"
+    fail "Codex archive extraction attempted a restricted metadata operation: $metadata_calls"
+  fi
+
+  ! grep -Eq '(chmod|chown)(at)?\(' "$trace" || \
+    fail 'Codex archive extraction performed a restricted metadata operation'
+  owners="$(find "$extracted" -printf '%U\n' | sort -u)"
+  [[ "$owners" == "$(id -u)" ]] || \
+    fail "extracted hierarchy belongs to uid(s) $owners, not the build identity"
+  test -x "$extracted/codex-resources/zsh/bin/zsh" || \
+    fail 'Codex archive extraction discarded an executable mode'
+)
+
 # rq-e7703bd3 rq-3640e734 rq-56835ed3
 # Unprivileged execution is a property of the image, so it is exercised for the Python variant too.
 test_unprivileged_execution_in_python_container() {
@@ -507,6 +561,7 @@ test_update_preserves_enabled_run_options() (
     fail 'the update discarded the project'"'"'s enabled run option'
 )
 
+test_image_validation_uses_rootless_podman
 test_copier_version_parser_ignores_base_image_banner
 test_default_base_image_is_ubuntu_lts
 test_layering_is_unaffected_by_the_base_image
@@ -517,6 +572,7 @@ test_copier_in_python_container
 test_agents_are_isolated_from_tooling_image
 test_agent_pinning_in_rust_container
 test_current_codex_release_installs
+test_codex_archive_extraction_tolerates_restricted_metadata
 test_unprivileged_execution_in_python_container
 test_build_key_drives_the_layer_cache
 printf 'PASS: generated development containers pin and provide agent tooling\n'
