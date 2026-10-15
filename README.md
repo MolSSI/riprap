@@ -35,10 +35,10 @@ Every project is asked:
 | `project_name` | Human-readable name of the project (e.g. "My Project") |
 | `project_slug` | Short identifier used in image names, directory names, etc. Defaults to a lowercased, hyphenated form of `project_name`. |
 | `project_description` | One-sentence description of the project |
-| `base_image` | Ubuntu- or Debian-derived image used for the tooling layer. Defaults to `ubuntu:24.04`; projects that need CUDA may select an Ubuntu-derived vendor development image. |
+| `base_image` | Base image used by the project.  This must be an Ubuntu- or Debian-derived image. Defaults to `ubuntu:24.04`. |
 | `language` | Primary programming language: `rust` (default) or `python` |
 | `author_name` / `author_email` | Author information, used in packaging metadata and generated files |
-| `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. Open-source choices generate the selected license material; LGPL also generates its GPL basis and a project `NOTICE`. |
+| `open_source_license` | `MIT` (default), `BSD-3-Clause`, `LGPL-3.0-or-later`, or `Not Open Source`. |
 | `copyright_year` | Year used in the project copyright notice. Only asked when a license is selected. |
 
 Projects that select `rust` are additionally asked:
@@ -57,7 +57,7 @@ Projects that select `python` are additionally asked:
 | `include_docs` | Whether to create a Sphinx documentation skeleton in `docs/` with a ReadTheDocs configuration (`.readthedocs.yaml`). Defaults to yes. |
 | `dependency_source` | Where project dependencies come from: `Prefer conda-forge with pip fallback` (default), `Prefer default anaconda channel with pip fallback`, or `Dependencies from pip only (no conda)`. Conda-based choices generate a `devtools/conda-envs/test_env.yaml` environment and configure the CI workflow and documentation builds to use conda; the pip-only choice uses `pip` and `venv` throughout. |
 
-The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms); the Rust scaffolding follows the same structure.
+The Python scaffolding produced by these questions is adapted from the [MolSSI CMS Cookiecutter](https://github.com/MolSSI/cookiecutter-cms).
 Both languages also receive GitHub community files (`.github/CONTRIBUTING.md` and `.github/PULL_REQUEST_TEMPLATE.md`) and, when a skeleton is generated, a Codecov configuration (`.codecov.yml`).
 Both languages also receive a CodeQL security-scanning workflow (`.github/workflows/codeql.yaml`).
 All of the generated files listed above are *seeds*: they are created once when the project is generated, are yours to edit freely, and are never touched by `copier update`.
@@ -70,52 +70,38 @@ Because the CodeQL workflow is a seed, keeping its `github/codeql-action` versio
 All development **must** take place within a Podman container.
 The template includes checks that prevent Claude Code, Codex, and OpenCode from answering prompts unless you are running in a containerized environment.
 To launch a development environment, run `bash rr.sh` on Linux/Mac, or `rr.bat` on Windows.
-This builds the container and drops you into an interactive bash shell in `/work`.
-Run `claude` from the shell to start Claude Code, `codex` to start Codex, or `opencode` to start
-OpenCode.
-Before using Codex for the first time in a project, authenticate from inside the container with
-`codex login --device-auth` and complete the login in your browser (you may run the browser outside
-the container). Device authentication because the container operates within an isolated network
-namespace - for the purpose of logging in, your container counts as a separate device. This is
-only necessary the first time you use the container for this project.
-On the first Codex run, use `/hooks` to review and trust the repository's container-check hook;
-Codex deliberately does not run a new project-local hook until you approve its exact definition.
-For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with
-`/models`; OpenCode also ships free built-in models that need no provider account.
+This builds a Podman image, launches it as a development environment, mounts the directory where the `rr.sh`/`rr.bat` scripts are located to a `/work` directory in the container, and drops you into an interactive bash shell in `/work`.
 
-Each agent's authentication is stored in its own Podman named volume, scoped by the random UUID in
-`.riprap/state/project-id`, and the launchers never mount your host agent configuration
-directories. The UUID is non-secret project metadata and should be committed. To clear
-authentication, run `bash rr.sh --reset-agent-state claude`, `codex`, `opencode`, or `all` (use
-`rr.bat` on Windows).
+Once in the interactive terminal session, you can run `claude` to start Claude Code, `codex` to start Codex, or `opencode` to start OpenCode.
+The first time you launch one of these tools in the session, you will be required to authenticate.
+If using Claude Code, select "device authentication" as your authentication method (for the purpose of logging in, the container counts as a separate device).
+Before using Codex for the first time in a project, authenticate from inside the container with `codex login --device-auth` and complete the login in your browser (you may run the browser from outside the container).
+For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with `/models`; note that OpenCode also ships free built-in models that need no provider account.
 
-The container is built in three layers. The managed tooling definition at
-`.riprap/managed/podman/Containerfile` adds Copier, the language toolchain, and supporting
-utilities to the selected `base_image`. A separate managed agent layer installs Claude Code, Codex,
-and OpenCode. Finally, the user-owned `Containerfile` at the project root adds project-specific tools.
-Each project's local image names are scoped by its stable project UUID, so projects with different
-base images do not overwrite one another's images.
+Each agent's authentication is stored in its own Podman named volume, scoped by the random UUID in `.riprap/state/project-id`, and the launchers never mount your host agent configuration directories.
+The UUID is non-secret project metadata and should be committed.
+To clear authentication, run `bash rr.sh --reset-agent-state claude`, `codex`, `opencode`, or `all` (use `rr.bat` on Windows).
 
-Edit the root `Containerfile` to install additional system packages or tools your project needs;
-leave the managed definitions alone so that `copier update` can keep them in sync with upstream
-changes.
+The container is built in three layers.
+The managed tooling definition at `.riprap/managed/podman/Containerfile` adds Copier, the language toolchain, and supporting utilities to the selected `base_image`.
+A separate managed agent layer installs Claude Code, Codex, and OpenCode.
+Finally, the user-owned `Containerfile` at the project root adds project-specific tools.
+Each project's local image names are scoped by its stable project UUID, so projects with different base images do not overwrite one another's images.
+
+Edit the root `Containerfile` to install additional system packages or tools your project needs; leave the managed definitions alone so that `copier update` can keep them in sync with upstream changes.
 
 #### Updating the agents
 
 The agents update themselves automatically, at most once a week, with no action from you.
 
-The agents will not auto-update *within* the container (such changes would only last as long as
-the container itself, and would need to be repeated every time you launch a new container).
-Instead, the launcher reinstalls them when the calendar week changes, so the agents are never more
-than a week behind their current releases. One launch a week therefore takes a few minutes longer
-while the agent layers rebuild; every other launch reuses the cache and contacts the network not
-at all. If a rebuild fails — no network, or a broken upstream release — the launcher says so and
-carries on with the image you already have, so a refresh can never block your work.
+The agents will not auto-update *within* the container (such changes would only last as long as the container itself, and would need to be repeated every time you launch a new container).
+Instead, the launcher reinstalls them when the calendar week changes, so the agents are never more than a week behind their current releases.
+If a rebuild fails, the launcher will report the failure and carry on with the image you already have.
 
 ##### Pinning a release
 
-If a new agent release turns out to be a bad one, you can pin your way out of it without waiting
-for an upstream fix. Create `.riprap/user/agent-pin.env`:
+If a new agent release turns out to be a bad one, you can pin your way out of it without waiting for an upstream fix.
+Create `.riprap/user/agent-pin.env`; for example:
 
 ```
 CLAUDE_VERSION=2.1.205
@@ -123,43 +109,37 @@ CODEX_VERSION=0.144.6
 OPENCODE_VERSION=1.15.11
 ```
 
-Pinned agents are held at exactly those releases; any agent you leave out keeps tracking its
-current release. Only exact `x.y.z` versions are accepted; values such as `latest` will error.
+Pinned agents are held at exactly those releases; any agent you leave out keeps tracking its current release.
+Only exact `x.y.z` versions are accepted; values such as `latest` will error.
 Delete the file to return to the weekly schedule described above.
 
 #### Running on a compute cluster
 
-Many clusters run [Apptainer](https://apptainer.org) rather than Podman, and often you cannot build
-an image on them at all. Riprap allows you to instead build the image on a machine where you do have
-Podman and subsequently run it on the cluster.
+Many clusters run [Apptainer](https://apptainer.org) rather than Podman, and often you cannot build an image on them at all.
+Riprap allows you to instead build the image on a machine where you do have Podman and subsequently run it on the cluster.
 
-First: on a machine with Podman, build the image and export it as a single Apptainer image (this step
-needs Apptainer installed alongside Podman):
+First: on a machine with Podman, build the image and export it as a single Apptainer image (this step needs Apptainer installed alongside Podman):
 
 ```
 bash rr.sh --export-sif
 ```
 
-This writes `.riprap/state/apptainer/riprap-<uuid>-project.sif`. Copy the entire repository
-to the cluster with whatever you already use (e.g, `scp`, `rsync`, or a shared filesystem). Then,
-from the repository on the cluster:
+This writes `.riprap/state/apptainer/riprap-<uuid>-project.sif`.
+Copy the entire repository to the cluster with whatever you already use (e.g, `scp`, `rsync`, or a shared filesystem).
+Then, from the repository on the cluster:
 
 ```
 bash rr.sh --run-sif
 ```
 
 This drops you into an Apptainer container that works much the same way as the Podman containers.
-The launcher contains the invoking user's home directory and environment, so the container
-sees neither, and it presents the image read-only. Exporting and running are Unix-only; Windows
-does not support Apptainer.
+The launcher contains the invoking user's home directory and environment, so the container sees neither, and it presents the image read-only.
+Exporting and running are Unix-only; Windows does not support Apptainer.
 
-Note that `.sif` files can be quite large, and therefore should not be committed to the git
-repository.
+Note that `.sif` files can be quite large, and therefore should not be committed to the git repository.
 
-Agent authentication on the cluster is stored in directories under
-`.riprap/state/apptainer/credentials/`, created readable only by you. Note that cluster home and
-project filesystems are commonly shared, backed up, and readable by administrators, who could
-potentially view your agent credentials.
+Agent authentication on the cluster is stored in directories under `.riprap/state/apptainer/credentials/`, created readable only by you.
+Note that cluster home and project filesystems are commonly shared, backed up, and readable by administrators, who could potentially view your agent credentials.
 
 #### 2. Create an initial file structure
 
