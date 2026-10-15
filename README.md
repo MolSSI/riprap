@@ -74,8 +74,8 @@ This builds a Podman image, launches it as a development environment, mounts the
 
 Once in the interactive terminal session, you can run `claude` to start Claude Code, `codex` to start Codex, or `opencode` to start OpenCode.
 The first time you launch one of these tools in the session, you will be required to authenticate.
-If using Claude Code, select "device authentication" as your authentication method (for the purpose of logging in, the container counts as a separate device).
 Before using Codex for the first time in a project, authenticate from inside the container with `codex login --device-auth` and complete the login in your browser (you may run the browser from outside the container).
+If using Codex asks you to select an authentication method, select "device authentication" (for the purpose of logging in, the container counts as a separate device).
 For OpenCode, authenticate a provider with `opencode auth login`, then choose a model with `/models`; note that OpenCode also ships free built-in models that need no provider account.
 
 Each agent's authentication is stored in its own Podman named volume, scoped by the random UUID in `.riprap/state/project-id`, and the launchers never mount your host agent configuration directories.
